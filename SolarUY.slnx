@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SolarUY.Application/SolarUY.Application.csproj" />
+    <Project Path="src/SolarUY.Domain/SolarUY.Domain.csproj" />
+    <Project Path="src/SolarUY.Infrastructure/SolarUY.Infrastructure.csproj" />
+    <Project Path="src/SolarUY.Simulator/SolarUY.Simulator.csproj" />
+    <Project Path="src/SolarUY.Web/SolarUY.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SolarUY.Domain.Tests/SolarUY.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

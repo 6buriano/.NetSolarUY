@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SolarUY.Application\SolarUY.Application.csproj" />
+    <ProjectReference Include="..\SolarUY.Domain\SolarUY.Domain.csproj" />
+    <ProjectReference Include="..\SolarUY.Infrastructure\SolarUY.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
