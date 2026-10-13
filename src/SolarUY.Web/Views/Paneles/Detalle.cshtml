@@ -54,15 +54,15 @@
 @if (Model.UltimaLectura is null)
 {
     <div class="alert alert-info">
-        Este panel todavía no tiene lecturas. Las genera el simulador del sensor ARM
-        (<code>SolarUY.Simulator</code>).
+        Este panel todavía no tiene lecturas. Las mide el sensor, y las guarda el colector
+        (<code>SolarUY.Collector</code>) cuando le pregunta al simulador.
     </div>
 }
 else
 {
     <div class="card card-body shadow-sm">
         <dl class="row mb-0">
-            <dt class="col-sm-4">Fecha y hora</dt>
+            <dt class="col-sm-4">Fecha y hora (UTC)</dt>
             <dd class="col-sm-8">@Model.UltimaLectura.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")</dd>
 
             <dt class="col-sm-4">Corriente continua</dt>
@@ -90,6 +90,47 @@ else
         el promedio de los otros paneles activos del nodo: hasta 15 % de caída sigue operativo, más de 15 %
         es rendimiento bajo y más de 40 % es falla.
     </p>
+
+    <h2 class="h5 mt-4">Últimas @Model.LecturasRecientes.Count lecturas</h2>
+    <p class="text-muted small">
+        Es lo que fue guardando el colector, de la más nueva a la más vieja. Las filas en rojo son lecturas
+        en falla y en amarillo, rendimiento bajo. Las horas están en UTC.
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Fecha y hora (UTC)</th>
+                    <th class="text-end">Corriente (A)</th>
+                    <th class="text-end">Voltaje (V)</th>
+                    <th class="text-end">Potencia (W)</th>
+                    <th class="text-end">Temperatura (°C)</th>
+                    <th>Estado detectado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var lectura in Model.LecturasRecientes)
+                {
+                    var claseFila = lectura.EstadoDetectado switch
+                    {
+                        EstadoSalud.FALLA_DETECTADA => "table-danger",
+                        EstadoSalud.RENDIMIENTO_BAJO => "table-warning",
+                        _ => string.Empty
+                    };
+
+                    <tr class="@claseFila">
+                        <td>@lectura.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td class="text-end">@lectura.CorrienteContinua.ToString("0.##")</td>
+                        <td class="text-end">@lectura.Voltaje.ToString("0.##")</td>
+                        <td class="text-end">@lectura.PotenciaGeneradaWatts.ToString("0.##")</td>
+                        <td class="text-end">@lectura.TemperaturaCelsius.ToString("0.##")</td>
+                        <td><span class="badge @EstadoSaludHelper.ClaseBadge(lectura.EstadoDetectado)">@lectura.EstadoDetectado</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 <a class="btn btn-link px-0" asp-action="Index">&laquo; Volver a paneles</a>

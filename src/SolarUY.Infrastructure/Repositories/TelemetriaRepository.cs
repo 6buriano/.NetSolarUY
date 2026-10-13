@@ -42,11 +42,19 @@ public class TelemetriaRepository : ITelemetriaRepository
             .OrderByDescending(lectura => lectura.FechaHora)
             .ToListAsync(cancellationToken);
 
-    public async Task<LecturaTelemetria?> ObtenerUltimaPorPanelAsync(Guid panelSolarId,
+    public async Task<IReadOnlyList<LecturaTelemetria>> ObtenerUltimasPorPanelAsync(Guid panelSolarId, int cantidad,
         CancellationToken cancellationToken = default)
-        => await _context.LecturasTelemetria
+    {
+        if (cantidad <= 0)
+        {
+            return [];
+        }
+
+        return await _context.LecturasTelemetria
             .AsNoTracking()
             .Where(lectura => lectura.PanelSolarId == panelSolarId)
             .OrderByDescending(lectura => lectura.FechaHora)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Take(cantidad)
+            .ToListAsync(cancellationToken);
+    }
 }

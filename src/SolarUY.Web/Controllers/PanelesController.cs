@@ -13,6 +13,9 @@ namespace SolarUY.Web.Controllers;
 // TODO (etapa de seguridad): agregar [Authorize(Roles = "Administrador")] cuando esté Keycloak.
 public class PanelesController : Controller
 {
+    /// <summary>Cuántas lecturas se muestran en la serie reciente del panel.</summary>
+    private const int LecturasEnPantalla = 20;
+
     private readonly PanelService _panelService;
     private readonly NodoService _nodoService;
 
@@ -45,10 +48,14 @@ public class PanelesController : Controller
             return NotFound();
         }
 
+        // La serie viene de la más reciente a la más antigua, así que la última lectura es la primera.
+        var lecturas = await _panelService.ObtenerLecturasRecientesAsync(id, LecturasEnPantalla, cancellationToken);
+
         return View(new PanelDetalleViewModel
         {
             Panel = panel,
-            UltimaLectura = await _panelService.ObtenerUltimaLecturaAsync(id, cancellationToken)
+            UltimaLectura = lecturas.FirstOrDefault(),
+            LecturasRecientes = lecturas
         });
     }
 

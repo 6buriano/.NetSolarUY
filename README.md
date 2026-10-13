@@ -213,7 +213,10 @@ SolarUY.Collector  ──GET /sensores/{hw}/estado──▶  SolarUY.SensorSimul
 | `ColectorTelemetriaWorker` | `SolarUY.Collector` | Cada `Colector:IntervaloSegundos` consulta cada sensor activo, evalúa y guarda. |
 | `Nodo.EvaluarLecturas` | `SolarUY.Domain` | Diagnostica: el sensor mide, el dominio decide. |
 
-**Cómo se vinculan sistema y hardware** (dos campos que hay que hacer coincidir al cargar los datos):
+**Dónde se ve:** en el detalle de cada panel, la última lectura y la serie de las últimas 20, con las filas
+en falla resaltadas. Todavía no hay dashboard ni gráficos: eso es el hito de Monitoreo (`specs.md` §5.2).
+
+**Cómo se vinculan sistema y hardware** (tres campos que hay que hacer coincidir al cargar los datos):
 
 - `SensorDispositivo.IdentificadorHardwareARM` ↔ el identificador del simulador (`ARM-001`, `ARM-002`, …).
 - `SensorDispositivo.UrlBase` ↔ dónde escucha (`http://localhost:5100`).

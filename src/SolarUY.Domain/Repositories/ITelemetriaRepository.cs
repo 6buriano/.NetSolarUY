@@ -19,6 +19,11 @@ public interface ITelemetriaRepository
     Task<IReadOnlyList<LecturaTelemetria>> ObtenerPorPanelAsync(Guid panelSolarId, DateTime desde, DateTime hasta,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Devuelve la última lectura registrada de un panel, o <c>null</c> si todavía no tiene ninguna.</summary>
-    Task<LecturaTelemetria?> ObtenerUltimaPorPanelAsync(Guid panelSolarId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Devuelve las últimas lecturas de un panel, de la más reciente a la más antigua.
+    /// Con <paramref name="cantidad"/> en 1 sirve para saber la última lectura; con 20, para
+    /// mostrar la serie reciente en pantalla.
+    /// </summary>
+    Task<IReadOnlyList<LecturaTelemetria>> ObtenerUltimasPorPanelAsync(Guid panelSolarId, int cantidad,
+        CancellationToken cancellationToken = default);
 }

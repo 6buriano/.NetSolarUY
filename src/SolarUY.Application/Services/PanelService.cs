@@ -58,12 +58,15 @@ public class PanelService
         return panel.ToDto(nombresNodos.GetValueOrDefault(panel.NodoId));
     }
 
-    /// <summary>Última lectura de telemetría del panel, o <c>null</c> si el simulador todavía no envió ninguna.</summary>
-    public async Task<LecturaTelemetriaDto?> ObtenerUltimaLecturaAsync(Guid panelId,
+    /// <summary>
+    /// Últimas lecturas de telemetría del panel, de la más reciente a la más antigua.
+    /// Devuelve una lista vacía si el colector todavía no guardó ninguna.
+    /// </summary>
+    public async Task<IReadOnlyList<LecturaTelemetriaDto>> ObtenerLecturasRecientesAsync(Guid panelId, int cantidad,
         CancellationToken cancellationToken = default)
     {
-        var lectura = await _telemetriaRepository.ObtenerUltimaPorPanelAsync(panelId, cancellationToken);
-        return lectura?.ToDto();
+        var lecturas = await _telemetriaRepository.ObtenerUltimasPorPanelAsync(panelId, cantidad, cancellationToken);
+        return lecturas.Select(lectura => lectura.ToDto()).ToList();
     }
 
     public async Task<Guid> CrearAsync(CrearPanelRequest request, CancellationToken cancellationToken = default)
