@@ -3,10 +3,20 @@
     <Project Path="src/SolarUY.Application/SolarUY.Application.csproj" />
     <Project Path="src/SolarUY.Domain/SolarUY.Domain.csproj" />
     <Project Path="src/SolarUY.Infrastructure/SolarUY.Infrastructure.csproj" />
-    <Project Path="src/SolarUY.Simulator/SolarUY.Simulator.csproj" />
+    <Project Path="src/SolarUY.Collector/SolarUY.Collector.csproj" />
     <Project Path="src/SolarUY.Web/SolarUY.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SolarUY.Domain.Tests/SolarUY.Domain.Tests.csproj" />
+  </Folder>
+  <!--
+    Simulador del sensor ARM + inversor (mock de hardware por HTTP).
+    Es un repositorio aparte, incorporado como submodulo git:
+    https://github.com/RamosMariano/SolarUY.SensorSimulator
+    Hay que inicializar el submodulo despues de clonar (ver README.md).
+  -->
+  <Folder Name="/submodulos/">
+    <Project Path="SolarUY.SensorSimulator/src/SolarUY.SensorSimulator/SolarUY.SensorSimulator.csproj" />
+    <Project Path="SolarUY.SensorSimulator/tests/SolarUY.SensorSimulator.Tests/SolarUY.SensorSimulator.Tests.csproj" />
   </Folder>
 </Solution>

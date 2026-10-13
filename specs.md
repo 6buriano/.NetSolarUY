@@ -20,8 +20,8 @@ Contiene la lógica y las reglas centrales del negocio. No posee dependencias ex
 - **ParqueSolar:** `Guid Id`, `string Nombre`, `string Ubicacion`, `double CapacidadInstaladaKW`, `DateTime FechaInstalacion`, `List<Nodo> Nodos`.
 - **Nodo:** `Guid Id`, `string Nombre`, `string UbicacionDentroParque`, `Guid ParqueSolarId`, `Inversor Inversor`, `List<PanelSolar> Paneles`.
 - **Inversor:** `Guid Id`, `string Modelo`, `string NumeroSerie`, `double EficienciaConversion`, `bool VolcadoRedActivo`, `Guid NodoId`, `SensorDispositivo Sensor`.
-- **PanelSolar:** `Guid Id`, `string Modelo`, `string Fabricante`, `double PotenciaNominalW`, `EstadoSalud Estado`, `Guid NodoId`, `List<TareaMantenimiento> Mantenimientos`.
-- **SensorDispositivo:** `Guid Id`, `string IdentificadorHardwareARM`, `string VersionFirmware`, `bool Activo`, `Guid InversorId`.
+- **PanelSolar:** `Guid Id`, `string CodigoPanel` (único dentro del nodo: lo vincula con el panel del sensor), `string Modelo`, `string Fabricante`, `double PotenciaNominalW`, `EstadoSalud Estado`, `bool Activo`, `Guid NodoId`, `List<TareaMantenimiento> Mantenimientos`.
+- **SensorDispositivo:** `Guid Id`, `string IdentificadorHardwareARM`, `string VersionFirmware`, `bool Activo`, `string UrlBase` (dónde escucha el sensor), `Guid InversorId`.
 - **LecturaTelemetria:** `Guid Id`, `Guid PanelSolarId`, `DateTime FechaHora`, `double CorrienteContinua`, `double Voltaje`, `double PotenciaGeneradaWatts`, `double TemperaturaCelsius`, `EstadoSalud EstadoDetectado`.
 - **TareaMantenimiento:** `Guid Id`, `Guid PanelSolarId`, `TipoMantenimiento Tipo`, `DateTime FechaProgramada`, `DateTime? FechaRealizada`, `string Descripcion`, `EstadoMantenimiento Estado`.
 
@@ -46,6 +46,7 @@ Contiene los casos de uso, orquestación y transformación de datos.
 
 ### 3.2. Interfaces de Servicios Externos
 - `ISignalRNotificationService`: Abstracción para el envío de métricas telemétricas en tiempo real hacia los clientes Web.
+- `ISensorClient`: Abstracción del sensor ARM + inversor (consultar estado y mandar órdenes). Permite cambiar el simulador por hardware real sin tocar el resto del sistema.
 - `IMCPAgentService`: Abstracción para procesar consultas en lenguaje natural mediante el protocolo MCP.
 
 ### 3.3. DTOs (Data Transfer Objects)

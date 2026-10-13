@@ -1,0 +1,26 @@
+@model NodoDto
+@{
+    ViewData["Title"] = "Eliminar nodo";
+}
+
+<h1 class="h3 mb-3">Eliminar nodo</h1>
+
+<div class="alert alert-warning">
+    ¿Confirmás que querés eliminar el nodo <strong>@Model.Nombre</strong>
+    (@Model.UbicacionDentroParque)? Se elimina también su inversor
+    <strong>@Model.Inversor.Modelo</strong> (@Model.Inversor.NumeroSerie).
+    Esta acción no se puede deshacer.
+</div>
+
+@if (Model.CantidadPaneles > 0)
+{
+    <div class="alert alert-danger">
+        El nodo tiene @Model.CantidadPaneles panel(es) asociado(s). El sistema va a rechazar la eliminación
+        hasta que elimines esos paneles primero.
+    </div>
+}
+
+<form asp-action="Eliminar" asp-route-id="@Model.Id" method="post">
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a class="btn btn-outline-secondary" asp-action="Detalle" asp-route-id="@Model.Id">Cancelar</a>
+</form>

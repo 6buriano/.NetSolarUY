@@ -1,0 +1,22 @@
+@model ParqueFormViewModel
+@{
+    ViewData["Title"] = "Editar parque solar";
+}
+
+<h1 class="h3 mb-3">Editar parque solar</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form asp-action="Editar" asp-route-id="@Model.Id" method="post" class="card card-body shadow-sm">
+            <partial name="_Formulario" model="Model" />
+            <div class="mt-2">
+                <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                <a class="btn btn-outline-secondary" asp-action="Detalle" asp-route-id="@Model.Id">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,32 @@
+@model NodoFormViewModel
+@{
+    ViewData["Title"] = "Editar nodo";
+}
+
+<h1 class="h3 mb-3">Editar nodo</h1>
+
+@if (Model.Parques.Count == 0)
+{
+    <div class="alert alert-warning">
+        No hay parques solares cargados.
+        <a asp-controller="Parques" asp-action="Crear" class="alert-link">Crear un parque solar</a>.
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-lg-9">
+            <form asp-action="Editar" asp-route-id="@Model.Id" method="post" class="card card-body shadow-sm">
+                <partial name="_Formulario" model="Model" />
+                <div class="mt-2">
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    <a class="btn btn-outline-secondary" asp-action="Detalle" asp-route-id="@Model.Id">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,17 @@
+@model PanelDto
+@{
+    ViewData["Title"] = "Eliminar panel";
+}
+
+<h1 class="h3 mb-3">Eliminar panel</h1>
+
+<div class="alert alert-warning">
+    ¿Confirmás que querés eliminar el panel <strong>@Model.Modelo</strong> (@Model.Fabricante,
+    @Model.PotenciaNominalW.ToString("0.##") W)? Se eliminan también sus lecturas de telemetría y sus
+    tareas de mantenimiento. Esta acción no se puede deshacer.
+</div>
+
+<form asp-action="Eliminar" asp-route-id="@Model.Id" method="post">
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a class="btn btn-outline-secondary" asp-action="Detalle" asp-route-id="@Model.Id">Cancelar</a>
+</form>

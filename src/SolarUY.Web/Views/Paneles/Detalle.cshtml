@@ -1,0 +1,95 @@
+@model PanelDetalleViewModel
+@{
+    ViewData["Title"] = Model.Panel.Modelo;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h3 mb-0">@Model.Panel.Modelo</h1>
+        <p class="text-muted mb-0">
+            @Model.Panel.Fabricante
+            @if (Model.Panel.NodoNombre is not null)
+            {
+                <span>&middot;</span>
+                <a asp-controller="Nodos" asp-action="Detalle" asp-route-id="@Model.Panel.NodoId">@Model.Panel.NodoNombre</a>
+            }
+        </p>
+    </div>
+    <div class="text-nowrap">
+        <a class="btn btn-outline-primary" asp-action="Editar" asp-route-id="@Model.Panel.Id">Editar</a>
+        <a class="btn btn-outline-danger" asp-action="Eliminar" asp-route-id="@Model.Panel.Id">Eliminar</a>
+    </div>
+</div>
+
+<div class="card card-body shadow-sm mb-4">
+    <dl class="row mb-0">
+        <dt class="col-sm-4">Código de panel</dt>
+        <dd class="col-sm-8"><code>@Model.Panel.CodigoPanel</code></dd>
+
+        <dt class="col-sm-4">Potencia nominal</dt>
+        <dd class="col-sm-8">@Model.Panel.PotenciaNominalW.ToString("0.##") W</dd>
+
+        <dt class="col-sm-4">Estado de salud</dt>
+        <dd class="col-sm-8"><span class="badge @EstadoSaludHelper.ClaseBadge(Model.Panel.Estado)">@Model.Panel.Estado</span></dd>
+
+        <dt class="col-sm-4">Habilitado en el hardware</dt>
+        <dd class="col-sm-8">
+            @if (Model.Panel.Activo)
+            {
+                <span class="badge text-bg-success">Activo</span>
+            }
+            else
+            {
+                <span class="badge text-bg-secondary">Inactivo</span>
+            }
+        </dd>
+
+        <dt class="col-sm-4">Fecha de instalación</dt>
+        <dd class="col-sm-8">@Model.Panel.FechaInstalacion.ToString("dd/MM/yyyy")</dd>
+    </dl>
+</div>
+
+<h2 class="h5">Última lectura de telemetría</h2>
+
+@if (Model.UltimaLectura is null)
+{
+    <div class="alert alert-info">
+        Este panel todavía no tiene lecturas. Las genera el simulador del sensor ARM
+        (<code>SolarUY.Simulator</code>).
+    </div>
+}
+else
+{
+    <div class="card card-body shadow-sm">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Fecha y hora</dt>
+            <dd class="col-sm-8">@Model.UltimaLectura.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+            <dt class="col-sm-4">Corriente continua</dt>
+            <dd class="col-sm-8">@Model.UltimaLectura.CorrienteContinua.ToString("0.##") A</dd>
+
+            <dt class="col-sm-4">Voltaje</dt>
+            <dd class="col-sm-8">@Model.UltimaLectura.Voltaje.ToString("0.##") V</dd>
+
+            <dt class="col-sm-4">Potencia generada</dt>
+            <dd class="col-sm-8">@Model.UltimaLectura.PotenciaGeneradaWatts.ToString("0.##") W</dd>
+
+            <dt class="col-sm-4">Temperatura</dt>
+            <dd class="col-sm-8">@Model.UltimaLectura.TemperaturaCelsius.ToString("0.##") °C</dd>
+
+            <dt class="col-sm-4">Estado detectado</dt>
+            <dd class="col-sm-8">
+                <span class="badge @EstadoSaludHelper.ClaseBadge(Model.UltimaLectura.EstadoDetectado)">@Model.UltimaLectura.EstadoDetectado</span>
+            </dd>
+        </dl>
+    </div>
+
+    <p class="text-muted small mt-2">
+        Regla de estado (spec del simulador, sección 9): el panel queda en <code>DESCONECTADO</code> si está
+        inactivo, en <code>FALLA_DETECTADA</code> si supera los 75 °C, y si no se compara su rendimiento con
+        el promedio de los otros paneles activos del nodo: hasta 15 % de caída sigue operativo, más de 15 %
+        es rendimiento bajo y más de 40 % es falla.
+    </p>
+}
+
+<a class="btn btn-link px-0" asp-action="Index">&laquo; Volver a paneles</a>

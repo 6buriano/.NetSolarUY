@@ -1,0 +1,29 @@
+@model ParqueFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+<input type="hidden" asp-for="Id" />
+
+<div class="mb-3">
+    <label asp-for="Nombre" class="form-label"></label>
+    <input asp-for="Nombre" class="form-control" placeholder="Parque Solar Norte" />
+    <span asp-validation-for="Nombre" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Ubicacion" class="form-label"></label>
+    <input asp-for="Ubicacion" class="form-control" placeholder="Salto, Salto" />
+    <span asp-validation-for="Ubicacion" class="text-danger"></span>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="CapacidadInstaladaKW" class="form-label"></label>
+        <input asp-for="CapacidadInstaladaKW" class="form-control" step="0.01" />
+        <span asp-validation-for="CapacidadInstaladaKW" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="FechaInstalacion" class="form-label"></label>
+        <input asp-for="FechaInstalacion" class="form-control" />
+        <span asp-validation-for="FechaInstalacion" class="text-danger"></span>
+    </div>
+</div>

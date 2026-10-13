@@ -1,0 +1,63 @@
+# Servicios locales de desarrollo. Levantarlos con:  docker compose up -d
+#
+# - mysql: base de datos de SolarUY.Web y SolarUY.Collector. Las credenciales coinciden con la
+#   cadena de conexión de appsettings.Development.json de los dos proyectos.
+# - sensor-simulator: el mock de hardware, que vive en el submódulo SolarUY.SensorSimulator.
+#   Para construirlo hay que tener el submódulo inicializado (ver README).
+#
+# La web y el colector corren en tu máquina con dotnet run, así que llegan al simulador por
+# http://localhost:5100 y a MySQL por localhost:3306.
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: solareuy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: solareuy
+      MYSQL_USER: solareuy
+      MYSQL_PASSWORD: solareuy
+    ports:
+      - "3306:3306"
+    volumes:
+      - solareuy-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - solareuy
+
+  sensor-simulator:
+    build:
+      context: ./SolarUY.SensorSimulator
+    image: solaruy-sensor-simulator:latest
+    container_name: solaruy-sensor-simulator
+    restart: unless-stopped
+    # Solo se publica en loopback: el simulador no tiene autenticación, es un mock de pruebas.
+    ports:
+      - "127.0.0.1:5100:8080"
+    environment:
+      # Cada ":" de appsettings.json se escribe "__" en una variable de entorno.
+      Simulador__NodosIniciales: "3"
+      Simulador__PanelesPorNodo: "5"
+      Simulador__PotenciaNominalPanelW: "300"
+      Simulador__ProbabilidadFalla: "0.01"
+      Simulador__DuracionFallaSegundos: "120"
+      Simulador__ZonaHoraria: "America/Montevideo"
+      # Para una topología no uniforme se usa la lista Nodos y se ignoran las dos primeras:
+      # Simulador__Nodos__0__Id: "ARM-001"
+      # Simulador__Nodos__0__Paneles: "6"
+      # Simulador__Nodos__1__Id: "ARM-002"
+      # Simulador__Nodos__1__Paneles: "4"
+      # Simulador__Nodos__1__PotenciaNominalW: "450"
+    networks:
+      - solareuy
+
+networks:
+  solareuy:
+    driver: bridge
+
+volumes:
+  solareuy-mysql-data:

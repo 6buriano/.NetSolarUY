@@ -1,0 +1,87 @@
+@model NodoFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+<input type="hidden" asp-for="Id" />
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="Nombre" class="form-label"></label>
+        <input asp-for="Nombre" class="form-control" placeholder="Nodo A" />
+        <span asp-validation-for="Nombre" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="UbicacionDentroParque" class="form-label"></label>
+        <input asp-for="UbicacionDentroParque" class="form-control" placeholder="Sector norte, fila 1" />
+        <span asp-validation-for="UbicacionDentroParque" class="text-danger"></span>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="ParqueSolarId" class="form-label"></label>
+    <select asp-for="ParqueSolarId" asp-items="@(new SelectList(Model.Parques, nameof(ParqueDto.Id), nameof(ParqueDto.Nombre)))" class="form-select"></select>
+    <span asp-validation-for="ParqueSolarId" class="text-danger"></span>
+</div>
+
+<h2 class="h6 mt-4">Inversor del nodo</h2>
+<p class="text-muted small">
+    Todo nodo tiene exactamente un inversor asignado (regla de negocio 1), por eso se carga en el mismo formulario.
+</p>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="InversorModelo" class="form-label"></label>
+        <input asp-for="InversorModelo" class="form-control" placeholder="Huawei SUN2000-5KTL" />
+        <span asp-validation-for="InversorModelo" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="InversorNumeroSerie" class="form-label"></label>
+        <input asp-for="InversorNumeroSerie" class="form-control" placeholder="SN-000123" />
+        <span asp-validation-for="InversorNumeroSerie" class="text-danger"></span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="InversorEficienciaConversion" class="form-label"></label>
+        <input asp-for="InversorEficienciaConversion" class="form-control" step="0.01" />
+        <span asp-validation-for="InversorEficienciaConversion" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="InversorVolcadoRedActivo" class="form-check-input" />
+            <label asp-for="InversorVolcadoRedActivo" class="form-check-label"></label>
+        </div>
+    </div>
+</div>
+
+<h2 class="h6 mt-4">Sensor ARM del nodo</h2>
+<p class="text-muted small">
+    Es la dirección a la que el colector de telemetría le pide las lecturas al nodo. El identificador
+    tiene que coincidir con el del hardware: en el simulador son <code>ARM-001</code>, <code>ARM-002</code>, …
+    Podés verlos con <code>GET /simulador/inventario</code>.
+</p>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="IdentificadorHardwareARM" class="form-label"></label>
+        <input asp-for="IdentificadorHardwareARM" class="form-control" placeholder="ARM-001" />
+        <span asp-validation-for="IdentificadorHardwareARM" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="SensorVersionFirmware" class="form-label"></label>
+        <input asp-for="SensorVersionFirmware" class="form-control" placeholder="1.4.2" />
+        <span asp-validation-for="SensorVersionFirmware" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="SensorActivo" class="form-check-input" />
+            <label asp-for="SensorActivo" class="form-check-label"></label>
+        </div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="SensorUrlBase" class="form-label"></label>
+    <input asp-for="SensorUrlBase" class="form-control" placeholder="http://localhost:5100" />
+    <span asp-validation-for="SensorUrlBase" class="text-danger"></span>
+</div>

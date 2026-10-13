@@ -6,6 +6,17 @@
     <ProjectReference Include="..\SolarUY.Infrastructure\SolarUY.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!--
+    Las herramientas de EF Core (dotnet ef) exigen el paquete Design en el proyecto de arranque,
+    que es este. PrivateAssets="all" evita que se propague como dependencia del proyecto Web.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

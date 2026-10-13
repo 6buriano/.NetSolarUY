@@ -1,0 +1,54 @@
+@model PanelFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+<input type="hidden" asp-for="Id" />
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="CodigoPanel" class="form-label"></label>
+        <input asp-for="CodigoPanel" class="form-control" placeholder="P01" />
+        <span asp-validation-for="CodigoPanel" class="text-danger"></span>
+        <div class="form-text">Tiene que coincidir con el código que usa el sensor y ser único en el nodo.</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="Modelo" class="form-label"></label>
+        <input asp-for="Modelo" class="form-control" placeholder="JAM72S30-550/MR" />
+        <span asp-validation-for="Modelo" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="Fabricante" class="form-label"></label>
+        <input asp-for="Fabricante" class="form-control" placeholder="JA Solar" />
+        <span asp-validation-for="Fabricante" class="text-danger"></span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label asp-for="PotenciaNominalW" class="form-label"></label>
+        <input asp-for="PotenciaNominalW" class="form-control" step="0.01" />
+        <span asp-validation-for="PotenciaNominalW" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="Estado" class="form-label"></label>
+        <select asp-for="Estado" asp-items="Html.GetEnumSelectList<EstadoSalud>()" class="form-select"></select>
+        <span asp-validation-for="Estado" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="FechaInstalacion" class="form-label"></label>
+        <input asp-for="FechaInstalacion" class="form-control" />
+        <span asp-validation-for="FechaInstalacion" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="Activo" class="form-check-input" />
+            <label asp-for="Activo" class="form-check-label"></label>
+            <div class="form-text">Un panel inactivo queda en <code>DESCONECTADO</code>.</div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="NodoId" class="form-label"></label>
+    <select asp-for="NodoId" asp-items="@(new SelectList(Model.Nodos, nameof(NodoDto.Id), nameof(NodoDto.Nombre)))" class="form-select"></select>
+    <span asp-validation-for="NodoId" class="text-danger"></span>
+</div>

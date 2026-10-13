@@ -1,0 +1,3 @@
+[submodule "SolarUY.SensorSimulator"]
+	path = SolarUY.SensorSimulator
+	url = https://github.com/RamosMariano/SolarUY.SensorSimulator.git

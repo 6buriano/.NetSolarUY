@@ -1,0 +1,117 @@
+@model NodoDetalleViewModel
+@{
+    ViewData["Title"] = Model.Nodo.Nombre;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h3 mb-0">@Model.Nodo.Nombre</h1>
+        <p class="text-muted mb-0">
+            @if (Model.Nodo.ParqueNombre is not null)
+            {
+                <a asp-controller="Parques" asp-action="Detalle" asp-route-id="@Model.Nodo.ParqueSolarId">@Model.Nodo.ParqueNombre</a>
+                <span>&middot;</span>
+            }
+            @Model.Nodo.UbicacionDentroParque
+        </p>
+    </div>
+    <div class="text-nowrap">
+        <a class="btn btn-primary" asp-controller="Paneles" asp-action="Crear" asp-route-nodoId="@Model.Nodo.Id">Nuevo panel</a>
+        <a class="btn btn-outline-primary" asp-action="Editar" asp-route-id="@Model.Nodo.Id">Editar</a>
+        <a class="btn btn-outline-danger" asp-action="Eliminar" asp-route-id="@Model.Nodo.Id">Eliminar</a>
+    </div>
+</div>
+
+<div class="card card-body shadow-sm mb-4">
+    <h2 class="h6 text-uppercase text-muted">Inversor</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Modelo</dt>
+        <dd class="col-sm-9">@Model.Nodo.Inversor.Modelo</dd>
+
+        <dt class="col-sm-3">Número de serie</dt>
+        <dd class="col-sm-9">@Model.Nodo.Inversor.NumeroSerie</dd>
+
+        <dt class="col-sm-3">Eficiencia de conversión</dt>
+        <dd class="col-sm-9">@Model.Nodo.Inversor.EficienciaConversion.ToString("0.##") %</dd>
+
+        <dt class="col-sm-3">Volcado a red</dt>
+        <dd class="col-sm-9">
+            @if (Model.Nodo.Inversor.VolcadoRedActivo)
+            {
+                <span class="badge text-bg-success">Activo</span>
+            }
+            else
+            {
+                <span class="badge text-bg-secondary">Inactivo</span>
+            }
+        </dd>
+
+        <dt class="col-sm-3">Sensor ARM</dt>
+        <dd class="col-sm-9">
+            @if (Model.Nodo.Inversor.Sensor is null)
+            {
+                <span class="text-muted">Todavía no hay un sensor registrado para este inversor.</span>
+            }
+            else
+            {
+                <span>@Model.Nodo.Inversor.Sensor.IdentificadorHardwareARM</span>
+                <span class="text-muted">
+                    (firmware @Model.Nodo.Inversor.Sensor.VersionFirmware)
+                </span>
+                @if (Model.Nodo.Inversor.Sensor.Activo)
+                {
+                    <span class="badge text-bg-success">Activo</span>
+                }
+                else
+                {
+                    <span class="badge text-bg-secondary">Inactivo</span>
+                }
+                <div class="text-muted small">El colector consulta en <code>@Model.Nodo.Inversor.Sensor.UrlBase</code></div>
+            }
+        </dd>
+    </dl>
+</div>
+
+<h2 class="h5">Paneles (@Model.Paneles.Count)</h2>
+
+@if (Model.Paneles.Count == 0)
+{
+    <div class="alert alert-info">Este nodo todavía no tiene paneles cargados.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Modelo</th>
+                    <th>Fabricante</th>
+                    <th class="text-end">Potencia nominal (W)</th>
+                    <th>Estado</th>
+                    <th>Instalación</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var panel in Model.Paneles)
+                {
+                    <tr>
+                        <td><code>@panel.CodigoPanel</code></td>
+                        <td>@panel.Modelo</td>
+                        <td>@panel.Fabricante</td>
+                        <td class="text-end">@panel.PotenciaNominalW.ToString("0.##")</td>
+                        <td><span class="badge @EstadoSaludHelper.ClaseBadge(panel.Estado)">@panel.Estado</span></td>
+                        <td>@panel.FechaInstalacion.ToString("dd/MM/yyyy")</td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-secondary" asp-controller="Paneles" asp-action="Detalle" asp-route-id="@panel.Id">Ver</a>
+                            <a class="btn btn-sm btn-outline-primary" asp-controller="Paneles" asp-action="Editar" asp-route-id="@panel.Id">Editar</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<a class="btn btn-link px-0" asp-action="Index">&laquo; Volver a nodos</a>
