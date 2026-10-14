@@ -62,8 +62,8 @@ else
 {
     <div class="card card-body shadow-sm">
         <dl class="row mb-0">
-            <dt class="col-sm-4">Fecha y hora (UTC)</dt>
-            <dd class="col-sm-8">@Model.UltimaLectura.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+            <dt class="col-sm-4">Fecha y hora</dt>
+            <dd class="col-sm-8">@HoraLocal.DesdeUtc(Model.UltimaLectura.FechaHora).ToString("dd/MM/yyyy HH:mm:ss")</dd>
 
             <dt class="col-sm-4">Corriente continua</dt>
             <dd class="col-sm-8">@Model.UltimaLectura.CorrienteContinua.ToString("0.##") A</dd>
@@ -94,14 +94,14 @@ else
     <h2 class="h5 mt-4">Últimas @Model.LecturasRecientes.Count lecturas</h2>
     <p class="text-muted small">
         Es lo que fue guardando el colector, de la más nueva a la más vieja. Las filas en rojo son lecturas
-        en falla y en amarillo, rendimiento bajo. Las horas están en UTC.
+        en falla y en amarillo, rendimiento bajo. Las horas están en @HoraLocal.Etiqueta.
     </p>
 
     <div class="table-responsive">
         <table class="table table-sm table-striped align-middle">
             <thead>
                 <tr>
-                    <th>Fecha y hora (UTC)</th>
+                    <th>Fecha y hora</th>
                     <th class="text-end">Corriente (A)</th>
                     <th class="text-end">Voltaje (V)</th>
                     <th class="text-end">Potencia (W)</th>
@@ -120,7 +120,7 @@ else
                     };
 
                     <tr class="@claseFila">
-                        <td>@lectura.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>@HoraLocal.DesdeUtc(lectura.FechaHora).ToString("dd/MM/yyyy HH:mm:ss")</td>
                         <td class="text-end">@lectura.CorrienteContinua.ToString("0.##")</td>
                         <td class="text-end">@lectura.Voltaje.ToString("0.##")</td>
                         <td class="text-end">@lectura.PotenciaGeneradaWatts.ToString("0.##")</td>

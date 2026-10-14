@@ -1,3 +1,4 @@
+@inject IWebHostEnvironment Entorno
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -29,6 +30,13 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Paneles" asp-action="Index">Paneles</a>
                         </li>
+                        @* Solo en desarrollo: depende del inventario del simulador, que no existe con hardware real. *@
+                        @if (Entorno.IsDevelopment())
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Diagnostico" asp-action="Vinculacion">Diagnóstico</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>

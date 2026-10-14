@@ -132,8 +132,24 @@ En la web: **Paneles → botón "Ver"** en cualquier panel. Vas a ver dos cosas:
 - **"Última lectura de telemetría"**: el dato más reciente (corriente, voltaje, potencia, temperatura y
   estado detectado).
 - **"Últimas 20 lecturas"**: la serie que fue guardando el colector, de la más nueva a la más vieja. Las
-  filas en rojo son lecturas en falla y en amarillo, rendimiento bajo. Las horas están en **UTC** (el sensor
-  reporta en UTC), así que en Uruguay van 3 horas adelante de tu reloj.
+  filas en rojo son lecturas en falla y en amarillo, rendimiento bajo. Las horas están en **hora de
+  Montevideo**.
+
+### 8. Verificar que los datos coincidan con el hardware
+
+En la barra de arriba hay un **Diagnóstico** (solo aparece en desarrollo). Compara tus nodos, sensores y
+paneles contra el inventario del simulador y lista **todo lo que no cierra**:
+
+- Un **error** (rojo) significa que ese nodo o panel nunca va a recibir telemetría: por ejemplo, un sensor
+  con un identificador que el simulador no emula, o un panel con un código que el sensor no informa.
+- Una **advertencia** (amarillo) no rompe la recolección pero conviene corregirla: por ejemplo, un panel
+  cargado con 550 W cuando el sensor genera hasta 300 W, o un panel que el sensor informa y el sistema no
+  tiene cargado.
+- Abajo te dice **cuántos sensores libres quedan**: son los identificadores que podés usar para crear nodos
+  nuevos. Si dice que no quedan, hay que agregar sensores al simulador (ver los problemas típicos más abajo).
+
+Conviene mirarla **después de cargar los datos y antes de la demo**: es la forma rápida de saber si lo que
+cargaste se corresponde con el hardware.
 
 ---
 
@@ -188,6 +204,9 @@ docker compose stop
 | **Todos los paneles en 0 W** | Es de noche. La curva solar del simulador es cero fuera de las 6:00 y las 18:00, así que de noche no hay generación. **No está roto**: la regla de temperatura sigue funcionando, y por eso la prueba de arriba usa sobretemperatura. |
 | Quieren ver generación de verdad sin esperar al mediodía | Apunten el simulador a una zona horaria donde sea de día (probado: da ~220 W por panel de 300 W): <br>`docker rm -f solaruy-sensor-simulator` <br>*esperen 4 segundos, Docker tarda en liberar el puerto 5100* <br>`docker run -d --name sim-dia -p 127.0.0.1:5100:8080 -e Simulador__ZonaHoraria=Asia/Shanghai solaruy-sensor-simulator:latest` <br>Para volver: `docker rm -f sim-dia` y después `docker compose up -d sensor-simulator`. |
 | El colector no guarda nada y no dice nada | Fijate que el nodo tenga sensor **activo**, con la URL y el identificador que existen en el simulador. Si un panel no coincide por código, el log lo avisa. |
+| El log del colector repite *"El sensor ARM-00X no existe"* | Cargaste un identificador que el simulador no emula. Mirá la pantalla de **Diagnóstico**, que te lo dice junto con todo lo demás. Para crear el sensor: `curl.exe -X POST http://localhost:5100/simulador/sensores -H "Content-Type: application/json" -d '{"identificadorHardwareARM":"ARM-004","cantidadPaneles":5,"potenciaNominalW":300}'` |
+| No te deja crear más nodos: *"El identificador de hardware es único"* | Cada nodo necesita su propio sensor, y el simulador emula 3 por defecto. Mirá **Diagnóstico**: te dice cuántos sensores libres quedan. Para tener más, subí `Simulador__NodosIniciales` en `docker-compose.yml` y reiniciá el contenedor, o agregalos con el `POST` de arriba. |
+| Un panel nunca recibe lecturas y el log no dice nada | El colector solo avisa cuando el sensor informa un panel que el sistema no tiene; al revés no. La pantalla de **Diagnóstico** sí lo detecta en los dos sentidos. |
 | `docker compose up` falla en `sensor-simulator` | No inicializaste el submódulo: `git submodule update --init`. |
 | La web no arranca: *"Falta la cadena de conexión 'SolarUY'"* | Se corrió fuera del perfil de Development. Usá `dotnet run --project src/SolarUY.Web` tal cual, sin `--no-launch-profile`. |
 | El puerto 5100 está ocupado | Ya tenés otro simulador levantado: `docker ps` y pará el que sobra. |
@@ -205,7 +224,10 @@ docker compose stop
   lecturas quedan en MySQL.
 - La regla de estado de la spec (§9): `DESCONECTADO` para paneles inactivos, `FALLA_DETECTADA` arriba de
   75 °C, y la caída de potencia medida contra el promedio del nodo en tres bandas (15 % / 40 %).
-- La serie de las últimas 20 lecturas de cada panel, en su pantalla de detalle.
+- La serie de las últimas 20 lecturas de cada panel, en su pantalla de detalle, con las horas en hora de
+  Montevideo.
+- La pantalla de **Diagnóstico**, que compara el sistema contra el inventario del simulador y te dice qué
+  no cierra y cuántos identificadores de sensor quedan libres.
 - 153 tests automáticos (83 del dominio + 70 del simulador). Corré `dotnet test`.
 
 **Todavía no:**

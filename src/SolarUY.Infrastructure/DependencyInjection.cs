@@ -37,6 +37,13 @@ public static class DependencyInjection
             cliente.Timeout = TimeoutSensor;
         });
 
+        // Cliente del inventario del simulador. Solo lo usa la verificación de vinculación, que es
+        // una herramienta de diagnóstico: el producto no depende de esta API, que existe solo en el mock.
+        services.AddHttpClient<ISimuladorAdminClient, SimuladorAdminHttpClient>(cliente =>
+        {
+            cliente.Timeout = TimeoutSensor;
+        });
+
         return services;
     }
 }

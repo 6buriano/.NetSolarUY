@@ -33,6 +33,10 @@ builder.Services.AddScoped<ParqueService>();
 builder.Services.AddScoped<NodoService>();
 builder.Services.AddScoped<PanelService>();
 
+// Herramienta de diagnóstico: compara el sistema contra el inventario del simulador.
+// Solo se usa desde DiagnosticoController, que está limitado a desarrollo.
+builder.Services.AddScoped<VerificacionVinculacionService>();
+
 // TODO (etapa de seguridad, specs.md §4.2 y §5.1): cuando se integre Keycloak se agrega
 // AddAuthentication().AddOpenIdConnect(), el mapeo del rol y [Authorize(Roles = "Administrador")]
 // sobre ParquesController, NodosController y PanelesController.

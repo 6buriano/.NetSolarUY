@@ -1,0 +1,121 @@
+@model InformeVinculacion
+@{
+    ViewData["Title"] = "Verificación de vinculación";
+}
+
+<h1 class="h3 mb-1">Verificación de vinculación</h1>
+<p class="text-muted">
+    Compara los nodos, sensores y paneles cargados en el sistema contra el inventario del simulador,
+    y lista todo lo que no cierra.
+</p>
+
+@if (!Model.SimuladorConsultado)
+{
+    <div class="alert alert-danger">
+        <strong>No se pudo verificar nada.</strong> @Model.ErrorConsulta
+    </div>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-3 mb-2">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted small text-uppercase">Nodos revisados</div>
+                <div class="h3 mb-0">@Model.NodosRevisados</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted small text-uppercase">Paneles en esos nodos</div>
+                <div class="h3 mb-0">@Model.PanelesRevisados</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted small text-uppercase">Sensores en el simulador</div>
+                <div class="h3 mb-0">@Model.SensoresEnElSimulador</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card card-body shadow-sm h-100">
+                <div class="text-muted small text-uppercase">Desajustes</div>
+                <div class="h3 mb-0">
+                    <span class="@(Model.Errores > 0 ? "text-danger" : "text-success")">@Model.Errores</span>
+                    <span class="text-muted fs-6">error(es)</span>
+                    <span class="@(Model.Advertencias > 0 ? "text-warning" : "text-success")">@Model.Advertencias</span>
+                    <span class="text-muted fs-6">aviso(s)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.TodoVinculado)
+    {
+        <div class="alert alert-success">
+            <strong>Todo vinculado.</strong> Cada nodo tiene su sensor en el simulador y cada panel del
+            sistema tiene su par en el hardware.
+        </div>
+    }
+    else
+    {
+        <h2 class="h5">Qué no cierra (@Model.Hallazgos.Count)</h2>
+
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Gravedad</th>
+                        <th>Nodo</th>
+                        <th>Sensor</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var hallazgo in Model.Hallazgos)
+                    {
+                        <tr class="@(hallazgo.Severidad == SeveridadHallazgo.Error ? "table-danger" : "table-warning")">
+                            <td>
+                                <span class="badge @(hallazgo.Severidad == SeveridadHallazgo.Error ? "text-bg-danger" : "text-bg-warning")">
+                                    @hallazgo.Severidad
+                                </span>
+                            </td>
+                            <td>@hallazgo.Nodo</td>
+                            <td>@if (hallazgo.Sensor is not null) { <code>@hallazgo.Sensor</code> } else { <span class="text-muted">—</span> }</td>
+                            <td>@hallazgo.Detalle</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <p class="text-muted small">
+            Un <strong>error</strong> significa que ese nodo o panel nunca va a recibir telemetría.
+            Una <strong>advertencia</strong> no rompe la recolección pero conviene corregirla.
+        </p>
+    }
+
+    @if (Model.SensoresLibres.Count > 0)
+    {
+        <div class="alert alert-info">
+            <strong>Sensores libres (@Model.SensoresLibres.Count):</strong>
+            @foreach (var libre in Model.SensoresLibres)
+            {
+                <code class="me-2">@libre</code>
+            }
+            <div class="mt-1">
+                El simulador los emula y ningún nodo los usa, así que podés crear nodos con esos identificadores.
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <strong>No quedan sensores libres.</strong> El simulador emula @Model.SensoresEnElSimulador y todos están
+            usados. Para crear otro nodo hay que agregar un sensor al simulador
+            (<code>POST /simulador/sensores</code>) o subir <code>Simulador__NodosIniciales</code> en
+            <code>docker-compose.yml</code> y reiniciar el contenedor.
+        </div>
+    }
+}
+
+<a class="btn btn-link px-0" asp-controller="Paneles" asp-action="Index">&laquo; Volver a paneles</a>

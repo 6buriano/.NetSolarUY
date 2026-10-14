@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using SolarUY.Application.DTOs;
+using SolarUY.Web.Validation;
 
 namespace SolarUY.Web.Models;
 
@@ -54,7 +55,8 @@ public class NodoFormViewModel
 
     [Required(ErrorMessage = "La dirección del sensor es obligatoria: es a donde el colector le pide la telemetría.")]
     [StringLength(300, ErrorMessage = "La dirección no puede superar los 300 caracteres.")]
-    [Url(ErrorMessage = "Tiene que ser una dirección completa, por ejemplo http://localhost:5100")]
+    // Se valida con la regla del dominio y no con [Url], que rechaza localhost y las IP internas.
+    [DireccionHttp]
     [Display(Name = "Dirección del sensor")]
     public string SensorUrlBase { get; set; } = "http://localhost:5100";
 

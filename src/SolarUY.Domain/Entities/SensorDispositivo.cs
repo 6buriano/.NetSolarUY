@@ -41,14 +41,28 @@ public class SensorDispositivo
     /// <summary>La usa <see cref="Inversor"/> al registrar el sensor para mantener la relación 1 a 1.</summary>
     internal void AsignarAInversor(Guid inversorId) => InversorId = inversorId;
 
+    /// <summary>
+    /// Indica si el texto es una dirección http o https absoluta. Acepta <c>localhost</c> y
+    /// direcciones de red interna, que es donde vive el simulador.
+    /// La usa también el formulario del ABM, para no validar con una regla más estricta que esta:
+    /// la regla <c>url</c> de jQuery Validation (la que activa <c>[Url]</c> de DataAnnotations)
+    /// exige un TLD o una IP pública y rechaza <c>http://localhost:5100</c>.
+    /// </summary>
+    public static bool DireccionValida(string? urlBase)
+    {
+        var url = (urlBase ?? string.Empty).Trim().TrimEnd('/');
+
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+    }
+
     private void EstablecerDatos(string identificadorHardwareARM, string versionFirmware, bool activo, string urlBase)
     {
         if (string.IsNullOrWhiteSpace(identificadorHardwareARM))
             throw new ReglaDeNegocioException("El identificador de hardware del sensor es obligatorio.");
 
         var url = (urlBase ?? string.Empty).Trim().TrimEnd('/');
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        if (!DireccionValida(url))
         {
             throw new ReglaDeNegocioException(
                 "La dirección del sensor debe ser una URL http o https absoluta (por ejemplo http://localhost:5100).");
