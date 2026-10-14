@@ -111,7 +111,9 @@ public class ColectorTelemetriaWorker : BackgroundService
             nodo.Inversor.EstablecerVolcadoRed(estado.VolcadoRedActivo);
 
             // Primero los paneles (estado y actividad) y después las lecturas ya diagnosticadas.
-            await nodoRepository.ActualizarAsync(nodo, cancellationToken);
+            // El colector nunca registra un sensor nuevo (solo consulta los que ya existen), así que
+            // el segundo parámetro va por nombre para no confundirlo con el sensor nuevo.
+            await nodoRepository.ActualizarAsync(nodo, cancellationToken: cancellationToken);
             await telemetriaRepository.AgregarVariasAsync(lecturas, cancellationToken);
 
             lecturasGuardadas += lecturas.Count;

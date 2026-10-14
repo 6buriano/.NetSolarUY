@@ -160,7 +160,7 @@ Qué significa cada plantilla:
 7. **La cultura de la petición se fija en la invariante** (`RequestLocalization` en `Program.cs`). Los formularios HTML mandan siempre los decimales con punto y las fechas en ISO-8601, pero en un equipo configurado para Uruguay (`es-UY`) el valor `"120.5"` se interpretaba como 1205.
 8. **El simulador es el mock del hardware, no el que genera las lecturas del sistema.** `specs.md` §4.3 lo describe como un Worker Service que genera datos y los guarda; está implementado al revés y mejor: el simulador emula el sensor por HTTP (caja negra, sin conocer MySQL ni el dominio) y un colector aparte (`src/SolarUY.Collector`) lo consulta, evalúa y guarda. El proyecto que `specs.md` llama "Worker Service" pasó a llamarse `SolarUY.Collector` porque `SolarUY.Simulator` se confundía con `SolarUY.SensorSimulator`.
 9. **`Nodo` es el que diagnostica, no el sensor.** §4.3 y la regla 3 de `4_modelado_dominio.md` decían que la caída de potencia se mide contra la potencia nominal del panel y que "el sensor debe emitir" el estado. La regla vigente está en la spec del simulador §9: se mide contra el promedio de los otros paneles activos del nodo, con tres bandas y `DESCONECTADO` para los inactivos, y la calcula `Nodo.EvaluarLecturas` en el dominio (ver `specs.md` §2.1, que además necesita tres campos nuevos).
-10. **El sensor ARM es obligatorio en el alta de un nodo** y se carga en el mismo formulario, junto con el inversor. En el dominio sigue siendo opcional (un inversor puede existir antes de que el sensor se conecte), pero el ABM lo exige porque sin dirección el colector no tiene a quién consultarle.
+10. **El sensor ARM es opcional en el alta de un nodo** y se carga en el mismo formulario, junto con el inversor. Si escribís un identificador que el simulador todavía no emula, el formulario no te deja con un nodo muerto ni te obliga a crearlo por fuera: te avisa cuáles existen y te ofrece **crear el sensor en el simulador** o **crear el nodo sin sensor**. Un nodo sin sensor queda cargado y el colector lo ignora hasta que le cargues uno. En el dominio siempre fue opcional (un inversor puede existir antes de que el sensor se conecte).
 
 ## El ABM de Parques, Nodos y Paneles
 
@@ -177,7 +177,7 @@ vistas Razor comunes sobre ASP.NET Core MVC, no Blazor, como pide `specs.md`.
 
 Reglas de negocio ya implementadas y cubiertas por pruebas:
 
-1. Un nodo no puede existir sin exactamente un inversor (regla 1), por eso el inversor se carga en el mismo formulario del nodo, junto con su sensor ARM.
+1. Un nodo no puede existir sin exactamente un inversor (regla 1), por eso el inversor se carga en el mismo formulario del nodo, junto con su sensor ARM (que es opcional).
 2. El número de serie del inversor es único en todo el sistema, y el identificador de hardware del sensor también.
 3. Un parque con nodos no se puede eliminar, y un nodo con paneles tampoco.
 4. El código de panel es único dentro de un nodo: es el vínculo con el panel del sensor.
@@ -219,14 +219,22 @@ de Monitoreo (`specs.md` §5.2).
 
 **Verificación de vinculación:** la pantalla **Diagnóstico** (`/Diagnostico/Vinculacion`, solo en desarrollo)
 compara los nodos, sensores y paneles del sistema contra el inventario del simulador, lista todo lo que no
-cierra y dice cuántos identificadores de sensor quedan libres. La misma pantalla tiene un formulario
-**"Crear un nodo de prueba"**, que busca un sensor libre y, si no hay, le pide al simulador que empiece a
-emular uno nuevo (`POST /simulador/sensores`) para crear el nodo con él. No crea los paneles: informa qué
-códigos hay que cargarle.
+cierra y dice cuántos identificadores de sensor quedan libres. Es una herramienta de demo, no parte del
+producto: depende de la API de inventario del simulador, que solo existe en el mock (por eso vive detrás de
+`ISimuladorAdminClient`, separada de `ISensorClient`). **Solo informa: no da de alta nada.** El alta de nodos
+y la creación de sensores viven en el ABM de nodos.
 
-Es una herramienta de demo, no parte del producto: depende de la API de administración del simulador, que
-solo existe en el mock (por eso vive detrás de `ISimuladorAdminClient`, separada de `ISensorClient`). Y un
-sensor creado así vive en la memoria del simulador, o sea que se pierde al reiniciar el contenedor.
+**Sensor ARM que el simulador todavía no emula:** al dar de alta un nodo, si el identificador cargado no
+está en el inventario, el formulario lo avisa, muestra cuáles existen y ofrece dos salidas: **crear el
+sensor** (le pide al simulador que empiece a emularlo con `POST /simulador/sensores` y sigue con el alta) o
+**crear el nodo sin sensor** (queda cargado, sin telemetría hasta que le pongas uno). En los dos caminos el
+nodo se crea con las mismas reglas de siempre y la pantalla avisa qué códigos de panel informa el sensor
+nuevo, porque el alta **no crea los paneles**.
+
+Esa verificación vive detrás de `ISensorDisponibilidadService`, con dos implementaciones: la del simulador
+(desarrollo: consulta el inventario y puede crear) y una nula (cualquier otro entorno: no verifica nada y el
+nodo se crea con el identificador que le den, porque con hardware real un sensor se instala, no se crea por
+HTTP). Un sensor creado así vive en la memoria del simulador: si reiniciás el contenedor, desaparece.
 
 **Cómo se vinculan sistema y hardware** (tres campos que hay que hacer coincidir al cargar los datos):
 
@@ -265,8 +273,9 @@ dejes corriendo días sin una política de retención (spec del simulador, secci
 
 - [x] Entidades del diagrama de clases en `SolarUY.Domain`.
 - [x] Conexión a MySQL con Entity Framework Core (`SolarUYDbContext`) en `SolarUY.Infrastructure`.
-- [x] ABM de Parques (Guille), Nodos (Fabri) y Paneles (Gonza) — ver la sección "El ABM de Parques, Nodos y Paneles".
+- [x] ABM de Parques (Guillermina), Nodos (Fabricio) y Paneles (Gonzalo) — ver la sección "El ABM de Parques, Nodos y Paneles".
 - [x] Simulador del sensor (Mariano) incorporado como submódulo, y el colector de telemetría consultándolo y guardando en MySQL.
+- [x] Alta de nodo con un sensor ARM que el simulador no emula: crearlo en el simulador o crear el nodo sin sensor, desde el propio formulario del nodo.
 - [ ] Órdenes al sensor desde la web (activar/desactivar panel y volcado a red). `ISensorClient` ya tiene los métodos; falta la UI.
 - [ ] Autenticación con Keycloak y `[Authorize(Roles = "Administrador")]` sobre los tres controladores del ABM.
 - [ ] Dashboard de monitoreo en tiempo real (SignalR) y agente MCP con Gemini.

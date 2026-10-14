@@ -3,7 +3,7 @@
 Guía para levantar el proyecto y hacer una prueba corta de la telemetría, sin leer todo el código.
 Tiempo estimado: **15 minutos la primera vez** (casi la mitad se va compilando la imagen del simulador).
 
-> ✅ **Ya está pusheado.** Todo esto está en la rama `gburiano`. Verificado desde un clon limpio: baja el
+> ✅ **Ya está pusheado.** Todo esto está en la rama `main`. Verificado desde un clon limpio: baja el
 > submódulo solo, `dotnet build` termina sin errores ni advertencias y los **153 tests** pasan.
 >
 > Asegurate de estar en el **último commit de la rama** (`git pull`): la tabla de "Últimas 20 lecturas" del
@@ -13,7 +13,7 @@ Tiempo estimado: **15 minutos la primera vez** (casi la mitad se va compilando l
 > submódulo de una:
 >
 > ```bash
-> git clone --branch gburiano --recurse-submodules https://github.com/6buriano/.NetSolarUY.git
+> git clone --branch main --recurse-submodules https://github.com/6buriano/.NetSolarUY.git
 > ```
 
 ---
@@ -36,7 +36,7 @@ Si ya tenés el repositorio clonado:
 
 ```bash
 git fetch origin
-git checkout gburiano
+git checkout main
 git pull
 git submodule update --init
 ```
@@ -95,10 +95,15 @@ hardware**. Hay que hacerlos coincidir. Con la configuración por defecto el sim
 (`ARM-001`…`ARM-003`) con 5 paneles cada uno (`P01`…`P05`) de **300 W**.
 
 1. **Parques → Nuevo parque**: cualquiera (ej. "Parque Norte", "Salto", 250.5 kW).
-2. **Nodos → Nuevo nodo**. Al final del formulario está la sección **Sensor ARM del nodo**:
+2. **Nodos → Nuevo nodo**. Al final del formulario está la sección **Sensor ARM del nodo** (es opcional):
    - Identificador de hardware: `ARM-001`
    - Dirección del sensor: `http://localhost:5100`
    - Firmware: lo que quieras, y dejá "Sensor activo" tildado.
+
+   Si escribís un identificador que el simulador **no** emula (por ejemplo `ARM-009`), el formulario no te
+   deja con un nodo muerto: te avisa cuáles existen y te ofrece **crear el sensor** en el simulador o
+   **crear el nodo sin sensor**. Si elegís crearlo, acordate de cargarle después los paneles que te
+   indique, porque el alta del nodo **no** crea los paneles.
 3. **Paneles → Nuevo panel**, cinco veces sobre ese nodo:
    - Código de panel: `P01`, `P02`, `P03`, `P04`, `P05`
    - Potencia nominal: `300`
@@ -149,21 +154,23 @@ paneles contra el inventario del simulador y lista **todo lo que no cierra**:
   nuevos. Si dice que no quedan, hay que agregar sensores al simulador (ver los problemas típicos más abajo).
 
 Conviene mirarla **después de cargar los datos y antes de la demo**: es la forma rápida de saber si lo que
-cargaste se corresponde con el hardware.
+cargaste se corresponde con el hardware. Es un informe: esa pantalla no da de alta nada.
 
-**Si no quedan sensores libres**, la misma pantalla tiene un formulario **"Crear un nodo de prueba"**:
-elegís el parque, le ponés nombre, y el sistema busca un sensor libre; si no hay ninguno, le pide al
-simulador que empiece a emular uno nuevo y crea el nodo con él. Al terminar te dice **qué paneles hay que
-cargarle** (por ejemplo `P01` a `P05`), porque el formulario **no crea los paneles**: el nodo queda sin
-lecturas hasta que los cargues.
+**Si no quedan sensores libres y querés otro nodo**, no hace falta salir de la pantalla de nodos: cargá en
+**Nodos → Nuevo nodo** el identificador que quieras (por ejemplo `ARM-004`) y el formulario te va a ofrecer
+**crearlo en el simulador**. El sistema le pide al simulador que empiece a emularlo, crea el nodo con ese
+sensor y te dice **qué paneles hay que cargarle** (`P01` a `P05`): el alta **no crea los paneles**, así que el
+nodo queda sin lecturas hasta que los cargues. La otra salida que ofrece el formulario es **crear el nodo sin
+sensor**: queda cargado, pero no recibe telemetría hasta que le pongas uno.
 
 Dos advertencias sobre eso:
 
-- El sensor que crea **vive en la memoria del simulador**: si reiniciás el contenedor, desaparece y el nodo
+- El sensor que se crea **vive en la memoria del simulador**: si reiniciás el contenedor, desaparece y el nodo
   queda sin telemetría. Para que quede hay que agregarlo al `docker-compose.yml`
   (`Simulador__NodosIniciales`) y reiniciar el contenedor.
-- Es una herramienta de desarrollo: con hardware real no existe, porque un inversor se instala, no se crea
-  por HTTP.
+- Es una comodidad de desarrollo: con hardware real no existe, porque un sensor se instala, no se crea por
+  HTTP. Fuera del entorno de Development el sistema no verifica nada y crea el nodo con el identificador que
+  le des.
 
 ---
 
@@ -218,8 +225,8 @@ docker compose stop
 | **Todos los paneles en 0 W** | Es de noche. La curva solar del simulador es cero fuera de las 6:00 y las 18:00, así que de noche no hay generación. **No está roto**: la regla de temperatura sigue funcionando, y por eso la prueba de arriba usa sobretemperatura. |
 | Quieren ver generación de verdad sin esperar al mediodía | Apunten el simulador a una zona horaria donde sea de día (probado: da ~220 W por panel de 300 W): <br>`docker rm -f solaruy-sensor-simulator` <br>*esperen 4 segundos, Docker tarda en liberar el puerto 5100* <br>`docker run -d --name sim-dia -p 127.0.0.1:5100:8080 -e Simulador__ZonaHoraria=Asia/Shanghai solaruy-sensor-simulator:latest` <br>Para volver: `docker rm -f sim-dia` y después `docker compose up -d sensor-simulator`. |
 | El colector no guarda nada y no dice nada | Fijate que el nodo tenga sensor **activo**, con la URL y el identificador que existen en el simulador. Si un panel no coincide por código, el log lo avisa. |
-| El log del colector repite *"El sensor ARM-00X no existe"* | Cargaste un identificador que el simulador no emula. Mirá la pantalla de **Diagnóstico**, que te lo dice junto con todo lo demás. Para crear el sensor: `curl.exe -X POST http://localhost:5100/simulador/sensores -H "Content-Type: application/json" -d '{"identificadorHardwareARM":"ARM-004","cantidadPaneles":5,"potenciaNominalW":300}'` |
-| No te deja crear más nodos: *"El identificador de hardware es único"* | Cada nodo necesita su propio sensor, y el simulador emula 3 por defecto. Mirá **Diagnóstico**: te dice cuántos sensores libres quedan. Si no queda ninguno, usá el formulario **"Crear un nodo de prueba"** de esa misma pantalla: le pide al simulador un sensor nuevo y crea el nodo (acordate de cargarle después los paneles que te indique). También podés subir `Simulador__NodosIniciales` en `docker-compose.yml` y reiniciar el contenedor. |
+| El log del colector repite *"El sensor ARM-00X no existe"* | Cargaste un identificador que el simulador no emula. Mirá la pantalla de **Diagnóstico**, que te lo dice junto con todo lo demás. Para crear el sensor: dá de alta un nodo con ese identificador (el formulario te ofrece crearlo en el simulador) o a mano: `curl.exe -X POST http://localhost:5100/simulador/sensores -H "Content-Type: application/json" -d '{"identificadorHardwareARM":"ARM-004","cantidadPaneles":5,"potenciaNominalW":300}'` |
+| No te deja crear más nodos: *"El identificador de hardware es único"* | Ese identificador ya lo usa otro nodo. Mirá **Diagnóstico**: te dice cuántos sensores libres quedan. Si no queda ninguno, en **Nodos → Nuevo nodo** escribí el que quieras (por ejemplo `ARM-004`): el formulario te ofrece crearlo en el simulador, y acordate de cargarle después los paneles que te indique. También podés subir `Simulador__NodosIniciales` en `docker-compose.yml` y reiniciar el contenedor. |
 | Un panel nunca recibe lecturas y el log no dice nada | El colector solo avisa cuando el sensor informa un panel que el sistema no tiene; al revés no. La pantalla de **Diagnóstico** sí lo detecta en los dos sentidos. |
 | `docker compose up` falla en `sensor-simulator` | No inicializaste el submódulo: `git submodule update --init`. |
 | La web no arranca: *"Falta la cadena de conexión 'SolarUY'"* | Se corrió fuera del perfil de Development. Usá `dotnet run --project src/SolarUY.Web` tal cual, sin `--no-launch-profile`. |
@@ -240,6 +247,9 @@ docker compose stop
   75 °C, y la caída de potencia medida contra el promedio del nodo en tres bandas (15 % / 40 %).
 - La serie de las últimas 20 lecturas de cada panel, en su pantalla de detalle, con las horas en hora de
   Montevideo.
+- El alta de un nodo con un sensor ARM que el simulador no emula: el formulario avisa cuáles existen y
+  ofrece crearlo en el simulador (y el nodo queda con ese sensor, listo para cargarle los paneles) o crear
+  el nodo sin sensor.
 - La pantalla de **Diagnóstico**, que compara el sistema contra el inventario del simulador y te dice qué
   no cierra y cuántos identificadores de sensor quedan libres.
 - 153 tests automáticos (83 del dominio + 70 del simulador). Corré `dotnet test`.
