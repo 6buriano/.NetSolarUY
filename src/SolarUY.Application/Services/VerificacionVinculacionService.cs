@@ -20,47 +20,21 @@ public class VerificacionVinculacionService
         _simuladorAdminClient = simuladorAdminClient;
     }
 
-    public async Task<InformeVinculacion> VerificarAsync(CancellationToken cancellationToken = default)
+    /// <param name="urlSimulador">
+    /// Dirección del simulador a consultar. Se recibe por parámetro (viene de la configuración) y no
+    /// se deduce de los nodos, para que la verificación funcione incluso sin ningún nodo cargado.
+    /// </param>
+    public async Task<InformeVinculacion> VerificarAsync(string urlSimulador,
+        CancellationToken cancellationToken = default)
     {
         var nodos = await _nodoRepository.ObtenerTodosAsync(cancellationToken);
 
-        // El simulador atiende a todos sus sensores en la misma dirección, así que se pregunta una
-        // vez por cada dirección distinta que tengan cargada los nodos.
-        var direcciones = nodos
-            .Select(nodo => nodo.Inversor?.Sensor?.UrlBase)
-            .Where(url => !string.IsNullOrWhiteSpace(url))
-            .Select(url => url!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var inventario = await _simuladorAdminClient.ObtenerInventarioAsync(urlSimulador, cancellationToken);
 
-        if (direcciones.Count == 0)
+        if (inventario is null)
         {
             return InformeVinculacion.SinSimulador(
-                "Ningún nodo tiene cargada la dirección de su sensor, así que no hay a dónde preguntarle el inventario.",
-                nodos.Count);
-        }
-
-        var inventario = new List<InventarioSensorDto>();
-        var sinRespuesta = new List<string>();
-
-        foreach (var direccion in direcciones)
-        {
-            var deEstaDireccion = await _simuladorAdminClient.ObtenerInventarioAsync(direccion, cancellationToken);
-
-            if (deEstaDireccion is null)
-            {
-                sinRespuesta.Add(direccion);
-            }
-            else
-            {
-                inventario.AddRange(deEstaDireccion);
-            }
-        }
-
-        if (inventario.Count == 0)
-        {
-            return InformeVinculacion.SinSimulador(
-                $"No se pudo leer el inventario en {string.Join(", ", sinRespuesta)}. " +
+                $"No se pudo leer el inventario en {urlSimulador}. " +
                 "Revisá que el simulador esté corriendo: docker compose up -d sensor-simulator.",
                 nodos.Count);
         }

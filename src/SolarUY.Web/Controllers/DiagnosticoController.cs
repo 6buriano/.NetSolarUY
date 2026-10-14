@@ -9,13 +9,18 @@ namespace SolarUY.Web.Controllers;
 /// </summary>
 public class DiagnosticoController : Controller
 {
+    private const string UrlSimuladorPorDefecto = "http://localhost:5100";
+
     private readonly VerificacionVinculacionService _verificacionService;
     private readonly IWebHostEnvironment _entorno;
+    private readonly string _urlSimulador;
 
-    public DiagnosticoController(VerificacionVinculacionService verificacionService, IWebHostEnvironment entorno)
+    public DiagnosticoController(VerificacionVinculacionService verificacionService,
+        IWebHostEnvironment entorno, IConfiguration configuracion)
     {
         _verificacionService = verificacionService;
         _entorno = entorno;
+        _urlSimulador = configuracion["Simulador:UrlBase"] ?? UrlSimuladorPorDefecto;
     }
 
     /// <summary>
@@ -29,7 +34,11 @@ public class DiagnosticoController : Controller
             return NotFound();
         }
 
-        var informe = await _verificacionService.VerificarAsync(cancellationToken);
+        var informe = await _verificacionService.VerificarAsync(_urlSimulador, cancellationToken);
+
+        ViewData["UrlSimulador"] = _urlSimulador;
+        ViewData["TituloPagina"] = "Verificación de vinculación";
+
         return View(informe);
     }
 }

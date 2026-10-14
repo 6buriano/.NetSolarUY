@@ -5,8 +5,8 @@
 
 <h1 class="h3 mb-1">Verificación de vinculación</h1>
 <p class="text-muted">
-    Compara los nodos, sensores y paneles cargados en el sistema contra el inventario del simulador,
-    y lista todo lo que no cierra.
+    Compara los nodos, sensores y paneles cargados en el sistema contra el inventario del simulador
+    en <code>@ViewData["UrlSimulador"]</code>, y lista todo lo que no cierra.
 </p>
 
 @if (!Model.SimuladorConsultado)
@@ -111,9 +111,9 @@ else
     {
         <div class="alert alert-warning">
             <strong>No quedan sensores libres.</strong> El simulador emula @Model.SensoresEnElSimulador y todos están
-            usados. Para crear otro nodo hay que agregar un sensor al simulador
-            (<code>POST /simulador/sensores</code>) o subir <code>Simulador__NodosIniciales</code> en
-            <code>docker-compose.yml</code> y reiniciar el contenedor.
+            usados. Al dar de alta un nodo podés pedirle al simulador que empiece a emular el identificador que
+            escribas, o subir <code>Simulador__NodosIniciales</code> en <code>docker-compose.yml</code> y reiniciar
+            el contenedor.
         </div>
     }
 }

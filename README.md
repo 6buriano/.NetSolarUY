@@ -219,9 +219,14 @@ de Monitoreo (`specs.md` §5.2).
 
 **Verificación de vinculación:** la pantalla **Diagnóstico** (`/Diagnostico/Vinculacion`, solo en desarrollo)
 compara los nodos, sensores y paneles del sistema contra el inventario del simulador, lista todo lo que no
-cierra y dice cuántos identificadores de sensor quedan libres. Es una herramienta de demo, no parte del
-producto: depende de `GET /simulador/inventario`, que es una API que solo existe en el mock (por eso vive
-detrás de `ISimuladorAdminClient`, separada de `ISensorClient`).
+cierra y dice cuántos identificadores de sensor quedan libres. La misma pantalla tiene un formulario
+**"Crear un nodo de prueba"**, que busca un sensor libre y, si no hay, le pide al simulador que empiece a
+emular uno nuevo (`POST /simulador/sensores`) para crear el nodo con él. No crea los paneles: informa qué
+códigos hay que cargarle.
+
+Es una herramienta de demo, no parte del producto: depende de la API de administración del simulador, que
+solo existe en el mock (por eso vive detrás de `ISimuladorAdminClient`, separada de `ISensorClient`). Y un
+sensor creado así vive en la memoria del simulador, o sea que se pierde al reiniciar el contenedor.
 
 **Cómo se vinculan sistema y hardware** (tres campos que hay que hacer coincidir al cargar los datos):
 

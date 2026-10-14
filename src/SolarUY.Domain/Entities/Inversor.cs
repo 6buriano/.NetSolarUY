@@ -49,6 +49,12 @@ public class Inversor
         Sensor = sensor;
     }
 
+    /// <summary>
+    /// Desvincula el sensor del inversor. Como el sensor no existe sin su inversor, se elimina al
+    /// guardar los cambios.
+    /// </summary>
+    public void QuitarSensor() => Sensor = null;
+
     private void EstablecerDatos(string modelo, string numeroSerie, double eficienciaConversion, bool volcadoRedActivo)
     {
         if (string.IsNullOrWhiteSpace(modelo))

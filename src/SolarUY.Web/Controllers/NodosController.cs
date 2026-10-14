@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SolarUY.Application.DTOs;
+using SolarUY.Application.Sensors;
 using SolarUY.Application.Services;
 using SolarUY.Domain.Exceptions;
 using SolarUY.Web.Models;
@@ -15,12 +16,15 @@ public class NodosController : Controller
     private readonly NodoService _nodoService;
     private readonly ParqueService _parqueService;
     private readonly PanelService _panelService;
+    private readonly ISensorDisponibilidadService _sensorDisponibilidad;
 
-    public NodosController(NodoService nodoService, ParqueService parqueService, PanelService panelService)
+    public NodosController(NodoService nodoService, ParqueService parqueService, PanelService panelService,
+        ISensorDisponibilidadService sensorDisponibilidad)
     {
         _nodoService = nodoService;
         _parqueService = parqueService;
         _panelService = panelService;
+        _sensorDisponibilidad = sensorDisponibilidad;
     }
 
     public async Task<IActionResult> Index(Guid? parqueId, CancellationToken cancellationToken)
@@ -72,18 +76,89 @@ public class NodosController : Controller
             return View(formulario);
         }
 
+        var sensor = ArmarSensorRequest(formulario);
+        string? nota = null;
+
+        if (sensor is not null)
+        {
+            var disponibilidad = await _sensorDisponibilidad.VerificarAsync(sensor.IdentificadorHardwareARM,
+                cancellationToken);
+
+            if (disponibilidad.SePudoConsultar && !disponibilidad.Existe)
+            {
+                // El identificador no existe en el hardware simulado. No se crea nada: se le ofrece
+                // al usuario crearlo, o seguir sin sensor.
+                return await ResolverSensorInexistenteAsync(formulario, disponibilidad, cancellationToken);
+            }
+
+            if (disponibilidad.VerificacionPosible && !disponibilidad.SePudoConsultar)
+            {
+                nota = "No se pudo consultar el simulador, así que no se pudo verificar que el sensor exista.";
+            }
+        }
+
+        return await CrearNodoAsync(formulario, sensor, cancellationToken, nota);
+    }
+
+    /// <summary>
+    /// El identificador cargado no existe en el simulador. Si el usuario ya eligió qué hacer, se
+    /// hace; si no, se vuelve a mostrar el formulario con las dos salidas.
+    /// </summary>
+    private async Task<IActionResult> ResolverSensorInexistenteAsync(NodoFormViewModel formulario,
+        DisponibilidadSensor disponibilidad, CancellationToken cancellationToken)
+    {
+        var hardware = (formulario.IdentificadorHardwareARM ?? string.Empty).Trim();
+
+        switch (formulario.AccionArm)
+        {
+            case NodoFormViewModel.AccionesArm.CrearEnHardware:
+            {
+                var alta = await _sensorDisponibilidad.CrearAsync(hardware, cancellationToken);
+
+                if (!alta.Creado)
+                {
+                    ModelState.AddModelError(string.Empty, alta.Error ?? "No se pudo crear el sensor.");
+                    await CargarParquesAsync(formulario, cancellationToken);
+                    return View(formulario);
+                }
+
+                var paneles = alta.CodigosDePanel.Count > 0
+                    ? $" El sensor informa los paneles {string.Join(", ", alta.CodigosDePanel)}:" +
+                      " cargálos en el nodo para que empiece a recibir lecturas."
+                    : string.Empty;
+
+                return await CrearNodoAsync(formulario, ArmarSensorRequest(formulario), cancellationToken,
+                    $"El simulador empezó a emular el sensor '{hardware}'." + paneles);
+            }
+
+            case NodoFormViewModel.AccionesArm.SinSensor:
+                return await CrearNodoAsync(formulario, null, cancellationToken,
+                    $"El nodo se creó sin sensor ARM: '{hardware}' no existe en el simulador.");
+
+            default:
+                formulario.AvisoSensorInexistente = ArmarAvisoSensorInexistente(hardware, disponibilidad);
+                await CargarParquesAsync(formulario, cancellationToken);
+                return View(formulario);
+        }
+    }
+
+    private async Task<IActionResult> CrearNodoAsync(NodoFormViewModel formulario,
+        SensorDispositivoRequest? sensor, CancellationToken cancellationToken, string? nota)
+    {
         try
         {
-            var request = new CrearNodoRequest(
-                formulario.Nombre,
-                formulario.UbicacionDentroParque,
-                formulario.ParqueSolarId,
-                ArmarInversorRequest(formulario),
-                ArmarSensorRequest(formulario));
+            var nodoId = await _nodoService.CrearAsync(
+                new CrearNodoRequest(
+                    formulario.Nombre,
+                    formulario.UbicacionDentroParque,
+                    formulario.ParqueSolarId,
+                    ArmarInversorRequest(formulario),
+                    sensor),
+                cancellationToken);
 
-            var nodoId = await _nodoService.CrearAsync(request, cancellationToken);
+            var mensaje = $"El nodo '{formulario.Nombre}' se creó correctamente.";
+            TempData["MensajeExito"] = nota is null ? mensaje : $"{mensaje} {nota}";
 
-            TempData["MensajeExito"] = $"El nodo '{formulario.Nombre}' se creó correctamente.";
             return RedirectToAction(nameof(Detalle), new { id = nodoId });
         }
         catch (ReglaDeNegocioException ex)
@@ -92,6 +167,15 @@ public class NodosController : Controller
             await CargarParquesAsync(formulario, cancellationToken);
             return View(formulario);
         }
+    }
+
+    private static string ArmarAvisoSensorInexistente(string hardware, DisponibilidadSensor disponibilidad)
+    {
+        var existentes = disponibilidad.IdentificadoresExistentes.Count > 0
+            ? string.Join(", ", disponibilidad.IdentificadoresExistentes)
+            : "ninguno";
+
+        return $"El sensor '{hardware}' no existe en el simulador. Los que existen: {existentes}.";
     }
 
     public async Task<IActionResult> Editar(Guid id, CancellationToken cancellationToken)
@@ -205,12 +289,18 @@ public class NodosController : Controller
             formulario.InversorEficienciaConversion,
             formulario.InversorVolcadoRedActivo);
 
-    private static SensorDispositivoRequest ArmarSensorRequest(NodoFormViewModel formulario)
-        => new(
-            formulario.IdentificadorHardwareARM,
-            formulario.SensorVersionFirmware,
-            formulario.SensorUrlBase,
-            formulario.SensorActivo);
+    /// <summary>
+    /// Arma los datos del sensor, o <c>null</c> si el formulario no trae identificador: un nodo
+    /// puede existir sin sensor, esperando que el dispositivo se conecte.
+    /// </summary>
+    private static SensorDispositivoRequest? ArmarSensorRequest(NodoFormViewModel formulario)
+        => formulario.TieneSensor
+            ? new SensorDispositivoRequest(
+                formulario.IdentificadorHardwareARM!,
+                formulario.SensorVersionFirmware ?? string.Empty,
+                formulario.SensorUrlBase!,
+                formulario.SensorActivo)
+            : null;
 
     private async Task CargarParquesAsync(NodoFormViewModel formulario, CancellationToken cancellationToken)
         => formulario.Parques = await _parqueService.ObtenerTodosAsync(cancellationToken);

@@ -52,7 +52,14 @@ public interface INodoRepository
     /// Persiste los cambios del nodo y de su inversor. El agregado ya está siendo trackeado
     /// por el contexto, porque se obtuvo con <see cref="ObtenerPorIdAsync"/>.
     /// </summary>
-    Task ActualizarAsync(Nodo nodo, CancellationToken cancellationToken = default);
+    /// <param name="sensorNuevo">
+    /// El sensor que se acaba de registrar en el inversor y que todavía no existe en la base. Hay que
+    /// informarlo: como el dominio le genera el Id (Guid) al construirlo, al descubrirlo por la
+    /// navegación Entity Framework lo toma como una fila existente y genera un <c>UPDATE</c> que no
+    /// afecta ninguna fila.
+    /// </param>
+    Task ActualizarAsync(Nodo nodo, SensorDispositivo? sensorNuevo = null,
+        CancellationToken cancellationToken = default);
 
     Task EliminarAsync(Nodo nodo, CancellationToken cancellationToken = default);
 }

@@ -3,6 +3,28 @@
 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 <input type="hidden" asp-for="Id" />
 
+@if (Model.AvisoSensorInexistente is not null)
+{
+    <div class="alert alert-warning">
+        <strong>@Model.AvisoSensorInexistente</strong>
+        <div class="mt-2">
+            Podés pedirle al simulador que empiece a emular ese sensor y asociarlo al nodo, o crear el
+            nodo sin sensor. Sin sensor, el nodo queda cargado pero no recibe telemetría hasta que le
+            cargues uno.
+        </div>
+        <div class="mt-3">
+            <button type="submit" name="AccionArm" value="@NodoFormViewModel.AccionesArm.CrearEnHardware"
+                    class="btn btn-warning">
+                Crear el sensor <code>@Model.IdentificadorHardwareARM</code> en el simulador
+            </button>
+            <button type="submit" name="AccionArm" value="@NodoFormViewModel.AccionesArm.SinSensor"
+                    class="btn btn-outline-secondary">
+                Crear el nodo sin sensor
+            </button>
+        </div>
+    </div>
+}
+
 <div class="row">
     <div class="col-md-6 mb-3">
         <label asp-for="Nombre" class="form-label"></label>
@@ -54,11 +76,16 @@
     </div>
 </div>
 
-<h2 class="h6 mt-4">Sensor ARM del nodo</h2>
+<h2 class="h6 mt-4">Sensor ARM del nodo <span class="text-muted fw-normal">(opcional)</span></h2>
 <p class="text-muted small">
     Es la dirección a la que el colector de telemetría le pide las lecturas al nodo. El identificador
     tiene que coincidir con el del hardware: en el simulador son <code>ARM-001</code>, <code>ARM-002</code>, …
     Podés verlos con <code>GET /simulador/inventario</code>.
+</p>
+<p class="text-muted small">
+    Si el nodo todavía no tiene sensor, dejá el identificador vacío: se puede cargar después. Si
+    escribís un identificador que el simulador no emula, el formulario te va a ofrecer crearlo, o
+    crear el nodo sin sensor.
 </p>
 
 <div class="row">

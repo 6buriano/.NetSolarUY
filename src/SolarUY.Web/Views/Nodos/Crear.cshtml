@@ -19,7 +19,11 @@ else
             <form asp-action="Crear" method="post" class="card card-body shadow-sm">
                 <partial name="_Formulario" model="Model" />
                 <div class="mt-2">
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    @* Cuando el identificador no existe, el partial muestra los dos botones de la elección. *@
+                    @if (Model.AvisoSensorInexistente is null)
+                    {
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    }
                     <a class="btn btn-outline-secondary" asp-action="Index">Cancelar</a>
                 </div>
             </form>

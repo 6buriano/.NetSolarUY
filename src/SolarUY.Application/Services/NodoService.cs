@@ -57,7 +57,13 @@ public class NodoService
     {
         await ValidarParqueExisteAsync(request.ParqueSolarId, cancellationToken);
         await ValidarNumeroSerieLibreAsync(request.Inversor.NumeroSerie, null, cancellationToken);
-        await ValidarIdentificadorHardwareLibreAsync(request.Sensor.IdentificadorHardwareARM, null, cancellationToken);
+
+        var sensorRequest = request.Sensor;
+
+        if (sensorRequest is not null)
+        {
+            await ValidarIdentificadorHardwareLibreAsync(sensorRequest.IdentificadorHardwareARM, null, cancellationToken);
+        }
 
         var inversor = new Inversor(
             request.Inversor.Modelo,
@@ -67,8 +73,12 @@ public class NodoService
 
         var nodo = new Nodo(request.Nombre, request.UbicacionDentroParque, request.ParqueSolarId, inversor);
 
-        // El sensor ARM completa la dupla del nodo: es a esa dirección a la que el colector consulta.
-        nodo.Inversor.RegistrarSensor(ArmarSensor(request.Sensor));
+        // El sensor es opcional: un nodo se puede cargar antes de que su sensor esté conectado.
+        // Sin sensor, el colector simplemente no lo consulta.
+        if (sensorRequest is not null)
+        {
+            nodo.Inversor.RegistrarSensor(ArmarSensor(sensorRequest));
+        }
 
         await _nodoRepository.AgregarAsync(nodo, cancellationToken);
         return nodo.Id;
@@ -84,7 +94,13 @@ public class NodoService
 
         await ValidarParqueExisteAsync(request.ParqueSolarId, cancellationToken);
         await ValidarNumeroSerieLibreAsync(request.Inversor.NumeroSerie, request.Id, cancellationToken);
-        await ValidarIdentificadorHardwareLibreAsync(request.Sensor.IdentificadorHardwareARM, request.Id, cancellationToken);
+
+        var sensorRequest = request.Sensor;
+
+        if (sensorRequest is not null)
+        {
+            await ValidarIdentificadorHardwareLibreAsync(sensorRequest.IdentificadorHardwareARM, request.Id, cancellationToken);
+        }
 
         nodo.Actualizar(request.Nombre, request.UbicacionDentroParque, request.ParqueSolarId);
         nodo.Inversor.Actualizar(
@@ -93,22 +109,30 @@ public class NodoService
             request.Inversor.EficienciaConversion,
             request.Inversor.VolcadoRedActivo);
 
-        // Si el nodo todavía no tenía sensor se registra; si ya tenía, se actualiza el mismo
-        // (la relación es 1 a 1 y el sensor no se puede reemplazar por otro).
-        if (nodo.Inversor.Sensor is null)
+        // El sensor se puede agregar (el nodo existía sin él), actualizar, o quitar dejando el campo
+        // vacío. Al quitarlo se borra: el sensor no existe sin su inversor.
+        var sensorActual = nodo.Inversor.Sensor;
+        SensorDispositivo? sensorNuevo = null;
+
+        if (sensorRequest is null && sensorActual is not null)
         {
-            nodo.Inversor.RegistrarSensor(ArmarSensor(request.Sensor));
+            nodo.Inversor.QuitarSensor();
         }
-        else
+        else if (sensorRequest is not null && sensorActual is null)
         {
-            nodo.Inversor.Sensor.Actualizar(
-                request.Sensor.IdentificadorHardwareARM,
-                request.Sensor.VersionFirmware,
-                request.Sensor.Activo,
-                request.Sensor.UrlBase);
+            sensorNuevo = ArmarSensor(sensorRequest);
+            nodo.Inversor.RegistrarSensor(sensorNuevo);
+        }
+        else if (sensorRequest is not null && sensorActual is not null)
+        {
+            sensorActual.Actualizar(
+                sensorRequest.IdentificadorHardwareARM,
+                sensorRequest.VersionFirmware,
+                sensorRequest.Activo,
+                sensorRequest.UrlBase);
         }
 
-        await _nodoRepository.ActualizarAsync(nodo, cancellationToken);
+        await _nodoRepository.ActualizarAsync(nodo, sensorNuevo, cancellationToken);
         return true;
     }
 

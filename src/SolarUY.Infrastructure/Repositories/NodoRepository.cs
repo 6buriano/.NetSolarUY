@@ -105,9 +105,17 @@ public class NodoRepository : INodoRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task ActualizarAsync(Nodo nodo, CancellationToken cancellationToken = default)
+    public async Task ActualizarAsync(Nodo nodo, SensorDispositivo? sensorNuevo = null,
+        CancellationToken cancellationToken = default)
     {
         // El nodo y su inversor ya están trackeados, porque se obtuvieron con ObtenerPorIdAsync.
+        // Un sensor recién registrado no lo está: hay que marcarlo como Added, porque si no EF lo
+        // trata como una fila existente (ya tiene su Id generado) y el UPDATE no afecta nada.
+        if (sensorNuevo is not null)
+        {
+            _context.SensoresDispositivos.Add(sensorNuevo);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
     }
 

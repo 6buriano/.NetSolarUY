@@ -18,4 +18,15 @@ public interface ISimuladorAdminClient
     /// </summary>
     Task<IReadOnlyList<InventarioSensorDto>?> ObtenerInventarioAsync(string urlBase,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Le pide al simulador que empiece a emular un sensor nuevo (POST /simulador/sensores).
+    /// Devuelve el sensor creado, o <c>null</c> si no se pudo.
+    /// </summary>
+    /// <remarks>
+    /// Esto no tiene equivalente en el mundo real —un inversor se instala, no se crea por HTTP—,
+    /// así que solo lo usa la provisión de nodos de prueba.
+    /// </remarks>
+    Task<InventarioSensorDto?> CrearSensorAsync(string urlBase, string identificadorHardwareARM,
+        int cantidadPaneles, double potenciaNominalW, CancellationToken cancellationToken = default);
 }

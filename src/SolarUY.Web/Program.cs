@@ -1,9 +1,11 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using SolarUY.Application.Sensors;
 using SolarUY.Application.Services;
 using SolarUY.Infrastructure;
 using SolarUY.Infrastructure.Persistence;
+using SolarUY.Infrastructure.Sensors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,25 @@ builder.Services.AddScoped<PanelService>();
 // Herramienta de diagnóstico: compara el sistema contra el inventario del simulador.
 // Solo se usa desde DiagnosticoController, que está limitado a desarrollo.
 builder.Services.AddScoped<VerificacionVinculacionService>();
+
+// Verificación y alta de sensores contra el hardware. En desarrollo se le pregunta al simulador si
+// el identificador que cargó el usuario existe, y se le puede pedir que lo cree. En cualquier otro
+// entorno se registra la implementación nula: no hay inventario que consultar, así que el ABM crea
+// el nodo con el identificador que le den, como siempre.
+var urlSimulador = builder.Configuration["Simulador:UrlBase"] ?? "http://localhost:5100";
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<ISensorDisponibilidadService>(proveedor =>
+        new SensorDisponibilidadSimulador(
+            proveedor.GetRequiredService<ISimuladorAdminClient>(),
+            urlSimulador,
+            proveedor.GetRequiredService<ILogger<SensorDisponibilidadSimulador>>()));
+}
+else
+{
+    builder.Services.AddScoped<ISensorDisponibilidadService, SensorDisponibilidadNula>();
+}
 
 // TODO (etapa de seguridad, specs.md §4.2 y §5.1): cuando se integre Keycloak se agrega
 // AddAuthentication().AddOpenIdConnect(), el mapeo del rol y [Authorize(Roles = "Administrador")]
