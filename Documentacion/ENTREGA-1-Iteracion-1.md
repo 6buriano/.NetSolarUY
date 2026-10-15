@@ -66,20 +66,33 @@ aporta 70 pruebas propias).
 El **diagrama de clases** del dominio está en `diagrama-clases.md` (código Mermaid, verificado contra el
 código) y se reproduce en el anexo B.
 
-### Decisiones técnicas relevantes
+### Por qué elegimos estas tecnologías
 
-1. **ASP.NET Core MVC con vistas Razor, no Blazor**, como pide `specs.md` §5.
-2. **Un controlador y un servicio por recurso** (`ParquesController`/`ParqueService`,
+| Tema | Decisión | Por qué |
+|---|---|---|
+| Estilo de arquitectura | **Monolito modular con Clean Architecture** (Domain, Application, Infrastructure, Web y Collector) | Para una prueba de concepto, un solo despliegue es más simple de operar que microservicios. Las capas separan las reglas del negocio de la tecnología y se pueden probar por separado. |
+| Interfaz web | **ASP.NET Core MVC con vistas Razor** | El ABM son formularios y listados, que MVC resuelve directamente en el servidor. El tiempo real se agrega con SignalR sólo donde hace falta (el monitoreo). |
+| Base de datos | **MySQL 8.4 + Entity Framework Core** (Pomelo) | Los datos son relacionales (parque → nodo → panel → lecturas). EF Core aporta las migraciones que versionan el esquema, y MySQL es gratuito y corre en Docker igual que el resto del entorno. |
+| Hardware simulado | **Simulador como servicio HTTP independiente** (repositorio propio, integrado como submódulo) **más un colector propio** que lo consulta | Simula el hardware como caja negra, igual que uno real: el sistema le habla a través de `ISensorClient`, así que reemplazarlo por hardware de verdad no toca el resto del sistema. El colector deja al dominio ignorante del transporte. |
+| Autenticación (iteración 2) | **Keycloak** (OpenID Connect) | La letra pide un proveedor externo. Keycloak es open source, corre en nuestro propio servidor y maneja los roles que necesita el ABM (`Administrador`). |
+| Despliegue (iteración 3) | **VPS en Oracle Cloud (OCI) con Docker** | Control total del servidor para correr la aplicación, MySQL, Redis, Keycloak y el simulador con la misma definición de contenedores que usamos en desarrollo. |
+| Alta disponibilidad (iteración 3) | **Al menos dos réplicas idénticas detrás de Nginx/YARP** (round robin + sticky sessions), **Redis** como backplane de SignalR y *rolling update* | Las réplicas permiten actualizar de a una sin cortar el servicio, y las sticky sessions con Redis hacen que el tiempo real funcione aunque el usuario quede conectado a cualquier réplica. Limitación conocida: al estar en un solo VPS, una caída del servidor afecta a todo. |
+| Consultas con IA (iteración 3) | **Servidor MCP + Gemini** | La letra pide consultas en lenguaje natural sobre el estado del sistema. MCP expone las herramientas de consulta y Gemini interpreta la pregunta, sin acoplar el modelo a la base. |
+
+De estas decisiones, esta iteración dejó implementadas el estilo de arquitectura, la interfaz web, la base
+de datos y el hardware simulado con su colector. Las que están marcadas con su iteración son las
+planificadas, y el diagrama de la arquitectura objetivo está en el anexo C.
+
+### Decisiones de implementación
+
+1. **Un controlador y un servicio por recurso** (`ParquesController`/`ParqueService`,
    `NodosController`/`NodoService`, `PanelesController`/`PanelService`) para que cada integrante trabaje en
    sus archivos sin conflictos.
-3. **Pomelo 9.0.0 y EF Core 9.0.20** aunque la solución apunte a `net10.0`: Pomelo todavía no publicó una
+2. **Pomelo 9.0.0 y EF Core 9.0.20** aunque la solución apunte a `net10.0`: Pomelo todavía no publicó una
    versión para EF Core 10 y la 9.0.0 corre sin problemas sobre .NET 10.
-4. **El simulador es una caja negra por HTTP**, no una clase dentro de Infrastructure: se integra como
-   submódulo y nuestro sistema lo consulta *por pull*, como si fuera hardware real. Cambiarlo por hardware
-   de verdad sólo implica escribir otro `ISensorClient`.
-5. **La cultura de la petición se fija en la invariante** (`RequestLocalization`), porque en un equipo con
+3. **La cultura de la petición se fija en la invariante** (`RequestLocalization`), porque en un equipo con
    configuración regional de Uruguay (`es-UY`) el valor `120.5` de un formulario se interpretaba como `1205`.
-6. **Las reglas de negocio viven en el dominio** y lanzan `ReglaDeNegocioException`, que el controlador
+4. **Las reglas de negocio viven en el dominio** y lanzan `ReglaDeNegocioException`, que el controlador
    muestra como mensaje. Los controladores nunca tocan Infrastructure.
 
 ## 4. Trabajo realizado por módulo
@@ -457,3 +470,20 @@ classDiagram
     note for SensorDispositivo "Caja negra por HTTP: no genera lecturas.\nEl colector lo consulta con ISensorClient.ObtenerEstadoAsync(urlBase, identificadorHardwareARM)\ny arma las LecturaTelemetria, que Nodo.EvaluarLecturas diagnostica."
     note for Nodo "Regla de estado (spec del simulador 9): inactivo = DESCONECTADO;\n> 75 C = FALLA_DETECTADA; caida de potencia contra el promedio de los\npaneles hermanos activos: hasta 15 % OPERATIVO, hasta 40 % RENDIMIENTO_BAJO,\nmas de 40 % FALLA_DETECTADA."
 ```
+
+## Anexo C — Diagrama de infraestructura
+
+Arquitectura objetivo del sistema (la que persiguen las iteraciones 2 y 3). En esta iteración todo corre en
+un solo equipo: MySQL y el simulador en Docker y la aplicación y el colector con `dotnet run`. El código
+Mermaid fuente del diagrama está en `diagrama-infraestructura.md`.
+
+![Diagrama de infraestructura](entrega-1-diagramas/diagrama-infraestructura.png)
+
+**Diagrama de infraestructura objetivo.** El usuario entra por el balanceador, que reparte entre las dos
+réplicas de la aplicación; las réplicas comparten la sesión por Redis (backplane de SignalR) y hablan con
+MySQL y Keycloak. El colector consulta el simulador por HTTP y es el único que escribe las lecturas.
+
+Nota: el simulador **no** escribe en la base. Es una caja negra por HTTP, así que el que consulta los
+sensores y guarda las lecturas es el **colector**, que es el nodo que se agregó al diagrama original.
+
+

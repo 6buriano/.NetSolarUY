@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-INLINE = re.compile(r"(\*\*.+?\*\*|`[^`]+`)")
+INLINE = re.compile(r"(\*\*.+?\*\*|\*[^*\n]+?\*|`[^`]+`)")
 BULLET = re.compile(r"^[-*]\s+(.*)$")
 NUMBERED = re.compile(r"^(\d+)\.\s+(.*)$")
 IMAGE = re.compile(r"^!\[(.*?)\]\((.*?)\)\s*$")
@@ -32,6 +32,9 @@ def agregar_runs(parrafo, texto, base_negrita=False, tamano=None):
         if parte.startswith("**") and parte.endswith("**") and len(parte) > 4:
             run = parrafo.add_run(parte[2:-2])
             run.bold = True
+        elif parte.startswith("*") and parte.endswith("*") and len(parte) > 2:
+            run = parrafo.add_run(parte[1:-1])
+            run.italic = True
         elif parte.startswith("`") and parte.endswith("`") and len(parte) > 2:
             run = parrafo.add_run(parte[1:-1])
             run.font.name = "Consolas"
@@ -187,7 +190,15 @@ class Generador:
             if ruta.exists():
                 parrafo = self.documento.add_paragraph()
                 parrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                parrafo.add_run().add_picture(str(ruta), width=Cm(14.5))
+                # Las figuras verticales se ajustan por alto para que entren en una página;
+                # las horizontales, por ancho.
+                from docx.image.image import Image as ImagenDocx
+
+                medidas = ImagenDocx.from_file(str(ruta))
+                if medidas.height > medidas.width:
+                    parrafo.add_run().add_picture(str(ruta), height=Cm(18))
+                else:
+                    parrafo.add_run().add_picture(str(ruta), width=Cm(14.5))
             else:
                 self.documento.add_paragraph(f"[falta la imagen {imagen.group(2)}]")
             return
