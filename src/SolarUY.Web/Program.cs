@@ -78,14 +78,26 @@ else
 
 var app = builder.Build();
 
-// Paso de migración (docker compose --profile migracion run --rm migracion): aplica el esquema
-// y termina, sin levantar el servidor. Es la única forma en que se migra en el despliegue: las
-// réplicas no migran al arrancar, para que dos instancias no compitan por el mismo esquema.
+// Paso de arranque (docker compose --profile migracion run --rm migracion): aplica el esquema,
+// crea el anillo de claves y termina, sin levantar el servidor. Es la única forma en que se
+// migra en el despliegue: las réplicas no migran al arrancar, para que dos instancias no
+// compitan por el mismo esquema.
 if (args.Contains("--migrate-only"))
 {
     using var alcanceMigracion = app.Services.CreateScope();
     alcanceMigracion.ServiceProvider.GetRequiredService<SolarUYDbContext>().Database.Migrate();
-    app.Logger.LogInformation("Migraciones aplicadas (--migrate-only). Termina el proceso.");
+
+    // El anillo de claves se crea acá, con un solo proceso y antes de que arranquen las réplicas.
+    // Si las dos arrancaran con el volumen vacío, cada una generaría la suya y una no podría
+    // descifrar los tokens de la otra hasta el refresco del anillo (24 h por defecto). Si la
+    // carpeta no se puede escribir, esto lanza y el paso termina con error: es preferible frenar
+    // el despliegue a quedar con dos réplicas que no comparten la clave.
+    app.Services.GetRequiredService<IDataProtectionProvider>()
+        .CreateProtector("SolarUY.Bootstrap")
+        .Protect("bootstrap");
+
+    app.Logger.LogInformation(
+        "Migraciones aplicadas y anillo de claves creado (--migrate-only). Termina el proceso.");
     return;
 }
 
