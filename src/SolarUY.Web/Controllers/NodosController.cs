@@ -17,15 +17,24 @@ public class NodosController : Controller
     private readonly ParqueService _parqueService;
     private readonly PanelService _panelService;
     private readonly ISensorDisponibilidadService _sensorDisponibilidad;
+    private readonly IConfiguration _configuracion;
 
     public NodosController(NodoService nodoService, ParqueService parqueService, PanelService panelService,
-        ISensorDisponibilidadService sensorDisponibilidad)
+        ISensorDisponibilidadService sensorDisponibilidad, IConfiguration configuracion)
     {
         _nodoService = nodoService;
         _parqueService = parqueService;
         _panelService = panelService;
         _sensorDisponibilidad = sensorDisponibilidad;
+        _configuracion = configuracion;
     }
+
+    /// <summary>
+    /// Dirección que se propone para un sensor nuevo: la misma <c>Simulador:UrlBase</c> que usa la
+    /// pantalla de Diagnóstico. Si el entorno no la define (producción no tiene simulador), queda
+    /// vacía a propósito: es preferible un campo en blanco a uno que apunte a localhost.
+    /// </summary>
+    private string UrlSensorPorDefecto => _configuracion["Simulador:UrlBase"] ?? string.Empty;
 
     public async Task<IActionResult> Index(Guid? parqueId, CancellationToken cancellationToken)
     {
@@ -60,7 +69,11 @@ public class NodosController : Controller
 
     public async Task<IActionResult> Crear(Guid? parqueId, CancellationToken cancellationToken)
     {
-        var formulario = new NodoFormViewModel { ParqueSolarId = parqueId ?? Guid.Empty };
+        var formulario = new NodoFormViewModel
+        {
+            ParqueSolarId = parqueId ?? Guid.Empty,
+            SensorUrlBase = UrlSensorPorDefecto
+        };
         await CargarParquesAsync(formulario, cancellationToken);
 
         return View(formulario);
@@ -198,7 +211,7 @@ public class NodosController : Controller
             InversorVolcadoRedActivo = nodo.Inversor.VolcadoRedActivo,
             IdentificadorHardwareARM = nodo.Inversor.Sensor?.IdentificadorHardwareARM ?? string.Empty,
             SensorVersionFirmware = nodo.Inversor.Sensor?.VersionFirmware ?? string.Empty,
-            SensorUrlBase = nodo.Inversor.Sensor?.UrlBase ?? "http://localhost:5100",
+            SensorUrlBase = nodo.Inversor.Sensor?.UrlBase ?? UrlSensorPorDefecto,
             SensorActivo = nodo.Inversor.Sensor?.Activo ?? true
         };
 
