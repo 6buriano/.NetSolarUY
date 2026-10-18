@@ -33,7 +33,7 @@ x-web: &web
     ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
     # Solo lo usa la web (Diagnóstico y verificación del sensor en el alta).
     # El colector consulta la url_base de cada sensor, que vive en la base.
-    Simulador__UrlBase: ${SIMULADOR_URL:-https://simulador.fabriq.uy}
+    Simulador__UrlBase: ${SIMULADOR_URL:-http://simulador.fabriq.uy}
     # Única red de la que se aceptan cabeceras X-Forwarded-* (la de nginx).
     ReverseProxy__KnownNetwork: ${DOCKER_SUBNET:-10.201.0.0/16}
     # El TLS termina en nginx: la app no redirige a https.
@@ -165,6 +165,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
+      # Mismo destino que las réplicas: acá se crea el anillo de claves, una sola vez.
+      DataProtection__Directory: /var/solaruy/dataprotection
+    volumes:
+      # El mismo volumen que montan web1 y web2.
+      - solaruy-data-protection:/var/solaruy/dataprotection
     depends_on:
       mysql:
         condition: service_healthy
