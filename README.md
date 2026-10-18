@@ -80,20 +80,48 @@ dotnet test                                 # corre las pruebas de todo
 
 Para cortar un programa que está corriendo: `Ctrl + C` en la terminal.
 
-### Base de datos (MySQL) y simulador del sensor
+### Dos formas de correr el sistema
 
-```bash
-docker compose up -d        # levanta MySQL 8.4 en localhost:3306 y el simulador en localhost:5100
-dotnet tool restore         # instala la herramienta dotnet-ef que está fijada en .config/dotnet-tools.json
+**Modo Docker (la topología de la entrega).** Levanta Nginx, las dos réplicas de la web, el colector y MySQL.
+Todo entra por `http://localhost:8080`:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d --wait mysql
+docker compose --profile migracion run --rm migracion
+docker compose up -d --wait
+curl.exe -fsS http://localhost:8080/health
 ```
 
-El simulador es el mock del hardware: se levanta desde el submódulo, así que si no lo inicializaste
-`docker compose up -d sensor-simulator` va a fallar. Para levantarlo solo a él:
-`docker compose up -d sensor-simulator`.
+`web1` atiende y `web2` queda de reserva. El paso `migracion` aplica el esquema y crea el anillo de claves
+**una sola vez**; las réplicas no migran al arrancar. La secuencia completa de actualización sin cortes está
+en [`Documentacion/actualizacion-sin-cortes.md`](Documentacion/actualizacion-sin-cortes.md).
 
-La cadena de conexión de desarrollo está en `src/SolarUY.Web/appsettings.Development.json` y coincide con
-las credenciales de `docker-compose.yml`. En desarrollo la web aplica las migraciones sola al arrancar,
-así que normalmente no hace falta correr nada más.
+El simulador que se usa es el desplegado, `http://simulador.fabriq.uy`, configurado con `SIMULADOR_URL` en
+`.env`. Para trabajar sin internet, el mock local está detrás de un perfil:
+
+```powershell
+docker compose --profile simulador-local up -d
+# y en .env: SIMULADOR_URL=http://sensor-simulator:8080
+```
+
+**Modo host (`dotnet run`).** Solo MySQL en Docker; la web y el colector en tu máquina:
+
+```powershell
+docker compose up -d --wait mysql
+docker compose --profile simulador-local up -d
+dotnet tool restore
+dotnet run --project src/SolarUY.Web
+```
+
+La cadena de conexión de desarrollo está en `src/SolarUY.Web/appsettings.Development.json`. En este modo la
+web aplica las migraciones sola al arrancar y `Simulador:UrlBase` apunta a `http://localhost:5100`.
+
+> **Ojo con `url_base`.** En Docker el simulador se llama `sensor-simulator` y escucha en el puerto 8080, así
+> que la dirección del sensor es `http://sensor-simulator:8080`; desde el host es `http://localhost:5100`.
+> El colector **no** usa `Simulador:UrlBase`: consulta la dirección guardada en cada sensor, así que cambiar
+> de simulador son dos pasos (configuración para la web, dato para el colector). El alta de nodos ya propone
+> la dirección desde `Simulador:UrlBase`, así que no hace falta escribirla.
 
 Para aplicar las migraciones a mano, o para crear una nueva:
 

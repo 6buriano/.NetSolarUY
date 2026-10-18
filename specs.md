@@ -8,7 +8,15 @@
 - **Seguridad:** Provider OIDC externo (Keycloak) con tokens JWT y control de acceso basado en roles (`Administrador`).
 - **Simulación Telemétrica:** Worker Service .NET independiente que emula sensores ARM de inversores.
 - **Consultas con IA:** Servidor MCP (Model Context Protocol) conectado con el modelo Gemini para procesar preguntas en lenguaje natural.
-- **Alta Disponibilidad:** Despliegue multinodo en VPS Oracle Cloud (OCI) detrás de un balanceador de carga (Nginx / YARP) con Sticky Sessions y Redis Backplane para SignalR.
+- **Alta Disponibilidad:** Despliegue **activo/pasivo** en un VPS Oracle Cloud (OCI) con **Nginx** como
+  único punto de entrada: `web1` atiende todo el tráfico y `web2` queda como `backup` del upstream y solo
+  recibe pedidos si `web1` no responde (`max_fails` / `fail_timeout`, con `zone` compartida). Las dos
+  réplicas son idénticas y no guardan estado en el servidor: comparten el anillo de claves de Data
+  Protection en un volumen y el `TempData` va en cookie cifrada, así que **no** hacen falta sticky
+  sessions, **no** hay Redis y **no** hay backplane de SignalR. Un único colector escribe la telemetría.
+  Una versión nueva se instala sin cortes: se actualiza la réplica en reserva, se verifica, se recarga
+  Nginx y recién entonces se actualiza la principal. Limitación conocida: al ser un solo VPS, una caída
+  del servidor afecta a todo el sistema.
 
 ---
 
