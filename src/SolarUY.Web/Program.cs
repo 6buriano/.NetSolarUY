@@ -1,4 +1,7 @@
 using System.Globalization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
@@ -76,6 +79,43 @@ else
 // AddAuthentication().AddOpenIdConnect(), el mapeo del rol y [Authorize(Roles = "Administrador")]
 // sobre ParquesController, NodosController y PanelesController.
 
+// Autenticación con Keycloak (OpenID Connect). Cómo funciona:
+// - Si alguien sin sesión entra a una página protegida, se lo manda a Keycloak a loguearse.
+// - Keycloak lo devuelve a /signin-oidc con un código, y la web lo canjea por los datos del usuario.
+// - La web guarda la sesión en una cookie, así no vuelve a Keycloak en cada pedido.
+
+//aca abajo lo armo en guille-keycloak
+var keycloak = builder.Configuration.GetSection("Keycloak");
+
+builder.Services
+    .AddAuthentication(opciones =>
+    {
+        // La sesión se guarda en una cookie...
+        opciones.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        // ...y si no hay sesión, se le pide el login a Keycloak.
+        opciones.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    })
+    .AddCookie(opciones =>
+    {
+        // Logueado pero sin el rol necesario: se muestra esta página en lugar de un error.
+        opciones.AccessDeniedPath = "/Cuenta/AccesoDenegado";
+    })
+    .AddOpenIdConnect(opciones =>
+    {
+        opciones.Authority = keycloak["Authority"];
+        opciones.ClientId = keycloak["ClientId"];
+        opciones.ClientSecret = keycloak["ClientSecret"]; // viene de user secrets, no del repo
+        opciones.ResponseType = "code";                   // flujo Authorization Code, el recomendado
+        opciones.SaveTokens = true;                       // guarda el token: hace falta para cerrar sesión
+        opciones.GetClaimsFromUserInfoEndpoint = true;    // pide a Keycloak los datos del usuario
+
+        // Usar los nombres de los datos tal como los manda Keycloak, sin traducirlos a los de Microsoft.
+        opciones.MapInboundClaims = false;
+        opciones.TokenValidationParameters.NameClaimType = "preferred_username";
+        opciones.TokenValidationParameters.RoleClaimType = "roles";
+        opciones.ClaimActions.MapJsonKey("roles", "roles");
+    });
+
 var app = builder.Build();
 
 // Paso de arranque (docker compose --profile migracion run --rm migracion): aplica el esquema,
@@ -150,6 +190,8 @@ if (builder.Configuration.GetValue("HttpsRedirection:Enabled", true))
 app.UseRequestLocalization();
 app.UseRouting();
 
+//agrego autenticacion guille-keycloak
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
