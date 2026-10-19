@@ -3,13 +3,15 @@ using SolarUY.Application.DTOs;
 using SolarUY.Application.Services;
 using SolarUY.Domain.Exceptions;
 using SolarUY.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SolarUY.Web.Controllers;
 
 /// <summary>
 /// ABM de parques solares (specs.md §5.1).
 /// </summary>
-// TODO (etapa de seguridad): agregar [Authorize(Roles = "Administrador")] cuando esté Keycloak.
+// Solo los administradores (rol de Keycloak) pueden gestionar parques.
+[Authorize(Roles = "Administrador")]
 public class ParquesController : Controller
 {
     private readonly ParqueService _parqueService;
