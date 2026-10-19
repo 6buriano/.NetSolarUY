@@ -1,0 +1,27 @@
+# Contexto de build de las imágenes de SolarUY (el contexto es la raíz del repo).
+# Solo hace falta src/: ni el historial de git, ni la documentación, ni el submódulo del
+# simulador (que no se compila acá), ni los bin/obj del host (que además traen rutas de Windows).
+
+.git
+.gitignore
+.gitmodules
+.vs
+.vscode
+.claude
+.config
+.entrega-build
+
+**/bin
+**/obj
+
+SolarUY.SensorSimulator
+Documentacion
+entrega-1-capturas
+entrega-1-diagramas
+nginx
+
+*.md
+docker-compose.yml
+Dockerfile
+.env
+.env.*

@@ -1,40 +1,99 @@
-# Servicios locales de desarrollo. Levantarlos con:  docker compose up -d
+# Topología local de SolarUY: activo/pasivo detrás de Nginx.
 #
-# - mysql: base de datos de SolarUY.Web y SolarUY.Collector. Las credenciales coinciden con la
-#   cadena de conexión de appsettings.Development.json de los dos proyectos.
-# - sensor-simulator: el mock de hardware, que vive en el submódulo SolarUY.SensorSimulator.
-#   Para construirlo hay que tener el submódulo inicializado (ver README).
+#   navegador -> nginx :8080 -> web1 (principal)
+#                            \-> web2 (backup: solo si web1 falla)
+#   collector (UNA sola instancia) -> GET /sensores/{hw}/estado -> simulador
+#   web1, web2, collector -> MySQL 8.4
 #
-# La web y el colector corren en tu máquina con dotnet run, así que llegan al simulador por
-# http://localhost:5100 y a MySQL por localhost:3306.
+# Puesta en marcha (la secuencia completa está en Documentacion/actualizacion-sin-cortes.md):
+#   Copy-Item .env.example .env          # una vez; .env no se versiona
+#   docker compose up -d                 # mysql + web1 + web2 + collector + nginx
+#   docker compose --profile migracion run --rm migracion   # esquema, una sola vez
+#
+# Sin internet, con el simulador local (que NO arranca por defecto):
+#   docker compose --profile simulador-local up -d
+#
+# Reglas que no se rompen:
+# - El colector NO se escala: dos instancias duplicarían las lecturas en lecturas_telemetria.
+# - Las réplicas web no publican puerto al host: el único punto de entrada es nginx.
+# - Sin credenciales en este archivo: salen de .env (ver .env.example).
+
+# Servicios comunes de las dos réplicas de la web: mismas variables, mismos volúmenes.
+x-web: &web
+  build:
+    context: .
+    dockerfile: src/SolarUY.Web/Dockerfile
+  image: solaruy-web:${SOLARUY_TAG:-latest}
+  restart: unless-stopped
+  # Tiempo para terminar los pedidos en curso antes de que Docker mate el proceso.
+  stop_grace_period: 30s
+  environment:
+    ASPNETCORE_ENVIRONMENT: Development
+    ASPNETCORE_HTTP_PORTS: "8080"
+    ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
+    # Solo lo usa la web (Diagnóstico y verificación del sensor en el alta).
+    # El colector consulta la url_base de cada sensor, que vive en la base.
+    Simulador__UrlBase: ${SIMULADOR_URL:-http://simulador.fabriq.uy}
+    # Única red de la que se aceptan cabeceras X-Forwarded-* (la de nginx).
+    ReverseProxy__KnownNetwork: ${DOCKER_SUBNET:-10.201.0.0/16}
+    # El TLS termina en nginx: la app no redirige a https.
+    HttpsRedirection__Enabled: "false"
+    # Claves compartidas por las dos réplicas: sin esto, un failover invalida
+    # los formularios (antiforgery) y las cookies de TempData.
+    DataProtection__Directory: /var/solaruy/dataprotection
+    # El esquema NO se migra al arrancar: lo hace el servicio "migracion", una sola vez.
+    Database__ApplyMigrationsOnStartup: "false"
+  volumes:
+    - solaruy-data-protection:/var/solaruy/dataprotection
+  depends_on:
+    mysql:
+      condition: service_healthy
+  networks:
+    - solareuy
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+    interval: 10s
+    timeout: 3s
+    retries: 3
+    # Margen para el arranque en frío de .NET y la primera conexión a MySQL.
+    start_period: 40s
+
 services:
   mysql:
     image: mysql:8.4
     container_name: solareuy-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: solareuy
-      MYSQL_USER: solareuy
-      MYSQL_PASSWORD: solareuy
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?falta MYSQL_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?falta MYSQL_DATABASE en .env}
+      MYSQL_USER: ${MYSQL_USER:?falta MYSQL_USER en .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?falta MYSQL_PASSWORD en .env}
     ports:
-      - "3306:3306"
+      # Solo en loopback: la base se publica para poder correr la web y el colector con
+      # dotnet run desde el host, no para exponerla a la red.
+      - "127.0.0.1:3306:3306"
     volumes:
       - solareuy-mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      # "$$" es para que el $ lo expanda el shell del contenedor y no compose:
+      # así la contraseña no queda escrita en el archivo.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
       timeout: 5s
       retries: 12
     networks:
       - solareuy
 
+  # Respaldo para trabajar sin internet. No arranca con "docker compose up": está detrás
+  # del profile "simulador-local". Hoy el sistema apunta al simulador desplegado
+  # (SIMULADOR_URL), así que esto es solo para cuando no hay red.
   sensor-simulator:
     build:
       context: ./SolarUY.SensorSimulator
     image: solaruy-sensor-simulator:latest
     container_name: solaruy-sensor-simulator
     restart: unless-stopped
+    profiles: ["simulador-local"]
     # Solo se publica en loopback: el simulador no tiene autenticación, es un mock de pruebas.
     ports:
       - "127.0.0.1:5100:8080"
@@ -55,9 +114,105 @@ services:
     networks:
       - solareuy
 
+  # Réplica principal: recibe todo el tráfico del upstream.
+  web1:
+    <<: *web
+    container_name: solaruy-web1
+    # El hostname es lo que devuelve /health en "machine", para saber qué réplica contestó.
+    hostname: web1
+
+  # Réplica en reserva: nginx solo le manda pedidos si web1 falla.
+  web2:
+    <<: *web
+    container_name: solaruy-web2
+    hostname: web2
+
+  collector:
+    build:
+      context: .
+      dockerfile: src/SolarUY.Collector/Dockerfile
+    image: solaruy-collector:${SOLARUY_TAG:-latest}
+    # UNA sola instancia. Además del comentario, el container_name hace que
+    # "docker compose up --scale collector=2" falle en vez de duplicar lecturas.
+    container_name: solaruy-collector
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
+      Colector__Habilitado: "true"
+      Colector__IntervaloSegundos: "5"
+    depends_on:
+      # No depende del simulador: le habla a la url_base de cada sensor, que es un dato
+      # de la base y hoy apunta al simulador desplegado.
+      mysql:
+        condition: service_healthy
+    networks:
+      - solareuy
+
+  # Paso de migración: un contenedor de un solo uso que aplica el esquema y termina.
+  # No arranca con "up" (profile) y no se reintenta (restart: "no").
+  #   docker compose --profile migracion run --rm migracion
+  migracion:
+    build:
+      context: .
+      dockerfile: src/SolarUY.Web/Dockerfile
+    image: solaruy-web:${SOLARUY_TAG:-latest}
+    profiles: ["migracion"]
+    restart: "no"
+    # El ENTRYPOINT de la imagen es "dotnet SolarUY.Web.dll"; esto le agrega el flag.
+    command: ["--migrate-only"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
+      # Mismo destino que las réplicas: acá se crea el anillo de claves, una sola vez.
+      DataProtection__Directory: /var/solaruy/dataprotection
+    volumes:
+      # El mismo volumen que montan web1 y web2.
+      - solaruy-data-protection:/var/solaruy/dataprotection
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - solareuy
+
+  # Único punto de entrada. Reenvía a web1 y, si web1 no responde, a web2.
+  nginx:
+    image: ${NGINX_IMAGE:-nginx:1.28.0-alpine}
+    container_name: solaruy-nginx
+    restart: unless-stopped
+    ports:
+      # El host publica 8080; adentro nginx escucha 80. Con TLS (más adelante) se agrega 443.
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      # La principal tiene que estar lista para atender.
+      web1:
+        condition: service_healthy
+      # La reserva solo tiene que estar arrancando: si se exige "healthy" y web2 no llega,
+      # nginx no arranca y un fallo parcial se convierte en una caída total. Para el tráfico
+      # en caliente manda el upstream (backup + max_fails), no depends_on.
+      web2:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - solareuy
+
 networks:
   solareuy:
     driver: bridge
+    ipam:
+      config:
+        # Subred fija para que la web sepa de qué red aceptar X-Forwarded-*.
+        # Si choca con una red que ya existe en la máquina, se cambia acá y en .env.
+        - subnet: ${DOCKER_SUBNET:-10.201.0.0/16}
 
 volumes:
   solareuy-mysql-data:
+  # Claves de Data Protection compartidas por las dos réplicas.
+  solaruy-data-protection:

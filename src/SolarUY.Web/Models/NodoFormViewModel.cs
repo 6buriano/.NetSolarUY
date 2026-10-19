@@ -64,8 +64,10 @@ public class NodoFormViewModel : IValidatableObject
     [StringLength(300, ErrorMessage = "La dirección no puede superar los 300 caracteres.")]
     // Se valida con la regla del dominio y no con [Url], que rechaza localhost y las IP internas.
     [DireccionHttp]
+    // Sin valor por defecto: el controlador propone la dirección desde Simulador:UrlBase, así un
+    // nodo nuevo no nace apuntando a localhost.
     [Display(Name = "Dirección del sensor")]
-    public string? SensorUrlBase { get; set; } = "http://localhost:5100";
+    public string? SensorUrlBase { get; set; }
 
     [Display(Name = "Sensor activo")]
     public bool SensorActivo { get; set; } = true;

@@ -47,25 +47,38 @@ comando, `dotnet build` falla porque la solución referencia proyectos que no ex
 
 Comprobación: adentro de `SolarUY.SensorSimulator` tiene que haber archivos, no estar vacía.
 
-### 2. Levantar MySQL y el simulador
+### 2. Levantar el sistema
 
-```bash
-docker compose up -d
-docker compose ps
+Hay dos modos. **Elegí uno y seguí con el paso 3.**
+
+**Modo Docker (recomendado: es la topología de la entrega).** Levanta Nginx, las dos réplicas de la web, el
+colector y MySQL:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d --wait mysql
+docker compose --profile migracion run --rm migracion
+docker compose up -d --wait
 ```
 
-Esperá a que `solareuy-mysql` diga **healthy** y a que `solaruy-sensor-simulator` esté `Up`.
+Entrás por `http://localhost:8080` (`web1` atiende, `web2` queda de reserva). La primera vez tarda varios
+minutos porque descarga imágenes y compila.
 
-La **primera vez tarda varios minutos**: descarga la imagen de MySQL y, sobre todo, **compila el simulador**
-(usa la imagen del SDK de .NET). A partir de la segunda vez son unos segundos.
+**Modo host (`dotnet run`).** Solo MySQL y el simulador local en Docker; la web y el colector en tu máquina:
 
-El simulador queda escuchando en `http://localhost:5100`. Comprobación rápida de que está vivo:
-
-```bash
-curl http://localhost:5100/simulador/inventario
+```powershell
+docker compose up -d --wait mysql
+docker compose --profile simulador-local up -d
 ```
 
-Tenés que ver `ARM-001`, `ARM-002` y `ARM-003`, cada uno con sus paneles `P01`…`P05`.
+El simulador local queda escuchando en `http://localhost:5100`. Comprobación rápida de que está vivo:
+
+```powershell
+curl.exe http://localhost:5100/simulador/inventario
+```
+
+Tenés que ver `ARM-001`, `ARM-002` y `ARM-003`, cada uno con sus paneles `P01`…`P05`. En modo Docker se usa
+el simulador desplegado (`SIMULADOR_URL` en `.env`) y este paso no hace falta.
 
 ### 3. Herramientas y compilación
 
@@ -77,6 +90,9 @@ dotnet build
 `dotnet build` tiene que terminar con **0 errores y 0 advertencias**.
 
 ### 4. Levantar la web (dejá esta terminal abierta)
+
+> En **modo Docker** este paso y el 6 no van: la web y el colector ya están corriendo. Abrí
+> `http://localhost:8080` y seguí desde el paso 5.
 
 ```bash
 dotnet run --project src/SolarUY.Web
@@ -97,7 +113,9 @@ hardware**. Hay que hacerlos coincidir. Con la configuración por defecto el sim
 1. **Parques → Nuevo parque**: cualquiera (ej. "Parque Norte", "Salto", 250.5 kW).
 2. **Nodos → Nuevo nodo**. Al final del formulario está la sección **Sensor ARM del nodo** (es opcional):
    - Identificador de hardware: `ARM-001`
-   - Dirección del sensor: `http://localhost:5100`
+   - Dirección del sensor: viene **precompletada** con la que corresponde al modo elegido
+     (`http://simulador.fabriq.uy` en Docker, `http://localhost:5100` con `dotnet run`). No la escribas a
+     mano.
    - Firmware: lo que quieras, y dejá "Sensor activo" tildado.
 
    Si escribís un identificador que el simulador **no** emula (por ejemplo `ARM-009`), el formulario no te
@@ -115,6 +133,9 @@ el colector ignora ese panel (y te lo avisa en el log); si la potencia no coinci
 paneles del mismo nodo queda distorsionada.
 
 ### 6. Arrancar el colector (en **otra** terminal)
+
+> En **modo Docker** ya está corriendo. Verificá con `docker compose logs --tail 10 collector` que aparezca
+> `Ronda de telemetría: 5 lecturas guardadas`.
 
 ```bash
 dotnet run --project src/SolarUY.Collector

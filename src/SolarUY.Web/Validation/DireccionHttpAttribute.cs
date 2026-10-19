@@ -19,7 +19,7 @@ public sealed class DireccionHttpAttribute : ValidationAttribute
 {
     public DireccionHttpAttribute()
     {
-        ErrorMessage = "Tiene que ser una dirección http o https completa, por ejemplo http://localhost:5100";
+        ErrorMessage = "Tiene que ser una dirección http o https completa, por ejemplo https://sensor.mi-parque.uy";
     }
 
     public override bool IsValid(object? value)
