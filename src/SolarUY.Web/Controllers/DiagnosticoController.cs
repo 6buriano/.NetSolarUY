@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SolarUY.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SolarUY.Web.Controllers;
 
@@ -7,6 +8,7 @@ namespace SolarUY.Web.Controllers;
 /// Herramientas de diagnóstico para desarrollo y para la demo. No forman parte del producto:
 /// dependen del inventario del simulador, que es una API que solo existe en el mock.
 /// </summary>
+[Authorize(Roles = "Administrador")]
 public class DiagnosticoController : Controller
 {
     private const string UrlSimuladorPorDefecto = "http://localhost:5100";
