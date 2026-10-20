@@ -43,6 +43,8 @@ x-web: &web
     DataProtection__Directory: /var/solaruy/dataprotection
     # El esquema NO se migra al arrancar: lo hace el servicio "migracion", una sola vez.
     Database__ApplyMigrationsOnStartup: "false"
+        # Secret del cliente de Keycloak. Sale de .env; Authority y ClientId vienen de appsettings.
+    Keycloak__ClientSecret: ${KEYCLOAK_CLIENT_SECRET:-}
   volumes:
     - solaruy-data-protection:/var/solaruy/dataprotection
   depends_on:
