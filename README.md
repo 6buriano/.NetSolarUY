@@ -292,6 +292,21 @@ siguiente ronda el panel aparece en `FALLA_DETECTADA` en la web.
 ⚠️ El colector escribe cada pocos segundos: con 3 nodos × 5 paneles son unas 260.000 filas por día. No lo
 dejes corriendo días sin una política de retención (spec del simulador, sección 10).
 
+
+## Inicio de sesión (Keycloak)
+
+El ABM (Parques, Nodos y Paneles) y Diagnóstico piden iniciar sesión con el rol `Administrador`. El login lo
+hace Keycloak (`https://auth.fabriq.uy/realms/SolarUy`); la URL del realm y el client ID ya están en
+`appsettings.Development.json`.
+
+Lo único que tiene que configurar cada uno es el **client secret**, que no se sube al repo (pedíselo a Mariano):
+
+- con `dotnet run`: `dotnet user-secrets set "Keycloak:ClientSecret" "el-secret"` desde `src/SolarUY.Web`;
+- con Docker: `KEYCLOAK_CLIENT_SECRET=el-secret` en tu `.env`.
+
+Cómo funciona, usuarios de prueba y errores típicos: [`Documentacion/keycloak.md`](Documentacion/keycloak.md).
+
+
 ## Cómo trabajamos con git
 
 - Nadie trabaja directo en `main`. Cada uno crea su rama (`git checkout -b nombre-de-la-rama`), sube sus cambios y abre un **pull request** para que otro lo revise antes de mergearlo.
@@ -305,7 +320,7 @@ dejes corriendo días sin una política de retención (spec del simulador, secci
 - [x] Simulador del sensor (Mariano) incorporado como submódulo, y el colector de telemetría consultándolo y guardando en MySQL.
 - [x] Alta de nodo con un sensor ARM que el simulador no emula: crearlo en el simulador o crear el nodo sin sensor, desde el propio formulario del nodo.
 - [ ] Órdenes al sensor desde la web (activar/desactivar panel y volcado a red). `ISensorClient` ya tiene los métodos; falta la UI.
-- [ ] Autenticación con Keycloak y `[Authorize(Roles = "Administrador")]` sobre los tres controladores del ABM.
+- [x] Autenticación con Keycloak y `[Authorize(Roles = "Administrador")]` sobre el ABM y Diagnóstico — ver [`Documentacion/keycloak.md`](Documentacion/keycloak.md).
 - [ ] Dashboard de monitoreo en tiempo real (SignalR) y agente MCP con Gemini.
 - [ ] Política de retención de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
 - [ ] Mover las reglas de IA a `.agents/rules/`.
