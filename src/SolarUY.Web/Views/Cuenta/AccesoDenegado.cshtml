@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "Acceso denegado";
+}
+
+<div class="text-center mt-5">
+    <h1 class="h3 mb-3">No tenés permiso para ver esta página</h1>
+    <p class="text-muted">
+        Iniciaste sesión como <strong>@User.Identity?.Name</strong>, pero tu usuario no tiene el rol
+        necesario. Si creés que es un error, pedile a un administrador que te lo asigne en Keycloak.
+    </p>
+    <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">Volver al inicio</a>
+</div>

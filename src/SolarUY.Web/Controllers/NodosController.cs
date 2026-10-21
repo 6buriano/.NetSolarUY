@@ -4,13 +4,14 @@ using SolarUY.Application.Sensors;
 using SolarUY.Application.Services;
 using SolarUY.Domain.Exceptions;
 using SolarUY.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SolarUY.Web.Controllers;
 
 /// <summary>
 /// ABM de nodos. Un nodo arrastra siempre los datos de su inversor (regla de negocio 1).
 /// </summary>
-// TODO (etapa de seguridad): agregar [Authorize(Roles = "Administrador")] cuando esté Keycloak.
+[Authorize(Roles = "Administrador")]
 public class NodosController : Controller
 {
     private readonly NodoService _nodoService;

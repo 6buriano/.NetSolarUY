@@ -4,13 +4,14 @@ using SolarUY.Application.Services;
 using SolarUY.Domain.Enums;
 using SolarUY.Domain.Exceptions;
 using SolarUY.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SolarUY.Web.Controllers;
 
 /// <summary>
 /// ABM de paneles solares.
 /// </summary>
-// TODO (etapa de seguridad): agregar [Authorize(Roles = "Administrador")] cuando esté Keycloak.
+[Authorize(Roles = "Administrador")]
 public class PanelesController : Controller
 {
     /// <summary>Cuántas lecturas se muestran en la serie reciente del panel.</summary>
