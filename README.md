@@ -23,7 +23,9 @@ Taller de Programación .NET 2026, UTEC (Equipo 6).
 │   ├── SolarUY.Domain.Tests/     ← pruebas unitarias del dominio (xUnit)
 │   └── ...
 ├── SolarUY.SensorSimulator/      ← SUBMÓDULO: mock de hardware (sensores ARM + inversores)
-└── *.md                          ← reglas de desarrollo con IA y specs
+├── .agents/                      ← reglas (rules/) y skills (skills/) para la IA
+├── prompting/                    ← requirements, specs y tasks de cada funcionalidad
+└── specs.md                      ← arquitectura general
 ```
 
 `SolarUY.slnx` es el formato de solución de .NET 10 (antes era `.sln`).
@@ -173,8 +175,8 @@ Qué significa cada plantilla:
 ## Decisiones tomadas al armar la base
 
 1. **Nombres de las capas en inglés** (`Domain`, `Application`, `Infrastructure`). Los tests de arquitectura del docente reconocen las capas por esos nombres, y es la convención del curso: lo técnico en inglés y lo del negocio en español (`ParqueSolar`, `TareaMantenimiento`).
-2. **El simulador es un proyecto aparte** (`src/SolarUY.SensorSimulator`, hoy un submódulo), como dicen `1_clean_architecture.md` y el diagrama de arquitectura. El colector que lo consulta es otro proyecto aparte (`src/SolarUY.Collector`).
-3. **El proyecto web se llama `SolarUY.Web`**, como en `1_clean_architecture.md`. Cuando se agreguen los tests de arquitectura del docente (`CodeQuality.Tests`), hay que sumar `.*Web.*` a la constante `PresentationNamespace` de `ArchitectureSetup.cs` para que reconozca esta capa.
+2. **El simulador es un proyecto aparte** (`src/SolarUY.SensorSimulator`, hoy un submódulo), como dicen `.agents/rules/1_clean_architecture.md` y el diagrama de arquitectura. El colector que lo consulta es otro proyecto aparte (`src/SolarUY.Collector`).
+3. **El proyecto web se llama `SolarUY.Web`**, como en `.agents/rules/1_clean_architecture.md`. Cuando se agreguen los tests de arquitectura del docente (`CodeQuality.Tests`), hay que sumar `.*Web.*` a la constante `PresentationNamespace` de `ArchitectureSetup.cs` para que reconozca esta capa.
 4. **Carpetas `src/` y `tests/`** para separar el código de las pruebas.
 
 ## Para corregir en `specs.md`
@@ -312,6 +314,25 @@ Cómo funciona, usuarios de prueba y errores típicos: [`Documentacion/keycloak.
 - Nadie trabaja directo en `main`. Cada uno crea su rama (`git checkout -b nombre-de-la-rama`), sube sus cambios y abre un **pull request** para que otro lo revise antes de mergearlo.
 - Antes de empezar a trabajar: `git checkout main` y `git pull`, para tener lo último.
 
+## Cómo desarrollamos con IA (SDD)
+
+No hacemos *vibe coding*: cada funcionalidad sigue el desarrollo guiado por especificaciones.
+
+1. **`requirements.md`**: qué se necesita y sus criterios de aceptación. Lo escribe el responsable.
+2. **`specs.md`**: el diseño capa por capa. Lo genera la IA con la skill `sdd-generar-specs` y lo **aprueba una persona**.
+3. **`tasks.md`**: los pasos de implementación. Lo genera la IA con la skill `sdd-generar-tasks`.
+4. **Código**: una tarea por vez y un commit por tarea. Después de cada una, la IA se verifica con la skill `verificar-calidad`.
+
+`requirements.md` y `specs.md` se commitean **antes** del código, y el pull request incluye su carpeta de `prompting/`.
+
+| Carpeta | Contenido |
+|---|---|
+| `.agents/rules/` | Reglas que la IA respeta siempre: arquitectura, SOLID, nombres, dominio, presentación y flujo de trabajo |
+| `.agents/skills/` | `sdd-generar-specs`, `sdd-generar-tasks` y `verificar-calidad` |
+| `prompting/reqNNN_nombre/` | `requirements.md`, `specs.md` y `tasks.md` de cada funcionalidad. Cada `tasks.md` termina con la sección "Uso de IA" |
+
+> `req001` (Parques) y `req002` (Keycloak) se documentaron después de implementarse, cuando adoptamos el proceso. Desde `req003`, los documentos van antes del código.
+
 ## Próximos pasos
 
 - [x] Entidades del diagrama de clases en `SolarUY.Domain`.
@@ -323,5 +344,5 @@ Cómo funciona, usuarios de prueba y errores típicos: [`Documentacion/keycloak.
 - [x] Autenticación con Keycloak y `[Authorize(Roles = "Administrador")]` sobre el ABM y Diagnóstico — ver [`Documentacion/keycloak.md`](Documentacion/keycloak.md).
 - [ ] Dashboard de monitoreo en tiempo real (SignalR) y agente MCP con Gemini.
 - [ ] Política de retención de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
-- [ ] Mover las reglas de IA a `.agents/rules/`.
+- [x] Reglas y skills de IA en `.agents/`, y requirements/specs/tasks de Parques y Keycloak en `prompting/`.
 - [ ] Agregar `CodeQuality.Tests` (tests de arquitectura del docente).
