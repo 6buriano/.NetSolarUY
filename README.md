@@ -331,7 +331,7 @@ No hacemos *vibe coding*: cada funcionalidad sigue el desarrollo guiado por espe
 | `.agents/skills/` | `sdd-generar-specs`, `sdd-generar-tasks` y `verificar-calidad` |
 | `prompting/reqNNN_nombre/` | `requirements.md`, `specs.md` y `tasks.md` de cada funcionalidad. Cada `tasks.md` termina con la sección "Uso de IA" |
 
-> `req001` (Parques) y `req002` (Keycloak) se documentaron después de implementarse, cuando adoptamos el proceso. Desde `req003`, los documentos van antes del código.
+De req001 a req007 se documentaron después de implementar (iteración 1 y Keycloak). Desde req008, los documentos van antes del código.
 
 ## Próximos pasos
 
