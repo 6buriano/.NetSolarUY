@@ -42,6 +42,16 @@
             {
                 <span class="badge text-bg-secondary">Inactivo</span>
             }
+            <form class="d-inline" asp-action="Desactivar" asp-route-id="@Model.Panel.Id" method="post">
+                <button type="submit" class="btn btn-sm btn-outline-secondary ms-2" @(Model.Panel.Activo ? "" : "disabled")>
+                    Desactivar
+                </button>
+            </form>
+            <form class="d-inline" asp-action="Activar" asp-route-id="@Model.Panel.Id" method="post">
+                <button type="submit" class="btn btn-sm btn-outline-success ms-1" @(Model.Panel.Activo ? "disabled" : "")>
+                    Activar
+                </button>
+            </form>
         </dd>
 
         <dt class="col-sm-4">Fecha de instalación</dt>

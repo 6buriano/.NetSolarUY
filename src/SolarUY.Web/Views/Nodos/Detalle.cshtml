@@ -44,6 +44,21 @@
             {
                 <span class="badge text-bg-secondary">Inactivo</span>
             }
+            @if (Model.Nodo.Inversor.Sensor is not null)
+            {
+                <form class="d-inline" asp-action="DesactivarVolcado" asp-route-id="@Model.Nodo.Id" method="post">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary ms-2"
+                            @(Model.Nodo.Inversor.VolcadoRedActivo ? "" : "disabled")>
+                        Desactivar
+                    </button>
+                </form>
+                <form class="d-inline" asp-action="ActivarVolcado" asp-route-id="@Model.Nodo.Id" method="post">
+                    <button type="submit" class="btn btn-sm btn-outline-success ms-1"
+                            @(Model.Nodo.Inversor.VolcadoRedActivo ? "disabled" : "")>
+                        Activar
+                    </button>
+                </form>
+            }
         </dd>
 
         <dt class="col-sm-3">Sensor ARM</dt>

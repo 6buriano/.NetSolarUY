@@ -18,15 +18,17 @@ public class NodosController : Controller
     private readonly ParqueService _parqueService;
     private readonly PanelService _panelService;
     private readonly ISensorDisponibilidadService _sensorDisponibilidad;
+    private readonly ISensorClient _sensorClient;
     private readonly IConfiguration _configuracion;
 
     public NodosController(NodoService nodoService, ParqueService parqueService, PanelService panelService,
-        ISensorDisponibilidadService sensorDisponibilidad, IConfiguration configuracion)
+        ISensorDisponibilidadService sensorDisponibilidad, ISensorClient sensorClient, IConfiguration configuracion)
     {
         _nodoService = nodoService;
         _parqueService = parqueService;
         _panelService = panelService;
         _sensorDisponibilidad = sensorDisponibilidad;
+        _sensorClient = sensorClient;
         _configuracion = configuracion;
     }
 
@@ -66,6 +68,52 @@ public class NodosController : Controller
             Nodo = nodo,
             Paneles = paneles
         });
+    }
+
+    /// <summary>Le pide al sensor que empiece a volcar a la red. Requiere que el nodo tenga sensor.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> ActivarVolcado(Guid id, CancellationToken cancellationToken)
+        => EnviarOrdenVolcadoAsync(id, activar: true, cancellationToken);
+
+    /// <summary>Le pide al sensor que deje de volcar a la red. Requiere que el nodo tenga sensor.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> DesactivarVolcado(Guid id, CancellationToken cancellationToken)
+        => EnviarOrdenVolcadoAsync(id, activar: false, cancellationToken);
+
+    private async Task<IActionResult> EnviarOrdenVolcadoAsync(Guid id, bool activar,
+        CancellationToken cancellationToken)
+    {
+        var nodo = await _nodoService.ObtenerPorIdAsync(id, cancellationToken);
+        if (nodo is null)
+        {
+            return NotFound();
+        }
+
+        var sensor = nodo.Inversor.Sensor;
+        if (sensor is null)
+        {
+            TempData["MensajeError"] = "Este nodo no tiene sensor ARM registrado: no hay a quién mandarle la orden.";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        var resultado = activar
+            ? await _sensorClient.ActivarVolcadoAsync(sensor.UrlBase, sensor.IdentificadorHardwareARM, cancellationToken)
+            : await _sensorClient.DesactivarVolcadoAsync(sensor.UrlBase, sensor.IdentificadorHardwareARM, cancellationToken);
+
+        var accion = activar ? "activar" : "desactivar";
+        TempData[resultado == ResultadoOrdenSensor.Ok || resultado == ResultadoOrdenSensor.YaAplicado
+            ? "MensajeExito"
+            : "MensajeError"] = resultado switch
+        {
+            ResultadoOrdenSensor.Ok => $"Se mandó la orden de {accion} el volcado a la red. El colector la va a reflejar en la próxima ronda.",
+            ResultadoOrdenSensor.YaAplicado => $"El volcado a la red ya estaba {(activar ? "activo" : "inactivo")}.",
+            ResultadoOrdenSensor.NoEncontrado => "El simulador no reconoce este sensor: puede que se haya quitado del hardware.",
+            _ => "El sensor no respondió a la orden. Probá de nuevo en un momento."
+        };
+
+        return RedirectToAction(nameof(Detalle), new { id });
     }
 
     public async Task<IActionResult> Crear(Guid? parqueId, CancellationToken cancellationToken)

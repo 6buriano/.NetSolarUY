@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SolarUY.Application.DTOs;
+using SolarUY.Application.Sensors;
 using SolarUY.Application.Services;
 using SolarUY.Domain.Enums;
 using SolarUY.Domain.Exceptions;
@@ -19,11 +20,13 @@ public class PanelesController : Controller
 
     private readonly PanelService _panelService;
     private readonly NodoService _nodoService;
+    private readonly ISensorClient _sensorClient;
 
-    public PanelesController(PanelService panelService, NodoService nodoService)
+    public PanelesController(PanelService panelService, NodoService nodoService, ISensorClient sensorClient)
     {
         _panelService = panelService;
         _nodoService = nodoService;
+        _sensorClient = sensorClient;
     }
 
     public async Task<IActionResult> Index(Guid? nodoId, EstadoSalud? estado, CancellationToken cancellationToken)
@@ -58,6 +61,52 @@ public class PanelesController : Controller
             UltimaLectura = lecturas.FirstOrDefault(),
             LecturasRecientes = lecturas
         });
+    }
+
+    /// <summary>Le pide al sensor que reactive este panel. Requiere que el nodo tenga sensor.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> Activar(Guid id, CancellationToken cancellationToken)
+        => EnviarOrdenPanelAsync(id, activar: true, cancellationToken);
+
+    /// <summary>Le pide al sensor que desactive este panel. Requiere que el nodo tenga sensor.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> Desactivar(Guid id, CancellationToken cancellationToken)
+        => EnviarOrdenPanelAsync(id, activar: false, cancellationToken);
+
+    private async Task<IActionResult> EnviarOrdenPanelAsync(Guid id, bool activar, CancellationToken cancellationToken)
+    {
+        var panel = await _panelService.ObtenerPorIdAsync(id, cancellationToken);
+        if (panel is null)
+        {
+            return NotFound();
+        }
+
+        var nodo = await _nodoService.ObtenerPorIdAsync(panel.NodoId, cancellationToken);
+        var sensor = nodo?.Inversor.Sensor;
+        if (sensor is null)
+        {
+            TempData["MensajeError"] = "El nodo de este panel no tiene sensor ARM registrado: no hay a quién mandarle la orden.";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        var resultado = activar
+            ? await _sensorClient.ActivarPanelAsync(sensor.UrlBase, sensor.IdentificadorHardwareARM, panel.CodigoPanel, cancellationToken)
+            : await _sensorClient.DesactivarPanelAsync(sensor.UrlBase, sensor.IdentificadorHardwareARM, panel.CodigoPanel, cancellationToken);
+
+        var accion = activar ? "activar" : "desactivar";
+        TempData[resultado == ResultadoOrdenSensor.Ok || resultado == ResultadoOrdenSensor.YaAplicado
+            ? "MensajeExito"
+            : "MensajeError"] = resultado switch
+        {
+            ResultadoOrdenSensor.Ok => $"Se mandó la orden de {accion} el panel. El colector lo va a reflejar en la próxima ronda.",
+            ResultadoOrdenSensor.YaAplicado => $"El panel ya estaba {(activar ? "activo" : "inactivo")}.",
+            ResultadoOrdenSensor.NoEncontrado => "El simulador no reconoce este panel: puede que se haya quitado del hardware.",
+            _ => "El sensor no respondió a la orden. Probá de nuevo en un momento."
+        };
+
+        return RedirectToAction(nameof(Detalle), new { id });
     }
 
     public async Task<IActionResult> Crear(Guid? nodoId, CancellationToken cancellationToken)
