@@ -10,6 +10,12 @@ public interface IPanelRepository
     /// <summary>Devuelve todos los paneles (sin tracking).</summary>
     Task<IReadOnlyList<PanelSolar>> ObtenerTodosAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Código y modelo de cada panel ("P01 (JAM72S30-550/MR)"), para pantallas que necesitan
+    /// mostrar a qué panel pertenece algo (como Mantenimiento) sin cargar el panel completo.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, string>> ObtenerDescripcionesAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Devuelve los paneles de un nodo, opcionalmente filtrados por estado de salud (sin tracking).</summary>
     Task<IReadOnlyList<PanelSolar>> ObtenerPorNodoAsync(Guid nodoId,
         Enums.EstadoSalud? estado = null, CancellationToken cancellationToken = default);

@@ -21,12 +21,15 @@ public class PanelesController : Controller
     private readonly PanelService _panelService;
     private readonly NodoService _nodoService;
     private readonly ISensorClient _sensorClient;
+    private readonly MantenimientoService _mantenimientoService;
 
-    public PanelesController(PanelService panelService, NodoService nodoService, ISensorClient sensorClient)
+    public PanelesController(PanelService panelService, NodoService nodoService, ISensorClient sensorClient,
+        MantenimientoService mantenimientoService)
     {
         _panelService = panelService;
         _nodoService = nodoService;
         _sensorClient = sensorClient;
+        _mantenimientoService = mantenimientoService;
     }
 
     public async Task<IActionResult> Index(Guid? nodoId, EstadoSalud? estado, CancellationToken cancellationToken)
@@ -54,12 +57,14 @@ public class PanelesController : Controller
 
         // La serie viene de la más reciente a la más antigua, así que la última lectura es la primera.
         var lecturas = await _panelService.ObtenerLecturasRecientesAsync(id, LecturasEnPantalla, cancellationToken);
+        var mantenimientos = await _mantenimientoService.ObtenerPorPanelAsync(id, cancellationToken);
 
         return View(new PanelDetalleViewModel
         {
             Panel = panel,
             UltimaLectura = lecturas.FirstOrDefault(),
-            LecturasRecientes = lecturas
+            LecturasRecientes = lecturas,
+            Mantenimientos = mantenimientos
         });
     }
 

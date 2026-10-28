@@ -22,6 +22,14 @@ public class PanelRepository : IPanelRepository
             .ThenBy(panel => panel.Modelo)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, string>> ObtenerDescripcionesAsync(
+        CancellationToken cancellationToken = default)
+        => await _context.Paneles
+            .AsNoTracking()
+            .Select(panel => new { panel.Id, panel.CodigoPanel, panel.Modelo })
+            .ToDictionaryAsync(panel => panel.Id, panel => $"{panel.CodigoPanel} ({panel.Modelo})",
+                cancellationToken);
+
     public async Task<IReadOnlyList<PanelSolar>> ObtenerPorNodoAsync(Guid nodoId, EstadoSalud? estado = null,
         CancellationToken cancellationToken = default)
     {

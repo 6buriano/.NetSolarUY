@@ -52,6 +52,7 @@ builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddScoped<ParqueService>();
 builder.Services.AddScoped<NodoService>();
 builder.Services.AddScoped<PanelService>();
+builder.Services.AddScoped<MantenimientoService>();
 
 // Herramienta de diagnóstico: compara el sistema contra el inventario del simulador.
 // Solo se usa desde DiagnosticoController, que está limitado a desarrollo.

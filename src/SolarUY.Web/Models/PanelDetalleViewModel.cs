@@ -15,4 +15,7 @@ public class PanelDetalleViewModel
 
     /// <summary>Las últimas lecturas, de la más reciente a la más antigua. Incluye a <see cref="UltimaLectura"/>.</summary>
     public IReadOnlyList<LecturaTelemetriaDto> LecturasRecientes { get; set; } = [];
+
+    /// <summary>Historial de mantenimiento del panel, de la tarea más reciente a la más antigua.</summary>
+    public IReadOnlyList<MantenimientoDto> Mantenimientos { get; set; } = [];
 }
