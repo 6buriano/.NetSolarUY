@@ -1,4 +1,5 @@
 using SolarUY.Domain.Entities;
+using SolarUY.Domain.Enums;
 
 namespace SolarUY.Domain.Repositories;
 
@@ -25,5 +26,14 @@ public interface ITelemetriaRepository
     /// mostrar la serie reciente en pantalla.
     /// </summary>
     Task<IReadOnlyList<LecturaTelemetria>> ObtenerUltimasPorPanelAsync(Guid panelSolarId, int cantidad,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Agrupa las lecturas de un panel por día, mes o año y devuelve, para cada período con datos,
+    /// la cantidad de lecturas y la potencia promedio, máxima y sumada (consultas históricas de
+    /// generación). No rellena los períodos sin lecturas; eso lo decide quien consuma el resultado.
+    /// </summary>
+    Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoPorPanelAsync(Guid panelSolarId,
+        GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
         CancellationToken cancellationToken = default);
 }

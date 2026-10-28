@@ -1,0 +1,105 @@
+@model HistoricoIndexViewModel
+@{
+    ViewData["Title"] = "Histórico de generación";
+    var panelElegido = Model.Paneles.FirstOrDefault(panel => panel.Id == Model.PanelSolarId);
+}
+
+<h1 class="h3 mb-3">Histórico de generación</h1>
+
+@if (Model.Paneles.Count == 0)
+{
+    <div class="alert alert-info">Todavía no hay paneles cargados.</div>
+}
+else
+{
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-auto">
+            <label class="form-label mb-0">Panel</label>
+            <select name="panelId" class="form-select">
+                @foreach (var panel in Model.Paneles)
+                {
+                    <option value="@panel.Id" selected="@(panel.Id == Model.PanelSolarId)">
+                        @panel.CodigoPanel (@panel.NodoNombre)
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label mb-0">Agrupar por</label>
+            <select name="granularidad" class="form-select">
+                @foreach (var valor in Enum.GetValues<GranularidadConsulta>())
+                {
+                    <option value="@valor" selected="@(valor == Model.Granularidad)">@valor</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label mb-0">Desde</label>
+            <input type="date" name="desde" class="form-control" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="col-auto">
+            <label class="form-label mb-0">Hasta</label>
+            <input type="date" name="hasta" class="form-control" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Consultar</button>
+            <a class="btn btn-link" asp-action="Index">Limpiar</a>
+        </div>
+    </form>
+
+    @if (panelElegido is not null)
+    {
+        <p class="text-muted">
+            @panelElegido.CodigoPanel (@panelElegido.Modelo) · @panelElegido.NodoNombre ·
+            potencia nominal @panelElegido.PotenciaNominalW.ToString("0.##") W
+        </p>
+    }
+
+    <p class="text-muted small">
+        La energía es una estimación: se calcula a partir de la potencia que guarda cada lectura,
+        asumiendo que el colector consulta cada @ReporteService.IntervaloLecturaSegundos segundos
+        (no es una medición directa de energía).
+    </p>
+
+    @if (Model.Resultados.Count == 0)
+    {
+        <div class="alert alert-info">No hay lecturas para este panel con estos filtros.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Período</th>
+                        <th class="text-end">Lecturas</th>
+                        <th class="text-end">Potencia promedio (W)</th>
+                        <th class="text-end">Potencia máxima (W)</th>
+                        <th class="text-end">Energía estimada (kWh)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fila in Model.Resultados)
+                    {
+                        <tr>
+                            <td class="text-capitalize">@fila.Etiqueta</td>
+                            <td class="text-end">@fila.CantidadLecturas</td>
+                            <td class="text-end">@fila.PotenciaPromedioW.ToString("0.##")</td>
+                            <td class="text-end">@fila.PotenciaMaximaW.ToString("0.##")</td>
+                            <td class="text-end">@fila.EnergiaEstimadaKWh.ToString("0.####")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-light fw-bold">
+                        <td>Total</td>
+                        <td class="text-end">@Model.Resultados.Sum(fila => fila.CantidadLecturas)</td>
+                        <td></td>
+                        <td></td>
+                        <td class="text-end">@Model.Resultados.Sum(fila => fila.EnergiaEstimadaKWh).ToString("0.####")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+}
