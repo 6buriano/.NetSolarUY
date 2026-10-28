@@ -1,0 +1,35 @@
+# CI básico: build + tests, en cada push y pull request a main.
+#
+# No necesita MySQL ni el simulador levantados: las pruebas (SolarUY.Domain.Tests y
+# SolarUY.SensorSimulator.Tests) son todas de dominio, sin base de datos ni HTTP.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar el repo (con el submódulo del simulador)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Instalar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restaurar dependencias
+        run: dotnet restore SolarUY.slnx
+
+      - name: Compilar (sin warnings tratados como error, igual que en local)
+        run: dotnet build SolarUY.slnx --configuration Release --no-restore
+
+      - name: Ejecutar pruebas
+        run: dotnet test SolarUY.slnx --configuration Release --no-build --verbosity normal

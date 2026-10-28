@@ -11,6 +11,7 @@ using SolarUY.Application.Services;
 using SolarUY.Infrastructure;
 using SolarUY.Infrastructure.Persistence;
 using SolarUY.Infrastructure.Sensors;
+using SolarUY.Web.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -171,6 +172,14 @@ if (app.Environment.IsDevelopment())
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<SolarUYDbContext>();
         context.Database.Migrate();
+    }
+
+    // Datos de ejemplo para no arrancar con el ABM vacío: un parque, un nodo con su sensor
+    // (ARM-001) y los 5 paneles que trae por defecto el simulador. No hace nada si ya hay datos.
+    if (builder.Configuration.GetValue("Database:SeedOnStartup", true))
+    {
+        using var scope = app.Services.CreateScope();
+        await DatabaseSeeder.SeedAsync(scope.ServiceProvider, urlSimulador);
     }
 }
 else
