@@ -76,7 +76,7 @@ def configurar(documento):
     documento.styles["Heading 3"].font.size = Pt(11.5)
 
     pie = documento.sections[0].footer.paragraphs[0]
-    pie.text = "SolarUY · Primera Entrega (Iteración 1) · Equipo 6 · UTEC — página "
+    pie.text = "SolarUY · Documentación del sistema · Equipo 6 · UTEC — página "
     pie.alignment = WD_ALIGN_PARAGRAPH.CENTER
     numero_de_pagina(pie)
     for run in pie.runs:
@@ -130,7 +130,12 @@ class Generador:
         tabla = self.documento.add_table(rows=0, cols=ancho)
         tabla.style = "Table Grid"
         for indice, fila in enumerate(filas):
-            celdas = tabla.add_row().cells
+            fila_docx = tabla.add_row()
+            celdas = fila_docx.cells
+            # Que una fila no se corte entre dos páginas.
+            propiedades = OxmlElement("w:trPr")
+            propiedades.append(OxmlElement("w:cantSplit"))
+            fila_docx._tr.append(propiedades)
             for posicion in range(ancho):
                 texto = fila[posicion] if posicion < len(fila) else ""
                 parrafo = celdas[posicion].paragraphs[0]

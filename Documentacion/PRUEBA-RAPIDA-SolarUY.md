@@ -4,7 +4,7 @@ Guía para levantar el proyecto y hacer una prueba corta de la telemetría, sin 
 Tiempo estimado: **15 minutos la primera vez** (casi la mitad se va compilando la imagen del simulador).
 
 > ✅ **Ya está pusheado.** Todo esto está en la rama `main`. Verificado desde un clon limpio: baja el
-> submódulo solo, `dotnet build` termina sin errores ni advertencias y los **153 tests** pasan.
+> submódulo solo, `dotnet build` termina sin errores ni advertencias y los **179 tests** pasan.
 >
 > Asegurate de estar en el **último commit de la rama** (`git pull`): la tabla de "Últimas 20 lecturas" del
 > detalle del panel llegó en un commit posterior.
@@ -273,7 +273,7 @@ docker compose stop
   el nodo sin sensor.
 - La pantalla de **Diagnóstico**, que compara el sistema contra el inventario del simulador y te dice qué
   no cierra y cuántos identificadores de sensor quedan libres.
-- 153 tests automáticos (83 del dominio + 70 del simulador). Corré `dotnet test`.
+- 179 tests automáticos (109 del dominio + 70 del simulador). Corré `dotnet test`.
 
 **Todavía no:**
 

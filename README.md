@@ -24,7 +24,9 @@ Taller de Programación .NET 2026, UTEC (Equipo 6).
 │   └── ...
 ├── SolarUY.SensorSimulator/      ← SUBMÓDULO: mock de hardware (sensores ARM + inversores)
 ├── .agents/                      ← reglas (rules/) y skills (skills/) para la IA
+├── .github/workflows/            ← integración continua: compilar y correr las pruebas
 ├── prompting/                    ← requirements, specs y tasks de cada funcionalidad
+├── Documentacion/                ← documentación del sistema, guías y diagramas
 └── specs.md                      ← arquitectura general
 ```
 
@@ -81,6 +83,9 @@ dotnet test                                 # corre las pruebas de todo
 ```
 
 Para cortar un programa que está corriendo: `Ctrl + C` en la terminal.
+
+La guía paso a paso para alguien que llega nuevo, con los datos de la demo y los problemas típicos, es
+[`Documentacion/PRUEBA-RAPIDA-SolarUY.md`](Documentacion/PRUEBA-RAPIDA-SolarUY.md).
 
 ### Dos formas de correr el sistema
 
@@ -192,18 +197,29 @@ Qué significa cada plantilla:
 9. **`Nodo` es el que diagnostica, no el sensor.** §4.3 y la regla 3 de `4_modelado_dominio.md` decían que la caída de potencia se mide contra la potencia nominal del panel y que "el sensor debe emitir" el estado. La regla vigente está en la spec del simulador §9: se mide contra el promedio de los otros paneles activos del nodo, con tres bandas y `DESCONECTADO` para los inactivos, y la calcula `Nodo.EvaluarLecturas` en el dominio (ver `specs.md` §2.1, que además necesita tres campos nuevos).
 10. **El sensor ARM es opcional en el alta de un nodo** y se carga en el mismo formulario, junto con el inversor. Si escribís un identificador que el simulador todavía no emula, el formulario no te deja con un nodo muerto ni te obliga a crearlo por fuera: te avisa cuáles existen y te ofrece **crear el sensor en el simulador** o **crear el nodo sin sensor**. Un nodo sin sensor queda cargado y el colector lo ignora hasta que le cargues uno. En el dominio siempre fue opcional (un inversor puede existir antes de que el sensor se conecte).
 
-## El ABM de Parques, Nodos y Paneles
+## Las pantallas del sistema
 
-Es el primer corte vertical completo del sistema: pantalla → controlador → servicio → repositorio → MySQL.
+Cada módulo es un corte vertical completo: pantalla → controlador → servicio → repositorio → MySQL.
 
-| Recurso | Controlador | Servicio | Vistas |
+| Módulo | Controlador | Servicio | Vistas |
 |---|---|---|---|
 | Parques solares | `ParquesController` | `ParqueService` | `Views/Parques/` |
-| Nodos (con su inversor) | `NodosController` | `NodoService` | `Views/Nodos/` |
+| Nodos (con su inversor y su sensor) | `NodosController` | `NodoService` | `Views/Nodos/` |
 | Paneles | `PanelesController` | `PanelService` | `Views/Paneles/` |
+| Mantenimiento | `MantenimientosController` | `MantenimientoService` | `Views/Mantenimientos/` |
+| Consultas históricas | `HistoricoController` | `ReporteService` | `Views/Historico/` |
+| Diagnóstico (solo desarrollo) | `DiagnosticoController` | `VerificacionVinculacionService` | `Views/Diagnostico/` |
+| Inicio y cierre de sesión | `CuentaController` | Keycloak | `Views/Cuenta/` |
 
-Cada recurso tiene listado (con filtros), alta, edición, detalle y baja con confirmación. Las pantallas son
-vistas Razor comunes sobre ASP.NET Core MVC, no Blazor, como pide `specs.md`.
+Los tres del ABM tienen listado con filtros, alta, edición, detalle y baja con confirmación. Mantenimiento
+suma el ciclo de estados (pendiente → en proceso → completada, o cancelada) y el historial en el detalle del
+panel; el histórico agrupa la generación de un panel por día, mes o año. Todas son vistas Razor comunes sobre
+ASP.NET Core MVC, no Blazor, como pide `specs.md`.
+
+**Órdenes al hardware.** Desde el detalle de un panel se puede activar o desactivar ese panel en el sensor, y
+desde el detalle de un nodo, el volcado a la red del inversor. El controlador llama a `ISensorClient`, que
+manda la orden al simulador, y la pantalla informa el resultado; el cambio se ve en la telemetría de la ronda
+siguiente.
 
 Reglas de negocio ya implementadas y cubiertas por pruebas:
 
@@ -331,18 +347,36 @@ No hacemos *vibe coding*: cada funcionalidad sigue el desarrollo guiado por espe
 | `.agents/skills/` | `sdd-generar-specs`, `sdd-generar-tasks` y `verificar-calidad` |
 | `prompting/reqNNN_nombre/` | `requirements.md`, `specs.md` y `tasks.md` de cada funcionalidad. Cada `tasks.md` termina con la sección "Uso de IA" |
 
-De req001 a req007 se documentaron después de implementar (iteración 1 y Keycloak). Desde req008, los documentos van antes del código.
+Los requerimientos 001 a 007 se documentaron después de implementar (iteración 1 y Keycloak), y el 008
+(órdenes al hardware), el 009 (mantenimiento) y el 010 (consultas históricas) en la iteración 2. La idea del
+proceso es que desde el próximo los documentos vayan antes del código.
+
+**Integración continua.** `.github/workflows/ci.yml` compila en Release y corre las pruebas en cada push y
+cada pull request a `main`. No necesita MySQL ni el simulador: las pruebas no tocan infraestructura.
+
+**Pendiente del proceso.** La skill `verificar-calidad` ya está escrita, pero todavía no existen
+`tests/CodeQuality.Tests` (ArchUnitNET) ni `tools/SonarQube/`. Mientras tanto la verificación es compilación,
+pruebas y la prueba manual de cada criterio de aceptación.
 
 ## Próximos pasos
 
 - [x] Entidades del diagrama de clases en `SolarUY.Domain`.
 - [x] Conexión a MySQL con Entity Framework Core (`SolarUYDbContext`) en `SolarUY.Infrastructure`.
-- [x] ABM de Parques (Guillermina), Nodos (Fabricio) y Paneles (Gonzalo) — ver la sección "El ABM de Parques, Nodos y Paneles".
+- [x] ABM de Parques (Guillermina), Nodos (Fabricio) y Paneles (Gonzalo) — ver la sección "Las pantallas del sistema".
 - [x] Simulador del sensor (Mariano) incorporado como submódulo, y el colector de telemetría consultándolo y guardando en MySQL.
 - [x] Alta de nodo con un sensor ARM que el simulador no emula: crearlo en el simulador o crear el nodo sin sensor, desde el propio formulario del nodo.
-- [ ] Órdenes al sensor desde la web (activar/desactivar panel y volcado a red). `ISensorClient` ya tiene los métodos; falta la UI.
-- [x] Autenticación con Keycloak y `[Authorize(Roles = "Administrador")]` sobre el ABM y Diagnóstico — ver [`Documentacion/keycloak.md`](Documentacion/keycloak.md).
+- [x] Autenticación con Keycloak y `[Authorize(Roles = "Administrador")]` sobre el ABM, el mantenimiento, el histórico y Diagnóstico — ver [`Documentacion/keycloak.md`](Documentacion/keycloak.md).
+- [x] Alta disponibilidad: Nginx con dos réplicas en activo/pasivo y actualización sin cortes — ver [`Documentacion/actualizacion-sin-cortes.md`](Documentacion/actualizacion-sin-cortes.md).
+- [x] Órdenes al sensor desde la web (activar/desactivar un panel y el volcado a la red).
+- [x] Gestión de tareas de mantenimiento, con su historial en el detalle del panel.
+- [x] Consultas históricas de generación por día, mes o año.
+- [x] Integración continua (compilación y pruebas) en cada push y pull request.
+- [x] Reglas y skills de IA en `.agents/`, y las carpetas de `prompting/` del req001 al req010.
+- [ ] Tests de arquitectura (`tests/CodeQuality.Tests` con ArchUnitNET) y SonarQube (`tools/SonarQube/`), para cerrar la skill `verificar-calidad`.
 - [ ] Dashboard de monitoreo en tiempo real (SignalR) y agente MCP con Gemini.
 - [ ] Política de retención de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
-- [x] Reglas y skills de IA en `.agents/`, y requirements/specs/tasks de Parques y Keycloak en `prompting/`.
-- [ ] Agregar `CodeQuality.Tests` (tests de arquitectura del docente).
+- [ ] Pruebas automáticas de los servicios de aplicación y los controladores.
+
+La documentación del sistema, con la arquitectura, el modelo de dominio, las funcionalidades y el proceso de
+desarrollo, está en [`Documentacion/DOCUMENTACION-SolarUY.md`](Documentacion/DOCUMENTACION-SolarUY.md).
+

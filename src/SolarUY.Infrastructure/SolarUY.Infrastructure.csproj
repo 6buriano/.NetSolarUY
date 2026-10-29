@@ -12,6 +12,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.20" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <!--
+      Pomelo 9.0.0 arrastra MySqlConnector 2.4.0, que tiene un aviso de seguridad moderado
+      (GHSA-473q-m89c-ghf8). Se fija la versión parcheada: es compatible con Pomelo y saca el
+      aviso NU1902 del build.
+    -->
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
     <!-- IHttpClientFactory, para el cliente HTTP que consulta a los sensores. -->
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.11" />
   </ItemGroup>
