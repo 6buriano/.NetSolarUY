@@ -26,6 +26,7 @@ Taller de Programación .NET 2026, UTEC (Equipo 6).
 ├── .agents/                      ← reglas (rules/) y skills (skills/) para la IA
 ├── .github/workflows/            ← integración continua: compilar y correr las pruebas
 ├── prompting/                    ← requirements, specs y tasks de cada funcionalidad
+├── tools/SonarQube/              ← servidor SonarQube (Docker) y scripts de análisis de calidad
 ├── Documentacion/                ← documentación del sistema, guías y diagramas
 └── specs.md                      ← arquitectura general
 ```
@@ -372,7 +373,8 @@ pruebas y la prueba manual de cada criterio de aceptación.
 - [x] Consultas históricas de generación por día, mes o año.
 - [x] Integración continua (compilación y pruebas) en cada push y pull request.
 - [x] Reglas y skills de IA en `.agents/`, y las carpetas de `prompting/` del req001 al req010.
-- [ ] Tests de arquitectura (`tests/CodeQuality.Tests` con ArchUnitNET) y SonarQube (`tools/SonarQube/`), para cerrar la skill `verificar-calidad`.
+- [x] SonarQube local (`tools/SonarQube/`) y análisis con Quality Gate.
+- [ ] Tests de arquitectura (`tests/CodeQuality.Tests` con ArchUnitNET), para cerrar la skill `verificar-calidad`.
 - [ ] Dashboard de monitoreo en tiempo real (SignalR) y agente MCP con Gemini.
 - [ ] Política de retención de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
 - [ ] Pruebas automáticas de los servicios de aplicación y los controladores.

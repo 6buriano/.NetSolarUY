@@ -1,0 +1,47 @@
+# Servidor SonarQube local para analizar SolarUY.
+#   docker compose -f tools/SonarQube/docker-compose.yml up -d
+# Interfaz: http://localhost:9000 (admin / admin la primera vez; pide cambiar la clave).
+# Solo escucha en loopback: es una herramienta de desarrollo, no se expone a la red.
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube-solaruy
+    depends_on:
+      - db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+      # Evita que Elasticsearch se ponga en solo-lectura si el disco tiene poco espacio libre.
+      SONAR_SEARCH_JAVAADDITIONALOPTS: -Dcluster.routing.allocation.disk.threshold_enabled=false
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    ports:
+      - "127.0.0.1:9000:9000"
+    networks:
+      - sonarnet
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    container_name: sonarqube-db
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      - sonarnet
+    restart: unless-stopped
+
+networks:
+  sonarnet:
+    driver: bridge
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  postgresql_data:
