@@ -55,6 +55,10 @@ builder.Services.AddScoped<PanelService>();
 builder.Services.AddScoped<MantenimientoService>();
 builder.Services.AddScoped<ReporteService>();
 
+// El reloj como dependencia de los casos de uso: en producción es el del sistema. Se registra acá
+// y no en cada servicio para que el contenedor lo resuelva igual en todos.
+builder.Services.AddSingleton(TimeProvider.System);
+
 // Herramienta de diagnóstico: compara el sistema contra el inventario del simulador.
 // Solo se usa desde DiagnosticoController, que está limitado a desarrollo.
 builder.Services.AddScoped<VerificacionVinculacionService>();

@@ -24,10 +24,15 @@ public class ReporteService
     ];
 
     private readonly ITelemetriaRepository _telemetriaRepository;
+    private readonly IParqueRepository _parqueRepository;
+    private readonly TimeProvider _timeProvider;
 
-    public ReporteService(ITelemetriaRepository telemetriaRepository)
+    public ReporteService(ITelemetriaRepository telemetriaRepository, IParqueRepository parqueRepository,
+        TimeProvider timeProvider)
     {
         _telemetriaRepository = telemetriaRepository;
+        _parqueRepository = parqueRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<IReadOnlyList<ResumenGeneracionDto>> ObtenerGeneracionPorPanelAsync(Guid panelSolarId,
