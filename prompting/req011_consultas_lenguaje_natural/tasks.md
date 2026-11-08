@@ -30,7 +30,7 @@
   Las clases de `Infrastructure` de esta sección (herramientas y cliente del agente) dependen de los servicios de la sección 3, por eso van después de ella.
   - [x] 4.1 Confirmar y agregar `ModelContextProtocol` a `SolarUY.Infrastructure.csproj`.
   - [x] 4.2 Confirmar y agregar `Microsoft.Extensions.AI` a `SolarUY.Infrastructure.csproj`.
-  - [ ] 4.3 Confirmar y agregar `Google_GenerativeAI.Microsoft` a `SolarUY.Infrastructure.csproj`.
+  - [x] 4.3 Confirmar y agregar `Google_GenerativeAI.Microsoft` a `SolarUY.Infrastructure.csproj`.
   - [ ] 4.4 `Mcp/Tools/ListarParquesTool` (sin parámetros; usa `ParqueService.ObtenerTodosAsync`).
   - [ ] 4.5 `Mcp/Tools/ObtenerResumenParqueTool` (`parqueId`; usa `ParqueService.ObtenerResumenAsync`).
   - [ ] 4.6 `Mcp/Tools/ObtenerGeneracionHoyTool` (sin parámetros; aclara que "hoy" es el día de Montevideo y que la energía es estimada).
