@@ -35,7 +35,7 @@
   - [x] 4.5 `Mcp/Tools/ObtenerResumenParqueTool` (`parqueId`; usa `ParqueService.ObtenerResumenAsync`).
   - [x] 4.6 `Mcp/Tools/ObtenerGeneracionHoyTool` (sin parámetros; aclara que "hoy" es el día de Montevideo y que la energía es estimada).
   - [x] 4.7 `Mcp/Tools/ObtenerGeneracionHistoricaTool` (`parqueId`, `desde`, `hasta`, `agrupacion`; aclara que agrupa por día UTC y que la energía es estimada).
-  - [ ] 4.8 `Mcp/Tools/ListarPanelesEnFallaTool` (sin parámetros; usa `PanelService.ObtenerTodosAsync(EstadoSalud.FALLA_DETECTADA)`).
+  - [x] 4.8 `Mcp/Tools/ListarPanelesEnFallaTool` (sin parámetros; usa `PanelService.ObtenerTodosAsync(EstadoSalud.FALLA_DETECTADA)`).
   - [ ] 4.9 Las 5 herramientas devuelven el mensaje de `ReglaDeNegocioException` como texto y ninguna llama a `Crear`, `Actualizar`, `Eliminar` ni a `ISensorClient`.
   - [ ] 4.10 Crear `src/SolarUY.McpServer/SolarUY.McpServer.csproj` (referencias a `Application`, `Domain` e `Infrastructure`) y agregarlo a `SolarUY.slnx`.
   - [ ] 4.11 Confirmar y agregar `ModelContextProtocol.AspNetCore` a `SolarUY.McpServer.csproj`.
