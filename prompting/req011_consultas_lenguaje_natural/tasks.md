@@ -41,7 +41,7 @@
   - [x] 4.11 Confirmar y agregar `ModelContextProtocol.AspNetCore` a `SolarUY.McpServer.csproj`.
   - [x] 4.12 `SolarUY.McpServer/Program.cs`: cadena de conexión, `AddInfrastructure`, servicios de `Application` como `Scoped`, `TimeProvider`, las 5 herramientas y el endpoint HTTP sin sesión.
   - [x] 4.13 `SolarUY.McpServer/appsettings.Development.json` con la cadena de conexión, como el del colector. Incluye `Properties/launchSettings.json` con el perfil `SolarUY.McpServer` (puerto 5099, `ASPNETCORE_ENVIRONMENT=Development`): sin ese archivo `dotnet run` arranca en `Production`, no lee `appsettings.Development.json` y no encuentra la cadena de conexión.
-  - [ ] 4.14 `src/SolarUY.McpServer/Dockerfile` (build en dos etapas, imagen `aspnet`, usuario no root).
+  - [x] 4.14 `src/SolarUY.McpServer/Dockerfile` (build en dos etapas, imagen `aspnet`, usuario no root).
   - [ ] 4.15 `docker-compose.yml`: servicio `mcp` con una sola instancia, sin puertos publicados, red `solareuy`, `depends_on` MySQL saludable y healthcheck.
   - [ ] 4.16 `Consultas/GeminiMcpAgentService : IMCPAgentService`: obtiene las herramientas del servidor MCP, se las manda a Gemini con la instrucción de sistema, ejecuta las que Gemini pida y devuelve la respuesta.
   - [ ] 4.17 `GeminiMcpAgentService`: timeout configurable (30 s) y traducción de toda falla a `Exito = false` con mensaje en español.
