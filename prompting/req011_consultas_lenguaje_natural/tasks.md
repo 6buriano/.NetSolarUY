@@ -19,7 +19,7 @@
   - [x] 3.5 `Consultas/IMCPAgentService.ConsultarAsync(string pregunta, CancellationToken)`, documentando que nunca lanza por fallas del proveedor.
   - [x] 3.6 `Services/ConsultaService.ConsultarAsync`: recorta la pregunta, lanza `ReglaDeNegocioException` si está vacía o supera `LargoMaximoPregunta` (500) y delega en `IMCPAgentService`.
   - [x] 3.7 `ReporteService`: inyectar `IParqueRepository` y `TimeProvider` en el constructor.
-  - [ ] 3.8 `ReporteService`: extraer la fórmula de energía (kWh y redondeos) a un método privado compartido con `ObtenerGeneracionPorPanelAsync`.
+  - [x] 3.8 `ReporteService`: extraer la fórmula de energía (kWh y redondeos) a un método privado compartido con `ObtenerGeneracionPorPanelAsync`.
   - [ ] 3.9 `ReporteService.ObtenerGeneracionAsync(Guid parqueSolarId, GranularidadConsulta, DateOnly? desde, DateOnly? hasta, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`; `hasta` incluye todo el día.
   - [ ] 3.10 `ReporteService.ObtenerGeneracionHoyAsync(CancellationToken)`: desde las 00:00 de Montevideo hasta ahora (a UTC), suma los períodos devueltos.
   - [ ] 3.11 `Mappings/ParqueMappings`: conteo de paneles por estado y conversión a `ResumenParqueDto`.

@@ -49,10 +49,20 @@ public class ReporteService
                 agregado.CantidadLecturas,
                 Math.Round(agregado.PotenciaPromedioW, 2),
                 Math.Round(agregado.PotenciaMaximaW, 2),
-                // Wh = Σ(potencia en W de cada lectura) × intervalo en horas; se pasa a kWh.
-                Math.Round(agregado.PotenciaSumaW * IntervaloLecturaSegundos / 3600d / 1000d, 4)))
+                CalcularEnergiaEstimadaKWh(agregado.PotenciaSumaW)))
             .ToList();
     }
+
+    /// <summary>
+    /// Estimación de energía de un período, en kWh, redondeada a 4 decimales.
+    /// </summary>
+    /// <remarks>
+    /// Wh = Σ(potencia en W de cada lectura) × intervalo en horas; después se pasa a kWh. No es una
+    /// medición exacta: el colector guarda potencia instantánea cada
+    /// <see cref="IntervaloLecturaSegundos"/> segundos, no energía.
+    /// </remarks>
+    private static double CalcularEnergiaEstimadaKWh(double potenciaSumaW)
+        => Math.Round(potenciaSumaW * IntervaloLecturaSegundos / 3600d / 1000d, 4);
 
     private static string Etiquetar(DateTime periodoInicio, GranularidadConsulta granularidad) => granularidad switch
     {
