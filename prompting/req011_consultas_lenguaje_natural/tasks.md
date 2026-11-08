@@ -22,7 +22,7 @@
   - [x] 3.8 `ReporteService`: extraer la fórmula de energía (kWh y redondeos) a un método privado compartido con `ObtenerGeneracionPorPanelAsync`.
   - [x] 3.9 `ReporteService.ObtenerGeneracionAsync(Guid parqueSolarId, GranularidadConsulta, DateOnly? desde, DateOnly? hasta, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`; `hasta` incluye todo el día.
   - [ ] 3.10 `ReporteService.ObtenerGeneracionHoyAsync(CancellationToken)`: desde las 00:00 de Montevideo hasta ahora (a UTC), suma los períodos devueltos.
-  - [ ] 3.11 `Mappings/ParqueMappings`: conteo de paneles por estado y conversión a `ResumenParqueDto`.
+  - [x] 3.11 `Mappings/ParqueMappings`: conteo de paneles por estado y conversión a `ResumenParqueDto`.
   - [ ] 3.12 `ParqueService.ObtenerResumenAsync(Guid parqueSolarId, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`.
 
 - [ ] **4. Paquetes, servidor MCP y registro de dependencias**
