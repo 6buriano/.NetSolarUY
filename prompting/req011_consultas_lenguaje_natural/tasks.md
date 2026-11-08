@@ -32,7 +32,7 @@
   - [x] 4.2 Confirmar y agregar `Microsoft.Extensions.AI` a `SolarUY.Infrastructure.csproj`.
   - [x] 4.3 Confirmar y agregar `Google_GenerativeAI.Microsoft` a `SolarUY.Infrastructure.csproj`.
   - [x] 4.4 `Mcp/Tools/ListarParquesTool` (sin parámetros; usa `ParqueService.ObtenerTodosAsync`).
-  - [ ] 4.5 `Mcp/Tools/ObtenerResumenParqueTool` (`parqueId`; usa `ParqueService.ObtenerResumenAsync`).
+  - [x] 4.5 `Mcp/Tools/ObtenerResumenParqueTool` (`parqueId`; usa `ParqueService.ObtenerResumenAsync`).
   - [ ] 4.6 `Mcp/Tools/ObtenerGeneracionHoyTool` (sin parámetros; aclara que "hoy" es el día de Montevideo y que la energía es estimada).
   - [ ] 4.7 `Mcp/Tools/ObtenerGeneracionHistoricaTool` (`parqueId`, `desde`, `hasta`, `agrupacion`; aclara que agrupa por día UTC y que la energía es estimada).
   - [ ] 4.8 `Mcp/Tools/ListarPanelesEnFallaTool` (sin parámetros; usa `PanelService.ObtenerTodosAsync(EstadoSalud.FALLA_DETECTADA)`).
