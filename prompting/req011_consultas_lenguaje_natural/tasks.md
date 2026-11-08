@@ -11,7 +11,7 @@
   - [x] 2.2 `TelemetriaRepository.ObtenerAgregadoGeneralAsync`: filtra por parque (lectura → panel → nodo → parque) cuando `parqueSolarId` no es nulo, aplica `desde`/`hasta` y usa el método privado de 2.1.
   - [x] 2.3 Revisar en `LecturaTelemetriaConfiguration.cs` si hay índice por `fecha_hora`. Si falta, proponer una migración que solo lo agrega y **esperar aprobación** (no ejecutar `dotnet ef database update`).
 
-- [ ] **3. Application**
+- [x] **3. Application**
   - [x] 3.1 `DTOs/GeneracionPeriodoDto` (`Etiqueta`, `CantidadLecturas`, `EnergiaEstimadaKWh`).
   - [x] 3.2 `DTOs/ResumenParqueDto` (`Nombre`, `Ubicacion`, `CantidadNodos`, `CantidadPaneles`, `PanelesOperativos`, `PanelesRendimientoBajo`, `PanelesEnFalla`, `PanelesDesconectados`).
   - [x] 3.3 `DTOs/ConsultaLenguajeNaturalRequest` (`Pregunta`).
@@ -23,7 +23,7 @@
   - [x] 3.9 `ReporteService.ObtenerGeneracionAsync(Guid parqueSolarId, GranularidadConsulta, DateOnly? desde, DateOnly? hasta, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`; `hasta` incluye todo el día.
   - [ ] 3.10 `ReporteService.ObtenerGeneracionHoyAsync(CancellationToken)`: desde las 00:00 de Montevideo hasta ahora (a UTC), suma los períodos devueltos.
   - [x] 3.11 `Mappings/ParqueMappings`: conteo de paneles por estado y conversión a `ResumenParqueDto`.
-  - [ ] 3.12 `ParqueService.ObtenerResumenAsync(Guid parqueSolarId, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`.
+  - [x] 3.12 `ParqueService.ObtenerResumenAsync(Guid parqueSolarId, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`.
 
 - [ ] **4. Paquetes, servidor MCP y registro de dependencias**
 

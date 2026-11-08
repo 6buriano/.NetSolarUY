@@ -30,6 +30,23 @@ public class ParqueService
         return parque?.ToDto();
     }
 
+    /// <summary>
+    /// Resumen de un parque: cantidad de nodos, cantidad de paneles y reparto de los paneles por
+    /// estado. Los conteos los arma <see cref="ParqueMappings"/>.
+    /// </summary>
+    /// <exception cref="ReglaDeNegocioException">Si el parque no existe.</exception>
+    public async Task<ResumenParqueDto> ObtenerResumenAsync(Guid parqueSolarId,
+        CancellationToken cancellationToken = default)
+    {
+        var parque = await _parqueRepository.ObtenerPorIdAsync(parqueSolarId, cancellationToken);
+        if (parque is null)
+        {
+            throw new ReglaDeNegocioException("El parque indicado no existe.");
+        }
+
+        return parque.ToResumenDto();
+    }
+
     public async Task<Guid> CrearAsync(CrearParqueRequest request, CancellationToken cancellationToken = default)
     {
         var parque = new ParqueSolar(
