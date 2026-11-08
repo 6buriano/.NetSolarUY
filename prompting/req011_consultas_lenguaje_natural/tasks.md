@@ -18,7 +18,7 @@
   - [x] 3.4 `DTOs/ConsultaLenguajeNaturalResponse` (`Exito`, `Texto`).
   - [x] 3.5 `Consultas/IMCPAgentService.ConsultarAsync(string pregunta, CancellationToken)`, documentando que nunca lanza por fallas del proveedor.
   - [x] 3.6 `Services/ConsultaService.ConsultarAsync`: recorta la pregunta, lanza `ReglaDeNegocioException` si está vacía o supera `LargoMaximoPregunta` (500) y delega en `IMCPAgentService`.
-  - [ ] 3.7 `ReporteService`: inyectar `IParqueRepository` y `TimeProvider` en el constructor.
+  - [x] 3.7 `ReporteService`: inyectar `IParqueRepository` y `TimeProvider` en el constructor.
   - [ ] 3.8 `ReporteService`: extraer la fórmula de energía (kWh y redondeos) a un método privado compartido con `ObtenerGeneracionPorPanelAsync`.
   - [ ] 3.9 `ReporteService.ObtenerGeneracionAsync(Guid parqueSolarId, GranularidadConsulta, DateOnly? desde, DateOnly? hasta, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`; `hasta` incluye todo el día.
   - [ ] 3.10 `ReporteService.ObtenerGeneracionHoyAsync(CancellationToken)`: desde las 00:00 de Montevideo hasta ahora (a UTC), suma los períodos devueltos.
@@ -46,7 +46,7 @@
   - [ ] 4.16 `Consultas/GeminiMcpAgentService : IMCPAgentService`: obtiene las herramientas del servidor MCP, se las manda a Gemini con la instrucción de sistema, ejecuta las que Gemini pida y devuelve la respuesta.
   - [ ] 4.17 `GeminiMcpAgentService`: timeout configurable (30 s) y traducción de toda falla a `Exito = false` con mensaje en español.
   - [ ] 4.18 `DependencyInjection.cs`: dos métodos de extensión nuevos, uno para el cliente del agente y otro para las herramientas. `AddInfrastructure` no cambia.
-  - [ ] 4.19 `SolarUY.Web/Program.cs`: registrar `ConsultaService`, el cliente del agente y `TimeProvider` (si no está registrado).
+  - [ ] 4.19 `SolarUY.Web/Program.cs`: registrar `ConsultaService` y el cliente del agente (`TimeProvider.System` ya quedó registrado en la 3.7).
   - [ ] 4.20 `docker-compose.yml` (`x-web`): `Mcp__UrlServidor`, `Gemini__Modelo` y `Gemini__ApiKey: ${GEMINI_API_KEY:-}`.
   - [ ] 4.21 `.env.example`: `GEMINI_API_KEY=` vacía. En desarrollo, la clave va en *user secrets*.
 
