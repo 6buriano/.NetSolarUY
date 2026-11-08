@@ -36,4 +36,14 @@ public interface ITelemetriaRepository
     Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoPorPanelAsync(Guid panelSolarId,
         GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Agrupa las lecturas de todos los paneles del sistema, o solo las de un parque, por día, mes
+    /// o año, y devuelve para cada período con datos la cantidad de lecturas y la potencia promedio,
+    /// máxima y sumada. Con <paramref name="parqueSolarId"/> nulo agrupa el sistema entero. No
+    /// rellena los períodos sin lecturas; eso lo decide quien consuma el resultado.
+    /// </summary>
+    Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoGeneralAsync(Guid? parqueSolarId,
+        GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
+        CancellationToken cancellationToken = default);
 }
