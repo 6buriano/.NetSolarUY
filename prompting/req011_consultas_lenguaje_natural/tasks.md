@@ -38,7 +38,7 @@
   - [x] 4.8 `Mcp/Tools/ListarPanelesEnFallaTool` (sin parámetros; usa `PanelService.ObtenerTodosAsync(EstadoSalud.FALLA_DETECTADA)`).
   - [x] 4.9 Las herramientas cuyo servicio puede lanzar `ReglaDeNegocioException` (resumen e histórica) devuelven su mensaje como texto; las demás (listar parques, generación de hoy y paneles en falla) no la capturan porque su servicio no la lanza. Ninguna llama a `Crear`, `Actualizar`, `Eliminar`, `Guardar` ni a `ISensorClient`.
   - [x] 4.10 Crear `src/SolarUY.McpServer/SolarUY.McpServer.csproj` (referencias a `Application`, `Domain` e `Infrastructure`) y agregarlo a `SolarUY.slnx`. Incluye un `Program.cs` mínimo y **provisorio** (`CreateBuilder`/`Build`/`Run`): un proyecto `Microsoft.NET.Sdk.Web` sin punto de entrada no compila, y la 4.12 lo reemplaza con la configuración definitiva.
-  - [ ] 4.11 Confirmar y agregar `ModelContextProtocol.AspNetCore` a `SolarUY.McpServer.csproj`.
+  - [x] 4.11 Confirmar y agregar `ModelContextProtocol.AspNetCore` a `SolarUY.McpServer.csproj`.
   - [ ] 4.12 `SolarUY.McpServer/Program.cs`: cadena de conexión, `AddInfrastructure`, servicios de `Application` como `Scoped`, `TimeProvider`, las 5 herramientas y el endpoint HTTP sin sesión.
   - [ ] 4.13 `SolarUY.McpServer/appsettings.Development.json` con la cadena de conexión, como el del colector.
   - [ ] 4.14 `src/SolarUY.McpServer/Dockerfile` (build en dos etapas, imagen `aspnet`, usuario no root).

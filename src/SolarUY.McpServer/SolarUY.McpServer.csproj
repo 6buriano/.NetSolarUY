@@ -6,6 +6,10 @@
     <ProjectReference Include="..\SolarUY.Infrastructure\SolarUY.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
+  </ItemGroup>
+
   <!--
     Tercer punto de arranque de la solución: expone las herramientas MCP por HTTP, sin sesión y sin
     publicar puerto (solo lo alcanzan los contenedores de la red de Docker).
