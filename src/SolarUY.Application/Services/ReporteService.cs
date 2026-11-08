@@ -18,6 +18,14 @@ public class ReporteService
     /// </summary>
     public const int IntervaloLecturaSegundos = 5;
 
+    /// <summary>
+    /// Desfase fijo de Montevideo respecto de UTC: UTC−3. Uruguay no tiene horario de verano, así que
+    /// el desfase no cambia en todo el año. Se usa una constante y no <see cref="TimeZoneInfo"/>
+    /// porque el identificador de la zona cambia entre sistemas operativos ("Monte Standard Time" en
+    /// Windows, "America/Montevideo" en Linux) y el mismo código corre en los dos.
+    /// </summary>
+    private static readonly TimeSpan DesfaseMontevideo = TimeSpan.FromHours(-3);
+
     private static readonly string[] Meses =
     [
         "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -86,6 +94,41 @@ public class ReporteService
                 agregado.CantidadLecturas,
                 CalcularEnergiaEstimadaKWh(agregado.PotenciaSumaW)))
             .ToList();
+    }
+
+    /// <summary>
+    /// Generación estimada de hoy para todos los parques. "Hoy" es el día calendario de Montevideo,
+    /// no el día UTC.
+    /// </summary>
+    public async Task<GeneracionPeriodoDto> ObtenerGeneracionHoyAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var ahoraUtc = _timeProvider.GetUtcNow();
+        var inicioDelDiaUtc = CalcularInicioDelDiaUtc(ahoraUtc);
+
+        var agregados = await _telemetriaRepository.ObtenerAgregadoGeneralAsync(null,
+            GranularidadConsulta.DIA, inicioDelDiaUtc, ahoraUtc.UtcDateTime, cancellationToken);
+
+        // El agrupamiento es por día UTC, pero el rango es un día de Montevideo: después de las 21:00
+        // el día de Montevideo ya está partido en dos días UTC. Por eso se suman las potencias de los
+        // períodos y recién después se estima la energía; sumar energías ya redondeadas acumularía
+        // el error de cada redondeo.
+        var potenciaSumaTotal = agregados.Sum(agregado => agregado.PotenciaSumaW);
+        var cantidadLecturas = agregados.Sum(agregado => agregado.CantidadLecturas);
+
+        return new GeneracionPeriodoDto("hoy", cantidadLecturas,
+            CalcularEnergiaEstimadaKWh(potenciaSumaTotal));
+    }
+
+    /// <summary>
+    /// Inicio del día calendario de Montevideo que contiene <paramref name="ahoraUtc"/>, expresado
+    /// en UTC.
+    /// </summary>
+    private static DateTime CalcularInicioDelDiaUtc(DateTimeOffset ahoraUtc)
+    {
+        var ahoraEnMontevideo = ahoraUtc.ToOffset(DesfaseMontevideo);
+        var inicioDelDia = new DateTimeOffset(ahoraEnMontevideo.Date, DesfaseMontevideo);
+        return inicioDelDia.UtcDateTime;
     }
 
     /// <summary>
