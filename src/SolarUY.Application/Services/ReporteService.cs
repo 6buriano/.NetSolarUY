@@ -1,5 +1,6 @@
 using SolarUY.Application.DTOs;
 using SolarUY.Domain.Enums;
+using SolarUY.Domain.Exceptions;
 using SolarUY.Domain.Repositories;
 
 namespace SolarUY.Application.Services;
@@ -49,6 +50,40 @@ public class ReporteService
                 agregado.CantidadLecturas,
                 Math.Round(agregado.PotenciaPromedioW, 2),
                 Math.Round(agregado.PotenciaMaximaW, 2),
+                CalcularEnergiaEstimadaKWh(agregado.PotenciaSumaW)))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Generación estimada de un parque, agrupada por día, mes o año.
+    /// </summary>
+    /// <exception cref="ReglaDeNegocioException">Si el parque no existe.</exception>
+    public async Task<IReadOnlyList<GeneracionPeriodoDto>> ObtenerGeneracionAsync(Guid parqueSolarId,
+        GranularidadConsulta granularidad, DateOnly? desde, DateOnly? hasta,
+        CancellationToken cancellationToken = default)
+    {
+        var parque = await _parqueRepository.ObtenerPorIdAsync(parqueSolarId, cancellationToken);
+        if (parque is null)
+        {
+            throw new ReglaDeNegocioException("El parque indicado no existe.");
+        }
+
+        if (desde is not null && hasta is not null && desde > hasta)
+        {
+            throw new ReglaDeNegocioException("La fecha desde no puede ser posterior a la fecha hasta.");
+        }
+
+        // Las fechas llegan sin hora: desde las 00:00 del primer día hasta el último instante del
+        // último día, para que "hasta" incluya ese día completo (lo mismo que hace HistoricoController).
+        var agregados = await _telemetriaRepository.ObtenerAgregadoGeneralAsync(parqueSolarId, granularidad,
+            desde?.ToDateTime(TimeOnly.MinValue),
+            hasta?.ToDateTime(TimeOnly.MaxValue),
+            cancellationToken);
+
+        return agregados
+            .Select(agregado => new GeneracionPeriodoDto(
+                Etiquetar(agregado.PeriodoInicio, granularidad),
+                agregado.CantidadLecturas,
                 CalcularEnergiaEstimadaKWh(agregado.PotenciaSumaW)))
             .ToList();
     }
