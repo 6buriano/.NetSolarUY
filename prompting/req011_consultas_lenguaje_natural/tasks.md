@@ -44,7 +44,7 @@
   - [x] 4.14 `src/SolarUY.McpServer/Dockerfile` (build en dos etapas, imagen `aspnet`, usuario no root).
   - [x] 4.15 `docker-compose.yml`: servicio `mcp` con una sola instancia, sin puertos publicados, red `solareuy`, `depends_on` MySQL saludable y healthcheck.
   - [x] 4.16 `Consultas/GeminiMcpAgentService : IMCPAgentService`: obtiene las herramientas del servidor MCP, se las manda a Gemini con la instrucción de sistema (que incluye la fecha de hoy en Montevideo, calculada desde `TimeProvider` con `ReporteService.DesfaseMontevideo`) y `Temperature = 0.2f`, ejecuta las que Gemini pida y devuelve la respuesta.
-  - [ ] 4.17 `GeminiMcpAgentService`: timeout configurable (30 s) y traducción de toda falla a `Exito = false` con mensaje en español.
+  - [x] 4.17 `GeminiMcpAgentService`: timeout configurable (30 s) y traducción de toda falla a `Exito = false` con mensaje en español.
   - [ ] 4.18 `DependencyInjection.cs`: dos métodos de extensión nuevos, uno para el cliente del agente y otro para las herramientas. `AddInfrastructure` no cambia.
   - [ ] 4.19 `SolarUY.Web/Program.cs`: registrar `ConsultaService` y el cliente del agente (`TimeProvider.System` ya quedó registrado en la 3.7).
   - [ ] 4.20 `docker-compose.yml` (`x-web`): `Mcp__UrlServidor`, `Gemini__Modelo` y `Gemini__ApiKey: ${GEMINI_API_KEY:-}`.

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using SolarUY.Application.Consultas;
 using SolarUY.Application.DTOs;
@@ -14,6 +15,10 @@ namespace SolarUY.Infrastructure.Consultas;
 /// </summary>
 public sealed class GeminiMcpAgentService : IMCPAgentService
 {
+    /// <summary>Texto único que ve el usuario cuando la consulta no se pudo completar.</summary>
+    public const string MensajeDeFalla =
+        "No se pudo obtener una respuesta en este momento. Probá de nuevo en unos minutos.";
+
     private const string InstruccionSistema =
         "Sos el asistente de SolarUY, un sistema de monitoreo de parques solares. " +
         "Respondé siempre en español, en texto plano: sin Markdown, sin asteriscos, sin negritas y sin " +
@@ -33,22 +38,74 @@ public sealed class GeminiMcpAgentService : IMCPAgentService
     private readonly IChatClient _cliente;
     private readonly string _urlServidorMcp;
     private readonly TimeProvider _reloj;
+    private readonly TimeSpan _timeout;
+    private readonly ILogger<GeminiMcpAgentService> _logger;
 
-    public GeminiMcpAgentService(IChatClient cliente, string urlServidorMcp, TimeProvider reloj)
+    public GeminiMcpAgentService(IChatClient cliente, string urlServidorMcp, TimeProvider reloj,
+        TimeSpan timeout, ILogger<GeminiMcpAgentService> logger)
     {
         _cliente = cliente;
         _urlServidorMcp = urlServidorMcp;
         _reloj = reloj;
+        _timeout = timeout;
+        _logger = logger;
     }
 
     public async Task<ConsultaLenguajeNaturalResponse> ConsultarAsync(string pregunta,
         CancellationToken cancellationToken = default)
     {
-        var opcionesTransporte = new HttpClientTransportOptions { Endpoint = new Uri(_urlServidorMcp) };
-        await using var transporte = new HttpClientTransport(opcionesTransporte);
-        await using var servidorMcp = await McpClient.CreateAsync(transporte,
-            cancellationToken: cancellationToken);
+        using var tokenDeTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        tokenDeTimeout.CancelAfter(_timeout);
 
+        try
+        {
+            var opcionesTransporte = new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(_urlServidorMcp)
+            };
+
+            await using var transporte = new HttpClientTransport(opcionesTransporte);
+            await using var servidorMcp = await McpClient.CreateAsync(transporte,
+                cancellationToken: tokenDeTimeout.Token);
+
+            return await ConversarAsync(servidorMcp, pregunta, tokenDeTimeout.Token);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Lo canceló quien llamó (por ejemplo, cerró la página): no es una falla del proveedor y
+            // no hay que disfrazarla de respuesta, así que sigue subiendo.
+            throw;
+        }
+        catch (Exception excepcion)
+        {
+            // Excepción DELIBERADA a la regla 5 §4 ("no capturar Exception genérica"). Esa regla
+            // protege a los controladores de tapar bugs; acá el contrato de IMCPAgentService es no
+            // lanzar nunca por fallas del proveedor (sin red, clave inválida, cuota, timeout, URL
+            // mal formada, JSON roto), y esos son tipos que no se pueden enumerar de antemano sin
+            // que la lista quede incompleta y el usuario vea una página de error. Se registra el
+            // detalle y se devuelve el mensaje único para el usuario.
+            var fueTimeout = tokenDeTimeout.IsCancellationRequested;
+
+            if (fueTimeout)
+            {
+                _logger.LogWarning(
+                    "La consulta al agente superó el timeout de {Timeout}. Excepción: {TipoDeExcepcion}",
+                    _timeout, DescribirTipo(excepcion));
+            }
+            else
+            {
+                _logger.LogError(
+                    "Falló la consulta al agente. Excepción: {TipoDeExcepcion}",
+                    DescribirTipo(excepcion));
+            }
+
+            return new ConsultaLenguajeNaturalResponse(false, MensajeDeFalla);
+        }
+    }
+
+    private async Task<ConsultaLenguajeNaturalResponse> ConversarAsync(McpClient servidorMcp,
+        string pregunta, CancellationToken cancellationToken)
+    {
         var herramientas = await servidorMcp.ListToolsAsync(cancellationToken: cancellationToken);
 
         var mensajes = new[]
@@ -66,7 +123,13 @@ public sealed class GeminiMcpAgentService : IMCPAgentService
 
         var respuesta = await _cliente.GetResponseAsync(mensajes, opciones, cancellationToken);
 
-        return new ConsultaLenguajeNaturalResponse(true, respuesta.Text ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(respuesta.Text))
+        {
+            _logger.LogWarning("El modelo devolvió una respuesta vacía.");
+            return new ConsultaLenguajeNaturalResponse(false, MensajeDeFalla);
+        }
+
+        return new ConsultaLenguajeNaturalResponse(true, respuesta.Text);
     }
 
     /// <summary>
@@ -80,5 +143,20 @@ public sealed class GeminiMcpAgentService : IMCPAgentService
             .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         return $"{InstruccionSistema} Fecha de hoy en Montevideo: {fechaDeHoy}.";
+    }
+
+    /// <summary>
+    /// Cadena de tipos de la excepción (externa e internas), sin mensajes. La clave de Gemini puede
+    /// viajar en la URL del pedido, así que nunca se registran mensajes ni URLs: solo qué falló.
+    /// </summary>
+    private static string DescribirTipo(Exception excepcion)
+    {
+        var tipos = new List<string>();
+        for (var actual = excepcion; actual is not null; actual = actual.InnerException)
+        {
+            tipos.Add(actual.GetType().FullName ?? actual.GetType().Name);
+        }
+
+        return string.Join(" -> ", tipos);
     }
 }
