@@ -46,6 +46,19 @@ x-web: &web
     Database__ApplyMigrationsOnStartup: "false"
         # Secret del cliente de Keycloak. Sale de .env; Authority y ClientId vienen de appsettings.
     Keycloak__ClientSecret: ${KEYCLOAK_CLIENT_SECRET:-}
+    # Servidor MCP del agente. Es obligatorio: las réplicas corren en Development y, sin esta
+    # variable, leerían Mcp:UrlServidor de appsettings.Development.json, que apunta a
+    # localhost:5099 (el puerto del host, no el del servicio dentro de la red de Docker).
+    # A propósito NO hay depends_on hacia mcp: si el servidor MCP está caído, la web tiene que
+    # seguir funcionando; solo fallan las consultas en lenguaje natural, con su mensaje de error.
+    Mcp__UrlServidor: http://mcp:8080/mcp
+    # Modelo de Gemini. El ":-" con valor por defecto es obligatorio: si la variable quedara
+    # vacía, pisaría el de appsettings.json (una variable de entorno vacía gana igual). Se puede
+    # cambiar desde .env sin tocar el compose, por ejemplo si se agota la cuota de un modelo.
+    Gemini__Modelo: ${GEMINI_MODELO:-gemini-3.5-flash}
+    # Clave de Gemini. Vacía por defecto: sin clave el agente arranca "no configurado" y las
+    # consultas devuelven el mensaje de falla, en vez de romper el arranque de la web.
+    Gemini__ApiKey: ${GEMINI_API_KEY:-}
   volumes:
     - solaruy-data-protection:/var/solaruy/dataprotection
   depends_on:
