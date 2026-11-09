@@ -35,4 +35,4 @@ app.MapMcp("/mcp");
 // Liveness: solo dice que el proceso responde. No consulta MySQL a propósito.
 app.MapGet("/health", () => Results.Ok(new { status = "ok", machine = Environment.MachineName }));
 
-app.Run();
+await app.RunAsync();
