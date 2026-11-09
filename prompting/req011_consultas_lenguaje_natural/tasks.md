@@ -65,7 +65,7 @@
   - [x] 6.1 `dotnet build` desde la raíz, sin errores ni advertencias nuevas. **Hecho: "Compilación correcta", 0 advertencias y 0 errores (8,17 s).**
   - [ ] 6.2 `dotnet test tests/CodeQuality.Tests` (el proyecto todavía no existe en el repo: hay que crearlo antes de poder cerrar este requerimiento).
   - [x] 6.3 `dotnet test tests/SolarUY.Domain.Tests`. **Hecho: 109 pasados, 0 fallados (74 ms).**
-  - [ ] 6.4 Analizar con SonarQube (`tools/SonarQube/analizar.sh .`; en Windows, `.\tools\SonarQube\analizar.ps1 .`) y corregir los issues nuevos *Blocker* o *Critical*.
+  - [x] 6.4 Analizar con SonarQube (`tools/SonarQube/analizar.sh .`; en Windows, `.\tools\SonarQube\analizar.ps1 .`) y corregir los issues nuevos *Blocker* o *Critical*. **Ejecutado el 09/11/2026. Gate Failed por causas anteriores a req011 (grupos A–E, 23 issues) y por la condición new_coverage; req011 aporta 0 issues de confiabilidad/seguridad y 7 de mantenibilidad. Se corrigió S6966 en McpServer/Program.cs. Ver SONARQUBE-SolarUY.md.**
   - [ ] 6.5 Criterio 1: el Administrador ve «Consultas» en el menú y entra a la pantalla; sin sesión o sin ese rol no accede.
   - [ ] 6.6 Criterio 2: dos preguntas seguidas; la segunda no usa el contexto de la primera.
   - [ ] 6.7 Criterio 3: «¿cómo está funcionando todo hoy?» responde con parques, paneles por estado y generación de hoy (repetir con cuota de Gemini disponible; también valida el caso normal de la 4.17).
