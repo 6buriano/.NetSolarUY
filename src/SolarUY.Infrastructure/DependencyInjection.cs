@@ -61,7 +61,8 @@ public static class DependencyInjection
     /// <param name="services">Colección de servicios.</param>
     /// <param name="apiKey">Clave de Gemini. Si viene vacía, el agente queda no configurado.</param>
     /// <param name="modelo">Modelo de Gemini. Si viene vacío, el agente queda no configurado.</param>
-    /// <param name="urlServidorMcp">URL del endpoint MCP, por ejemplo <c>http://mcp:8080/mcp</c>.</param>
+    /// <param name="urlServidorMcp">URL del endpoint MCP, por ejemplo <c>http://mcp:8080/mcp</c>.
+    /// Si viene vacía, el agente queda no configurado.</param>
     /// <param name="timeout">Tiempo máximo de una consulta completa.</param>
     public static IServiceCollection AddAgenteConsultas(this IServiceCollection services,
         string? apiKey, string? modelo, string? urlServidorMcp, TimeSpan timeout)
@@ -76,6 +77,11 @@ public static class DependencyInjection
         if (string.IsNullOrWhiteSpace(modelo))
         {
             faltantes.Add("Gemini:Modelo");
+        }
+
+        if (string.IsNullOrWhiteSpace(urlServidorMcp))
+        {
+            faltantes.Add("Mcp:UrlServidor");
         }
 
         if (faltantes.Count > 0)
@@ -104,7 +110,7 @@ public static class DependencyInjection
 
             return new GeminiMcpAgentService(
                 cliente,
-                urlServidorMcp ?? string.Empty,
+                urlServidorMcp!,
                 proveedor.GetRequiredService<TimeProvider>(),
                 timeout,
                 proveedor.GetRequiredService<ILogger<GeminiMcpAgentService>>());

@@ -54,10 +54,29 @@ builder.Services.AddScoped<NodoService>();
 builder.Services.AddScoped<PanelService>();
 builder.Services.AddScoped<MantenimientoService>();
 builder.Services.AddScoped<ReporteService>();
+builder.Services.AddScoped<ConsultaService>();
 
 // El reloj como dependencia de los casos de uso: en producción es el del sistema. Se registra acá
 // y no en cada servicio para que el contenedor lo resuelva igual en todos.
 builder.Services.AddSingleton(TimeProvider.System);
+
+// Agente de consultas en lenguaje natural. Cada valor sale de un lugar distinto:
+// - Gemini:ApiKey NO está en ningún archivo versionado: en desarrollo vive en user secrets
+//   (dotnet user-secrets) y en el servidor en una variable de entorno del contenedor.
+// - Gemini:Modelo y Gemini:TimeoutSegundos son públicos y están en appsettings.json.
+// - Mcp:UrlServidor está en appsettings.Development.json para el host y en el compose para Docker
+//   (http://mcp:8080/mcp, el nombre del servicio interno).
+var claveGemini = builder.Configuration["Gemini:ApiKey"];
+var modeloGemini = builder.Configuration["Gemini:Modelo"];
+var urlServidorMcp = builder.Configuration["Mcp:UrlServidor"];
+
+// Los segundos se leen como entero y no con GetValue<TimeSpan>: TimeSpan se parsea también de
+// formatos como "00:00:30" o "1.00:00:00", que en un archivo de configuración son una trampa.
+// Si falta o no es positivo, se usa el valor por defecto de 30 segundos.
+var segundosTimeout = builder.Configuration.GetValue("Gemini:TimeoutSegundos", 0);
+var timeoutAgente = TimeSpan.FromSeconds(segundosTimeout > 0 ? segundosTimeout : 30);
+
+builder.Services.AddAgenteConsultas(claveGemini, modeloGemini, urlServidorMcp, timeoutAgente);
 
 // Herramienta de diagnóstico: compara el sistema contra el inventario del simulador.
 // Solo se usa desde DiagnosticoController, que está limitado a desarrollo.
