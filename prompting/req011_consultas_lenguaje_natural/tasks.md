@@ -57,8 +57,8 @@
   - [x] 5.4 `Views/Consultas/Index.cshtml`: campo de texto, botón **Enviar**, pregunta y respuesta, con Tag Helpers y sin JavaScript.
   - [x] 5.5 La vista muestra el aviso «No se pudo obtener una respuesta en este momento. Probá de nuevo en unos minutos.» cuando `Exito` es falso.
   - [x] 5.6 Enlace «Consultas» en `Views/Shared/_Layout.cshtml`.
-  - [ ] 5.7 `Documentacion/diagrama-infraestructura.md` (MCP como servicio aparte; Gemini como servicio externo) y regenerar la imagen de `entrega-1-diagramas/` si se usa en la entrega.
-  - [ ] 5.8 `README.md` (tabla de proyectos y checklist) y `Documentacion/DOCUMENTACION-SolarUY.md` (§5 y §11).
+  - [x] 5.7 `Documentacion/diagrama-infraestructura.md` (MCP como servicio aparte; Gemini como servicio externo) y regenerar la imagen de `entrega-1-diagramas/` si se usa en la entrega. **Documento actualizado; la imagen no se regeneró por pedido explícito: queda desactualizada y hay que regenerarla antes de la entrega.**
+  - [x] 5.8 `README.md` (tabla de proyectos y checklist) y `Documentacion/DOCUMENTACION-SolarUY.md` (§5 y §11).
   - [ ] 5.9 `.agents/rules/1_clean_architecture.md` (nuevo proyecto en la lista de capas) y `.agents/rules/6_flujo_trabajo_ia.md` §8 (suma `ListarParquesTool`). **Proponer el cambio y esperar aprobación**: son reglas del arnés. Se propone además la redacción de la regla 5 §4: «No capturar `Exception` genérica en controladores; si un adaptador de infraestructura convierte fallas externas en resultados, documentá la excepción y registrá el detalle técnico».
 
 - [ ] **6. Verificación de Calidad**
