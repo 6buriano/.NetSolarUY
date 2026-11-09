@@ -59,12 +59,12 @@
   - [x] 5.6 Enlace «Consultas» en `Views/Shared/_Layout.cshtml`.
   - [x] 5.7 `Documentacion/diagrama-infraestructura.md` (MCP como servicio aparte; Gemini como servicio externo) y regenerar la imagen de `entrega-1-diagramas/` si se usa en la entrega. **Documento actualizado; la imagen no se regeneró por pedido explícito: queda desactualizada y hay que regenerarla antes de la entrega.**
   - [x] 5.8 `README.md` (tabla de proyectos y checklist) y `Documentacion/DOCUMENTACION-SolarUY.md` (§5 y §11).
-  - [x] 5.9 `.agents/rules/1_clean_architecture.md` (nuevo proyecto en la lista de capas) y `.agents/rules/6_flujo_trabajo_ia.md` §8 (suma `ListarParquesTool`). **Proponer el cambio y esperar aprobación**: son reglas del arnés. Se propone además la redacción de la regla 5 §4: «No capturar `Exception` genérica en controladores; si un adaptador de infraestructura convierte fallas externas en resultados, documentá la excepción y registrá el detalle técnico». **Aplicado con ajuste:** la redacci�n final de la regla 5 �4 reemplaz� "registr� el detalle t�cnico" por "registra solo el tipo de excepci�n, nunca mensajes ni URLs que puedan contener claves", porque la clave de Gemini puede viajar en la URL.
+  - [x] 5.9 `.agents/rules/1_clean_architecture.md` (nuevo proyecto en la lista de capas) y `.agents/rules/6_flujo_trabajo_ia.md` §8 (suma `ListarParquesTool`). **Proponer el cambio y esperar aprobación**: son reglas del arnés. Se propone además la redacción de la regla 5 §4: «No capturar `Exception` genérica en controladores; si un adaptador de infraestructura convierte fallas externas en resultados, documentá la excepción y registrá el detalle técnico». **Aplicado con ajuste:** la redacción final de la regla 5 §4 reemplazó "registrá el detalle técnico" por "registra solo el tipo de excepción, nunca mensajes ni URLs que puedan contener claves", porque la clave de Gemini puede viajar en la URL.
 
 - [ ] **6. Verificación de Calidad**
-  - [ ] 6.1 `dotnet build` desde la raíz, sin errores ni advertencias nuevas.
+  - [x] 6.1 `dotnet build` desde la raíz, sin errores ni advertencias nuevas. **Hecho: "Compilación correcta", 0 advertencias y 0 errores (8,17 s).**
   - [ ] 6.2 `dotnet test tests/CodeQuality.Tests` (el proyecto todavía no existe en el repo: hay que crearlo antes de poder cerrar este requerimiento).
-  - [ ] 6.3 `dotnet test tests/SolarUY.Domain.Tests`.
+  - [x] 6.3 `dotnet test tests/SolarUY.Domain.Tests`. **Hecho: 109 pasados, 0 fallados (74 ms).**
   - [ ] 6.4 Analizar con SonarQube (`tools/SonarQube/analizar.sh .`; en Windows, `.\tools\SonarQube\analizar.ps1 .`) y corregir los issues nuevos *Blocker* o *Critical*.
   - [ ] 6.5 Criterio 1: el Administrador ve «Consultas» en el menú y entra a la pantalla; sin sesión o sin ese rol no accede.
   - [ ] 6.6 Criterio 2: dos preguntas seguidas; la segunda no usa el contexto de la primera.
@@ -74,7 +74,7 @@
   - [ ] 6.10 Criterio 4: preguntar por un parque que no existe o sin lecturas; la respuesta lo dice y no inventa valores.
   - [ ] 6.11 Criterio 5: pedir «desactivá el panel P01» y una pregunta ajena al sistema; ambas se rechazan y el simulador no cambia.
   - [ ] 6.12 Criterio 6: pregunta vacía muestra validación; con `docker compose stop mcp` o una clave inválida aparece el aviso y el resto del sistema sigue andando.
-  - [ ] 6.13 Criterio 7: `git grep` de la clave de Gemini no encuentra nada versionado.
+  - [x] 6.13 Criterio 7: `git grep` de la clave de Gemini no encuentra nada versionado. **Hecho: ningún valor versionado; solo nombres de variables vacías y dos falsos positivos en `jquery*.min.map`.**
   - [ ] 6.14 El servidor MCP no es alcanzable desde el host ni a través de nginx (sin puertos publicados).
   - [ ] 6.15 Completar la sección `## Uso de IA` (ver regla `6_flujo_trabajo_ia.md`, sección 9).
 
