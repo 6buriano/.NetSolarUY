@@ -4,7 +4,7 @@ trigger: always_on
 
 # Clean Architecture - SolarUY
 
-SolarUY es una prueba de concepto para gestionar parques solares: monolito modular guiado por Clean Architecture, con ASP.NET Core MVC, EF Core sobre MySQL, Keycloak (OpenID Connect) y, en próximas iteraciones, SignalR y un servidor MCP conectado a Gemini. Al generar, refactorizar o revisar código, el agente debe respetar estas reglas. Varias se validan automáticamente con los tests de ArchUnitNET del proyecto `tests/CodeQuality.Tests`.
+SolarUY es una prueba de concepto para gestionar parques solares: monolito modular guiado por Clean Architecture, con ASP.NET Core MVC, EF Core sobre MySQL, Keycloak (OpenID Connect) y un servidor MCP que expone herramientas de solo lectura para las consultas en lenguaje natural (la web es la que llama a Gemini; el servidor MCP no). Queda pendiente SignalR, para el monitoreo en tiempo real. Al generar, refactorizar o revisar código, el agente debe respetar estas reglas. Varias se validan automáticamente con los tests de ArchUnitNET del proyecto `tests/CodeQuality.Tests`.
 
 ## Capas de la Solución (.NET Solution)
 
@@ -14,7 +14,7 @@ SolarUY es una prueba de concepto para gestionar parques solares: monolito modul
    * Excepciones de dominio (`ReglaDeNegocioException`).
 2. `SolarUY.Application` (Casos de Uso)
    * Servicios de aplicación (`Services/`), DTOs (`DTOs/`) y mapeos (`Mappings/`).
-   * Interfaces de servicios externos (`Sensors/ISensorClient`, `ISimuladorAdminClient`, `ISensorDisponibilidadService`). Más adelante: notificación en tiempo real y cliente MCP.
+   * Interfaces de servicios externos (`Sensors/ISensorClient`, `ISimuladorAdminClient`, `ISensorDisponibilidadService`). Más adelante: notificación en tiempo real. El cliente MCP ya existe: `Consultas/IMCPAgentService`, implementado en `Infrastructure`.
 3. `SolarUY.Infrastructure` (Detalles de Implementación)
    * `SolarUYDbContext` (EF Core con MySQL, proveedor Pomelo), configuraciones (`IEntityTypeConfiguration<T>`) y migraciones.
    * Implementación de repositorios.
@@ -26,7 +26,13 @@ SolarUY es una prueba de concepto para gestionar parques solares: monolito modul
    * Más adelante: hubs de SignalR para las métricas en vivo.
 5. `SolarUY.Collector` (Worker Service)
    * Proceso independiente que cada pocos segundos consulta a los sensores (por `ISensorClient`), deja que el dominio diagnostique las lecturas y las guarda en MySQL.
-6. `SolarUY.SensorSimulator` (submódulo, repositorio aparte)
+6. `SolarUY.McpServer` (Servidor MCP)
+   * Punto de arranque aparte que expone por HTTP, en `/mcp`, las herramientas de solo lectura del módulo `Consultas`; publica además `GET /health` para el chequeo de vida.
+   * Las herramientas viven en `Infrastructure/Mcp/Tools/`; este proyecto solo las registra y las publica.
+   * Referencia a `SolarUY.Application`, `SolarUY.Domain` y `SolarUY.Infrastructure` (esta última solo en su `Program.cs`, para conectar la base igual que `Web` y `Collector`).
+   * Se conecta a la base de datos, pero **no conoce la clave de Gemini**: esa vive solo en `Web`, que es la que llama al modelo.
+   * Solo es alcanzable desde la red interna de Docker: no publica puerto ni pasa por nginx.
+7. `SolarUY.SensorSimulator` (submódulo, repositorio aparte)
    * Mock del hardware: emula los sensores ARM e inversores por HTTP. No es parte de la solución de negocio y no se modifica desde este repo.
 
 ## Reglas de Dependencia
@@ -37,6 +43,7 @@ SolarUY es una prueba de concepto para gestionar parques solares: monolito modul
 * `Web` depende de `Application` y `Domain`. **Los controladores NO usan el `DbContext` ni los repositorios concretos**: llaman siempre a un servicio de `Application`.
    * La inversión de dependencias (contenedor de ASP.NET Core) se configura en `Program.cs` de `SolarUY.Web`. Es la **única** referencia permitida de `Web` hacia `Infrastructure` (`builder.Services.AddInfrastructure(connectionString)` y la elección de implementaciones según el entorno).
 * `Collector` es otro punto de arranque: puede referenciar `Infrastructure` solo en su `Program.cs`, igual que `Web`. Su lógica usa interfaces de `Application`.
+* `McpServer` es otro punto de arranque con la misma regla que `Collector`: referencia `Infrastructure` solo en su `Program.cs`. Sus herramientas usan servicios de `Application`, nunca el `DbContext`.
 * Ningún proyecto de `src/` referencia al `SensorSimulator`: se le habla solo por HTTP, como a un hardware real.
 * La identidad del usuario (Keycloak, roles) es responsabilidad de `Web`. `Domain` y `Application` no reciben ni conocen al usuario.
 

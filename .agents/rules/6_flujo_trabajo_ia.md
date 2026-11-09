@@ -64,12 +64,13 @@ El agente usa la skill `verificar-calidad` para validar su propio trabajo:
 ## 8. Integración de MCP (Model Context Protocol)
 
 * El proyecto expone herramientas MCP para que Gemini consulte datos del sistema:
+  * `ListarParquesTool()`: devuelve los parques con su `Id`. Existe para que Gemini obtenga el `parqueId` que necesitan las demás herramientas, porque no puede adivinarlo; agregarla **no cambia** las firmas de las otras cuatro.
   * `ObtenerResumenParqueTool(parqueId)`
   * `ObtenerGeneracionHoyTool()`
-  * `ObtenerGeneracionHistoricaTool(parqueId, desde, hasta, agrupacion)`
+  * `ObtenerGeneracionHistoricaTool(parqueId, agrupacion, desde, hasta)`
   * `ListarPanelesEnFallaTool()`
 * **Todas las herramientas son de solo lectura.** El agente nunca genera una herramienta que cree, modifique o borre datos, ni que envíe órdenes al inversor: la letra exige que el lenguaje natural sea solo para consultar.
-* Flujo: el chat web envía la pregunta del usuario a Gemini junto con la descripción de las herramientas; Gemini indica qué herramienta necesita; la aplicación la ejecuta a través del servidor MCP y le devuelve el resultado; Gemini redacta la respuesta en lenguaje natural.
+* Flujo: la pantalla **Consultas** envía la pregunta del usuario a Gemini junto con la descripción de las herramientas; Gemini indica qué herramienta necesita; la aplicación la ejecuta a través del servidor MCP y le devuelve el resultado; Gemini redacta la respuesta en lenguaje natural. El ciclo tiene un tope de 8 vueltas de herramientas y un timeout configurable (`Gemini:TimeoutSegundos`, 30 s por defecto).
 
 ## 9. Registro del Uso de IA
 
