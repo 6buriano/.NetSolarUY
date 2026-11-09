@@ -51,12 +51,12 @@
   - [x] 4.21 `.env.example`: `GEMINI_API_KEY=` vacía. En desarrollo, la clave va en *user secrets*.
 
 - [ ] **5. Presentation y documentación**
-  - [ ] 5.1 `Models/ConsultaViewModel` (`Pregunta` con `[Required]`, `[StringLength(ConsultaService.LargoMaximoPregunta)]` y `[Display]`; `PreguntaEnviada`, `Respuesta`, `Exito`).
-  - [ ] 5.2 `ConsultasController.Index` GET con `[Authorize(Roles = "Administrador")]`.
-  - [ ] 5.3 `ConsultasController.Index` POST con `[ValidateAntiForgeryToken]`: valida `ModelState`, llama a `ConsultaService`, captura `ReglaDeNegocioException` en `ModelState` y devuelve la vista con la respuesta, sin redirigir.
-  - [ ] 5.4 `Views/Consultas/Index.cshtml`: campo de texto, botón **Enviar**, pregunta y respuesta, con Tag Helpers y sin JavaScript.
-  - [ ] 5.5 La vista muestra el aviso «No se pudo obtener una respuesta en este momento. Probá de nuevo en unos minutos.» cuando `Exito` es falso.
-  - [ ] 5.6 Enlace «Consultas» en `Views/Shared/_Layout.cshtml`.
+  - [x] 5.1 `Models/ConsultaViewModel` (`Pregunta` con `[Required]`, `[StringLength(ConsultaService.LargoMaximoPregunta)]` y `[Display]`; `PreguntaEnviada`, `Respuesta`, `Exito`).
+  - [x] 5.2 `ConsultasController.Index` GET con `[Authorize(Roles = "Administrador")]`.
+  - [x] 5.3 `ConsultasController.Index` POST con `[ValidateAntiForgeryToken]`: valida `ModelState`, llama a `ConsultaService`, captura `ReglaDeNegocioException` en `ModelState` y devuelve la vista con la respuesta, sin redirigir.
+  - [x] 5.4 `Views/Consultas/Index.cshtml`: campo de texto, botón **Enviar**, pregunta y respuesta, con Tag Helpers y sin JavaScript.
+  - [x] 5.5 La vista muestra el aviso «No se pudo obtener una respuesta en este momento. Probá de nuevo en unos minutos.» cuando `Exito` es falso.
+  - [x] 5.6 Enlace «Consultas» en `Views/Shared/_Layout.cshtml`.
   - [ ] 5.7 `Documentacion/diagrama-infraestructura.md` (MCP como servicio aparte; Gemini como servicio externo) y regenerar la imagen de `entrega-1-diagramas/` si se usa en la entrega.
   - [ ] 5.8 `README.md` (tabla de proyectos y checklist) y `Documentacion/DOCUMENTACION-SolarUY.md` (§5 y §11).
   - [ ] 5.9 `.agents/rules/1_clean_architecture.md` (nuevo proyecto en la lista de capas) y `.agents/rules/6_flujo_trabajo_ia.md` §8 (suma `ListarParquesTool`). **Proponer el cambio y esperar aprobación**: son reglas del arnés. Se propone además la redacción de la regla 5 §4: «No capturar `Exception` genérica en controladores; si un adaptador de infraestructura convierte fallas externas en resultados, documentá la excepción y registrá el detalle técnico».
