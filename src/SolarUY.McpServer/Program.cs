@@ -1,6 +1,5 @@
 using SolarUY.Application.Services;
 using SolarUY.Infrastructure;
-using SolarUY.Infrastructure.Mcp.Tools;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,25 +20,11 @@ builder.Services.AddScoped<ReporteService>();
 // y no en cada servicio para que el contenedor lo resuelva igual en todos.
 builder.Services.AddSingleton(TimeProvider.System);
 
-// Servidor MCP: transporte HTTP sin estado, para que cada pedido se pueda atender en cualquier
-// instancia sin compartir sesión, y las cinco herramientas de solo lectura.
-//
-// El argumento se declara como IEnumerable<Type> a propósito: pasando un Type[] el compilador elige
-// la sobrecarga genérica "WithTools<T>(builder, T target)" (el array encaja como target por
-// conversión de identidad) en vez de la de tipos, y el servidor arranca sin herramientas.
-IEnumerable<Type> herramientas =
-[
-    typeof(ListarParquesTool),
-    typeof(ObtenerResumenParqueTool),
-    typeof(ObtenerGeneracionHoyTool),
-    typeof(ObtenerGeneracionHistoricaTool),
-    typeof(ListarPanelesEnFallaTool)
-];
-
+// Servidor MCP: las cinco herramientas (registradas desde Infrastructure) con transporte HTTP sin
+// estado, para que cada pedido se pueda atender en cualquier instancia sin compartir sesión.
 builder.Services
-    .AddMcpServer()
-    .WithHttpTransport(opciones => opciones.Stateless = true)
-    .WithTools(herramientas);
+    .AddHerramientasMcp()
+    .WithHttpTransport(opciones => opciones.Stateless = true);
 
 var app = builder.Build();
 
