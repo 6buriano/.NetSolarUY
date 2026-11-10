@@ -12,8 +12,9 @@
     const horaActualizacion = document.getElementById("ultima-actualizacion");
     const parqueId = contenedor.dataset.parqueId;
 
-    const formatoEntero = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 });
-    const formatoDecimal = new Intl.NumberFormat("es-UY", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    // Mismo formato que el servidor (punto decimal), para que no cambie al actualizarse.
+    const formatoEntero = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+    const formatoDecimal = new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     const formatoHora = new Intl.DateTimeFormat("es-UY", {
         timeZone: "America/Montevideo", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
     });
