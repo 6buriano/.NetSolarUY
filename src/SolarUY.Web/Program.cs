@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -12,6 +13,8 @@ using SolarUY.Infrastructure;
 using SolarUY.Infrastructure.Persistence;
 using SolarUY.Infrastructure.Sensors;
 using SolarUY.Web.Seed;
+using SolarUY.Web.Hubs;
+using SolarUY.Web.Monitoreo;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +58,16 @@ builder.Services.AddScoped<PanelService>();
 builder.Services.AddScoped<MantenimientoService>();
 builder.Services.AddScoped<ReporteService>();
 builder.Services.AddScoped<ConsultaService>();
+builder.Services.AddScoped<MonitoreoService>();
+
+// Monitoreo en tiempo real (req012). Los estados viajan como texto ("FALLA_DETECTADA") y no como
+// número, para que el JavaScript los entienda sin una tabla de equivalencias.
+builder.Services.AddSignalR()
+    .AddJsonProtocol(opciones =>
+        opciones.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// Una sola instancia por réplica: recuerda qué se envió en la vuelta anterior.
+builder.Services.AddSingleton<SeguimientoMonitoreo>();
+builder.Services.AddHostedService<MonitoreoTiempoRealWorker>();
 
 // El reloj como dependencia de los casos de uso: en producción es el del sistema. Se registra acá
 // y no en cada servicio para que el contenedor lo resuelva igual en todos.
@@ -237,6 +250,8 @@ app.MapStaticAssets();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", machine = Environment.MachineName }))
     .AllowAnonymous();
 
+// Conexión en vivo del monitoreo (req012). nginx la atiende en "location /hubs/".
+app.MapHub<MonitoreoHub>("/hubs/monitoreo");
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
