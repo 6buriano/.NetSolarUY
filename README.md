@@ -108,6 +108,10 @@ curl.exe -fsS http://localhost:8080/health
 **una sola vez**; las réplicas no migran al arrancar. La secuencia completa de actualización sin cortes está
 en [`Documentacion/actualizacion-sin-cortes.md`](Documentacion/actualizacion-sin-cortes.md).
 
+Para las **consultas en lenguaje natural** hace falta una clave de Gemini en el `.env`: agregá
+`GEMINI_API_KEY=tu-clave`. Cada uno obtiene la suya en [Google AI Studio](https://aistudio.google.com/apikey);
+no se comparte ni se sube al repo. `GEMINI_MODELO` es opcional (por defecto, `gemini-3.5-flash`).
+
 El simulador que se usa es el desplegado, `http://simulador.fabriq.uy`, configurado con `SIMULADOR_URL` en
 `.env`. Para trabajar sin internet, el mock local está detrás de un perfil:
 
