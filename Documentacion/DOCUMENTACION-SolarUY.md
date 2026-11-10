@@ -65,7 +65,7 @@ resuelve **Keycloak** por OpenID Connect. El detalle de cada caja y cómo se lev
 | Autenticación | **Keycloak** (OpenID Connect) | La letra pide un proveedor externo. Es open source, corre en nuestro propio servidor y maneja los roles que necesita el sistema (`Administrador`). |
 | Despliegue | **Docker Compose** sobre un VPS (Oracle Cloud) | Control total del servidor para correr Nginx, las réplicas, el colector y MySQL con la misma definición de contenedores que usamos en desarrollo. |
 | Alta disponibilidad | **Dos réplicas idénticas en activo/pasivo detrás de Nginx** (`web2` en `backup`, con `max_fails`/`fail_timeout`), sin Redis ni sticky sessions, y actualización de a una réplica | Permite actualizar sin cortar el servicio. Como la sesión no vive en el servidor, `web2` puede atender cualquier formulario: no hacen falta sticky sessions ni backplane de SignalR. Limitación conocida: al estar en un solo servidor, una caída afecta a todo. |
-| Consultas con IA *(pendiente)* | **Servidor MCP + Gemini** | La letra pide consultas en lenguaje natural sobre el estado del sistema. MCP expone herramientas de consulta y Gemini interpreta la pregunta, sin acoplar el modelo a la base. |
+| Consultas con IA | **Servidor MCP + Gemini** | La letra pide consultas en lenguaje natural sobre el estado del sistema. Un proceso aparte (el servidor MCP) expone cinco herramientas de solo lectura y la web se las pasa a Gemini junto con la pregunta: el modelo de lenguaje nunca toca la base y el servidor MCP nunca ve la clave. |
 
 ### 3.3 Detalle del diseño: las capas
 
@@ -79,6 +79,7 @@ conocen a las de adentro.
 | `SolarUY.Infrastructure` | EF Core + MySQL, repositorios y los clientes HTTP del sensor y del simulador. |
 | `SolarUY.Web` | Las pantallas: controladores y vistas Razor. |
 | `SolarUY.Collector` | El proceso que consulta los sensores y guarda la telemetría. |
+| `SolarUY.McpServer` | El servidor MCP: expone por HTTP las herramientas de solo lectura que usa el agente de consultas. |
 | `SolarUY.SensorSimulator` | El mock del hardware (submódulo aparte). No conoce nuestro dominio. |
 | `SolarUY.Domain.Tests` | Las pruebas de las reglas del dominio. |
 
@@ -178,8 +179,35 @@ Existe únicamente en desarrollo, porque depende de una API que sólo tiene el s
 ### 5.7 Acceso y roles
 
 El inicio de sesión lo resuelve **Keycloak**: la aplicación no guarda usuarios ni contraseñas, sólo confía en
-lo que Keycloak le responde y exige el rol `Administrador` para el ABM, el mantenimiento, el histórico y el
-diagnóstico. El inicio y `/health` quedan abiertos (el segundo para el chequeo de vida del despliegue).
+lo que Keycloak le responde y exige el rol `Administrador` para el ABM, el mantenimiento, el histórico, las
+consultas y el diagnóstico. El inicio y `/health` quedan abiertos (el segundo para el chequeo de vida del
+despliegue).
+
+### 5.8 Consultas en lenguaje natural
+
+La pantalla **Consultas** (sólo rol `Administrador`) recibe una pregunta en español y devuelve una respuesta.
+Es una pregunta y una respuesta: no hay historial ni se recuerdan las preguntas anteriores.
+
+El flujo tiene tres piezas. La **web** recibe la pregunta, le pide al **servidor MCP** la lista de herramientas
+y se las manda a **Gemini** —servicio externo de Google— junto con una instrucción de sistema. Gemini decide
+qué herramientas usar, la web las ejecuta contra el servidor MCP y el ciclo se repite hasta que hay respuesta,
+con un tope de 8 vueltas de herramientas y un timeout de 30 segundos para toda la consulta.
+
+El **servidor MCP** (`SolarUY.McpServer`) es un proceso aparte, el tercer punto de arranque: transporte HTTP
+sin estado en `/mcp` y un `GET /health` para el chequeo de vida. Corre como el servicio `mcp` del compose, con
+una sola instancia, puerto interno 8080 **sin publicar** y sin pasar por Nginx; no tiene autenticación porque
+sólo lo alcanzan los contenedores de la red `solareuy`. Conoce únicamente la base de datos, no la clave de
+Gemini. Sus cinco herramientas son de **sólo lectura**: `listar_parques`, `obtener_resumen_parque`,
+`obtener_generacion_hoy`, `obtener_generacion_historica` y `listar_paneles_en_falla`.
+
+La configuración es `Gemini:ApiKey` —user secrets en desarrollo y `GEMINI_API_KEY` del `.env` en el servidor,
+que el compose pasa como `Gemini__ApiKey`—, `Gemini:Modelo` (`gemini-3.5-flash`, cambiable con `GEMINI_MODELO`
+sin tocar el compose), `Mcp:UrlServidor` y `Gemini:TimeoutSegundos` (30). Si falta la clave, el modelo o la
+URL, la web **arranca igual**: registra un aviso en el log y la pantalla muestra el texto de falla.
+
+**Cuota de Gemini.** La capa gratuita permite unos **20 pedidos por día y por modelo**, y cada pregunta usa
+varios (uno por cada vuelta de herramientas). Para pruebas intensivas conviene cambiar de modelo o usar una
+clave con facturación; si la cuota se agota, la pantalla muestra el mismo aviso de falla.
 
 ## 6. Proceso de desarrollo con IA
 
@@ -348,14 +376,15 @@ Cronología, según el historial del repositorio:
 
 ## 11. Próximos pasos (iteración 3)
 
-1. **Consultas en lenguaje natural (MCP + Gemini)**: herramientas de sólo lectura sobre el estado y la
-   generación, tal como pide la letra.
+1. **Monitoreo en tiempo real**: hub de SignalR y dashboard con gráficos, alimentado por el colector que ya
+   existe.
 2. **Tests de arquitectura y SonarQube**: integrar `tests/CodeQuality.Tests` y `tools/SonarQube/` para que la
    skill `verificar-calidad` quede completa (§6.5).
-3. **Monitoreo en tiempo real**: hub de SignalR y dashboard con gráficos, alimentado por el colector que ya
-   existe.
-4. **Política de retención** de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
-5. **Cobertura de pruebas** de los servicios de aplicación y los controladores.
+3. **Política de retención** de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
+4. **Cobertura de pruebas** de los servicios de aplicación y los controladores.
+5. **Cuota de Gemini para la demo**: las consultas en lenguaje natural ya están (§5.8), pero la capa gratuita
+   permite unos 20 pedidos por día y por modelo; para la presentación conviene una clave con facturación o
+   cambiar de modelo.
 
 ---
 

@@ -6,7 +6,7 @@
 | **Materia** | Taller de Programación .NET 2026 — UTEC |
 | **Repositorio** | `github.com/6buriano/.NetSolarUY` |
 | **Carpeta** | `tools/SonarQube/` |
-| **Actualizado** | 01/11/2026 |
+| **Actualizado** | 09/11/2026 |
 
 ## 1. Para qué sirve
 
@@ -116,12 +116,17 @@ Lo crea `analizar` con las condiciones del taller y lo deja como predeterminado 
 
 | Condición | Falla si… |
 |---|---|
-| Issues *Blocker* | hay alguno |
-| Calificación de seguridad | es peor que A |
-| Calificación de confiabilidad | es peor que A |
+| `new_violations` | hay más de 0 issues nuevos |
+| `new_coverage` | la cobertura del código nuevo es menor a 80 % |
+| `new_duplicated_lines_density` | la duplicación del código nuevo supera el 3 % |
+| `new_security_hotspots_reviewed` | se revisó menos del 100 % de los *hotspots* nuevos |
+| `blocker_violations` | hay algún issue *Blocker* |
+| `security_rating` | es peor que A |
+| `reliability_rating` | es peor que A |
 
-Una calificación A significa que **no queda ningún issue** de esa cualidad, de ninguna severidad. Por eso un
-solo problema menor alcanza para que el gate falle.
+Las dos calificaciones se miden sobre **todo el código** del proyecto; las cuatro primeras, sobre el **código
+nuevo** de cada cambio. Una calificación A significa que **no queda ningún issue** de esa cualidad, de ninguna
+severidad. Por eso un solo problema menor alcanza para que el gate falle.
 
 ### Qué se analiza y qué no
 
@@ -172,6 +177,7 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | Fecha | Quality Gate | Confiabilidad | Seguridad | Notas |
 |---|---|---|---|---|
 | 01/11/2026 | Failed | C | B | Primer análisis, 23 issues (ver arriba). |
+| 09/11/2026 | Failed | C | B | Tras req011: 23 issues de confiabilidad/seguridad, todos de los grupos A–E (A 12, B 4, C 3, D 1, E 3); req011 no agrega ninguno. 7 issues nuevos de mantenibilidad (Low/Info); cobertura nueva 0 % (limitación conocida). |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -190,7 +196,10 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 
 ## 9. Limitaciones
 
-- **Sin cobertura de pruebas.** El análisis no ejecuta las pruebas, así que la cobertura figura en 0 %.
+- **Sin cobertura de pruebas, y por eso el gate no puede pasar.** El análisis no ejecuta las pruebas, así que la
+  cobertura figura en 0 %. Como el gate exige `new_coverage` de al menos 80 % sobre el código nuevo, esa
+  condición falla siempre: el gate no va a pasar hasta que se recoja cobertura o el equipo decida cambiar la
+  condición.
 - **Local y por persona.** Cada integrante tiene su propio servidor, token y resultados: no hay un SonarQube compartido.
 - **No está integrado a la integración continua.** `.github/workflows/ci.yml` compila y corre las pruebas, pero no analiza con SonarQube.
 - **El gate es estricto sobre todo el código**, no solo sobre el código nuevo de cada cambio.

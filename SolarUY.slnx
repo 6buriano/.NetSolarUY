@@ -5,6 +5,7 @@
     <Project Path="src/SolarUY.Infrastructure/SolarUY.Infrastructure.csproj" />
     <Project Path="src/SolarUY.Collector/SolarUY.Collector.csproj" />
     <Project Path="src/SolarUY.Web/SolarUY.Web.csproj" />
+    <Project Path="src/SolarUY.McpServer/SolarUY.McpServer.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SolarUY.Domain.Tests/SolarUY.Domain.Tests.csproj" />

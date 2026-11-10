@@ -103,6 +103,8 @@ namespace SolarUY.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("FechaHora");
+
                     b.HasIndex("PanelSolarId", "FechaHora");
 
                     b.ToTable("lecturas_telemetria", (string)null);
