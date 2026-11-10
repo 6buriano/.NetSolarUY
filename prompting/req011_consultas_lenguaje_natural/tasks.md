@@ -66,17 +66,83 @@
   - [ ] 6.2 `dotnet test tests/CodeQuality.Tests` (el proyecto todavía no existe en el repo: hay que crearlo antes de poder cerrar este requerimiento).
   - [x] 6.3 `dotnet test tests/SolarUY.Domain.Tests`. **Hecho: 109 pasados, 0 fallados (74 ms).**
   - [x] 6.4 Analizar con SonarQube (`tools/SonarQube/analizar.sh .`; en Windows, `.\tools\SonarQube\analizar.ps1 .`) y corregir los issues nuevos *Blocker* o *Critical*. **Ejecutado el 09/11/2026. Gate Failed por causas anteriores a req011 (grupos A–E, 23 issues) y por la condición new_coverage; req011 aporta 0 issues de confiabilidad/seguridad y 7 de mantenibilidad. Se corrigió S6966 en McpServer/Program.cs. Ver SONARQUBE-SolarUY.md.**
-  - [ ] 6.5 Criterio 1: el Administrador ve «Consultas» en el menú y entra a la pantalla; sin sesión o sin ese rol no accede.
-  - [ ] 6.6 Criterio 2: dos preguntas seguidas; la segunda no usa el contexto de la primera.
-  - [ ] 6.7 Criterio 3: «¿cómo está funcionando todo hoy?» responde con parques, paneles por estado y generación de hoy (repetir con cuota de Gemini disponible; también valida el caso normal de la 4.17).
-  - [ ] 6.8 Criterio 3: la generación histórica de un parque por día, mes y año con rango de fechas coincide con la suma de la pantalla *Histórico* de sus paneles.
-  - [ ] 6.9 Criterio 3: forzar una falla en el simulador y preguntar por los paneles en falla; aparece el panel y su nodo.
-  - [ ] 6.10 Criterio 4: preguntar por un parque que no existe o sin lecturas; la respuesta lo dice y no inventa valores.
-  - [ ] 6.11 Criterio 5: pedir «desactivá el panel P01» y una pregunta ajena al sistema; ambas se rechazan y el simulador no cambia.
-  - [ ] 6.12 Criterio 6: pregunta vacía muestra validación; con `docker compose stop mcp` o una clave inválida aparece el aviso y el resto del sistema sigue andando.
+  - [x] 6.5 Criterio 1: el Administrador ve «Consultas» en el menú y entra a la pantalla; sin sesión o sin ese rol no accede. **Verificado a mano el 09/11/2026:** sin sesión redirige al login y el Administrador ve el menú y la pantalla. No se probó un usuario sin el rol.
+  - [x] 6.6 Criterio 2: dos preguntas seguidas; la segunda no usa el contexto de la primera. **Verificado a mano el 09/11/2026, respuestas correctas.**
+  - [x] 6.7 Criterio 3: «¿cómo está funcionando todo hoy?» responde con parques, paneles por estado y generación de hoy (repetir con cuota de Gemini disponible; también valida el caso normal de la 4.17). **Verificado a mano el 09/11/2026:** respondió con el parque, los paneles por estado y la generación de hoy (1,4329 kWh, aclarada como estimación).
+  - [x] 6.8 Criterio 3: la generación histórica de un parque por día, mes y año con rango de fechas coincide con la suma de la pantalla *Histórico* de sus paneles. **Verificado a mano el 09/11/2026:** el 18/10/2026 respondió 10,5028 kWh, igual al de la pantalla Histórico, y las agrupaciones por mes y año fueron coherentes.
+  - [x] 6.9 Criterio 3: forzar una falla en el simulador y preguntar por los paneles en falla; aparece el panel y su nodo. **Verificado a mano el 09/11/2026, respuestas correctas.**
+  - [x] 6.10 Criterio 4: preguntar por un parque que no existe o sin lecturas; la respuesta lo dice y no inventa valores. **Verificado a mano el 09/11/2026, respuestas correctas.**
+  - [x] 6.11 Criterio 5: pedir «desactivá el panel P01» y una pregunta ajena al sistema; ambas se rechazan y el simulador no cambia. **Verificado a mano el 09/11/2026:** rechazó la orden de desactivar el panel y la pregunta ajena al sistema, y el estado de P01 no cambió.
+  - [x] 6.12 Criterio 6: pregunta vacía muestra validación; con `docker compose stop mcp` o una clave inválida aparece el aviso y el resto del sistema sigue andando. **Verificado a mano el 09/11/2026:** la validación y el aviso con el MCP caído funcionaron y el resto del sistema siguió andando.
   - [x] 6.13 Criterio 7: `git grep` de la clave de Gemini no encuentra nada versionado. **Hecho: ningún valor versionado; solo nombres de variables vacías y dos falsos positivos en `jquery*.min.map`.**
   - [ ] 6.14 El servidor MCP no es alcanzable desde el host ni a través de nginx (sin puertos publicados).
   - [ ] 6.15 Completar la sección `## Uso de IA` (ver regla `6_flujo_trabajo_ia.md`, sección 9).
 
 ## Uso de IA
-*(Completar al cerrar el requerimiento: qué generó el agente, qué corrigió o reescribió la persona, qué detectaron los tests de arquitectura, SonarQube o la revisión, y cómo se resolvió.)*
+
+- **Proceso:** arnés SDD (requirements → specs → tasks → código), **una tarea por vez**, con aprobación humana
+  de cada cambio a partir de su **diff real**, y **un commit por tarea**.
+- **Revisión externa:** un segundo asistente (Claude) se usó fuera del repositorio para redactar los prompts de
+  cada tarea y revisar los diffs; propuso ajustes puntuales que la persona aplicó a mano; no escribió en el
+  repo.
+- **Código, `specs.md` y `tasks.md`:** generados con asistencia de IA y revisados por Mariano tarea por tarea.
+- **Herramienta que generó el código:** *Claude*
+
+### Decisiones y su razón
+
+- **Servidor MCP en un proceso aparte** (`SolarUY.McpServer`), alcanzable **solo desde la red interna y sin
+  autenticación**, porque no se publica.
+- **La clave de Gemini vive solo en la web**; el servidor MCP conoce únicamente la base.
+- **Herramientas de solo lectura por construcción:** ninguna llama a métodos de escritura, verificado con
+  `git grep`.
+- **Transporte HTTP sin estado:** cada consulta abre su propio cliente MCP y no hace falta mantener sesiones.
+- **Tope de 8 vueltas de herramientas y timeout de 30 s** por consulta.
+- **Las fallas se convierten en un mensaje genérico** y se registra **solo el tipo de excepción**, porque la
+  clave puede viajar en la URL.
+- **«Hoy» es el día calendario de Montevideo** con desfase fijo UTC−3; el histórico agrupa por **día UTC**.
+
+### Errores detectados al revisar o al ejecutar
+
+- **`WithTools` con la sobrecarga equivocada:** el servidor arrancaba **sin herramientas** porque un `Type[]`
+  caía en la sobrecarga de «instancia target». Se corrigió declarando el argumento como `IEnumerable<Type>`.
+- **Enum serializado como número:** las herramientas devolvían el estado del panel como número y el modelo no
+  podía interpretarlo; se corrigió agregando `JsonStringEnumConverter` a `OpcionesJsonMcp`, de modo que sale
+  como texto.
+- **Bug del controlador:** `ModelState.Remove` borraba el error y vaciaba el texto **también en las fallas**. Se
+  corrigió para que el vaciado ocurra solo cuando la consulta fue exitosa.
+- **`Trim()` sobre un string nulo:** en `ObtenerGeneracionHistoricaTool`, `agrupacion.Trim()` fallaba si el
+  parámetro llegaba nulo; fue un riesgo detectado en la revisión y se corrigió con `string?` y
+  `agrupacion?.Trim().ToLowerInvariant()`.
+- **Faltaba `launchSettings.json`:** `dotnet run` arrancaba en `Production` y no leía el archivo de Development.
+- **El primer prompt de la 4.16 omitía** la fecha, la prohibición de Markdown y el rechazo de preguntas ajenas;
+  se amplió la instrucción de sistema.
+- **Versión de paquete supuesta:** se creía que `Google_GenerativeAI.Microsoft` era 3.6.7 y era 3.6.8; se
+  verificó contra el índice de NuGet antes de instalar.
+- **Modelo `gemini-2.5-flash` discontinuado (404)** y **cuota gratuita de unos 20 pedidos diarios (429)**, más
+  **503 transitorios**: se cambió de modelo y quedó anotada la limitación.
+- **La clave apareció en el texto de una conversación con un agente:** se recomendó rotarla.
+- **Un comando de PowerShell sugerido por el asistente de revisión externo dañó la codificación de `tasks.md`**,
+  detectado por la verificación del agente y corregido.
+
+### Verificación
+
+- `dotnet build`: **sin advertencias**.
+- `dotnet test tests/SolarUY.Domain.Tests`: **109 tests** en verde.
+- **SonarQube:** 0 issues nuevos de confiabilidad o seguridad de req011, y 7 issues nuevos de mantenibilidad
+  (Low/Info), documentados en `SONARQUBE-SolarUY.md`; el *gate* queda *Failed* por causas previas y por la
+  cobertura.
+- **El servidor MCP no es alcanzable** desde el host ni a través de nginx.
+- **Criterios 1 a 6 probados a mano** (del criterio 1 no se probó un usuario sin el rol de Administrador); el
+  criterio 7 se verificó con `git grep`.
+- **Tests de arquitectura:** no ejecutados: el proyecto `tests/CodeQuality.Tests` (ArchUnitNET) todavía no
+  existe en el repositorio.
+
+### Límites y mejoras
+
+- Usuario de base de datos de **solo lectura** para el MCP.
+- **Regla de ArchUnit contra escrituras desde `Mcp`**.
+- Pruebas de `ReporteService` con `FakeTimeProvider`.
+- **Cobertura en el análisis** de SonarQube.
+- `PanelService.ObtenerTodosAsync` **filtra en memoria**.
+- `AddInfrastructure` **registra `ISensorClient` también en el `McpServer`**.
+- **Commits agrupados** (`48eecb4`, `7e34394`).
