@@ -1,0 +1,85 @@
+@model MonitoreoIndexViewModel
+@{
+    ViewData["Title"] = "Monitoreo";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">Monitoreo</h1>
+    <div class="d-flex align-items-center gap-3">
+        <span id="estado-conexion" class="badge text-bg-secondary">Conectando…</span>
+        <small class="text-muted">
+            Actualizado:
+            <span id="ultima-actualizacion">@HoraLocal.DesdeUtc(Model.Instantanea.GeneradaUtc).ToString("HH:mm:ss")</span>
+        </small>
+    </div>
+</div>
+
+@if (Model.Parque is null)
+{
+    <div class="alert alert-info">No hay parques cargados.</div>
+}
+else
+{
+    @if (Model.Instantanea.Parques.Count > 1)
+    {
+        <form method="get" class="mb-3" style="max-width: 20rem">
+            <select name="parqueId" class="form-select" onchange="this.form.submit()">
+                @foreach (var opcion in Model.Instantanea.Parques)
+                {
+                    <option value="@opcion.ParqueId" selected="@(opcion.ParqueId == Model.Parque.ParqueId)">@opcion.Nombre</option>
+                }
+            </select>
+        </form>
+    }
+
+    <div id="monitoreo" data-parque-id="@Model.Parque.ParqueId">
+        <div class="card card-body shadow-sm mb-4">
+            <div class="text-muted">@Model.Parque.Nombre</div>
+            <div class="display-6">
+                <span data-potencia-parque>@Model.Parque.PotenciaActualW.ToString("N0")</span> W
+            </div>
+        </div>
+
+        <div class="row g-3">
+            @foreach (var nodo in Model.Parque.Nodos)
+            {
+                <div class="col-12 col-lg-6">
+                    <div class="card shadow-sm h-100" data-nodo-id="@nodo.NodoId">
+                        <div class="card-header d-flex justify-content-between">
+                            <strong>@nodo.Nombre</strong>
+                            <span><span data-potencia-nodo>@nodo.PotenciaActualW.ToString("N0")</span> W</span>
+                        </div>
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Panel</th>
+                                    <th class="text-end">Potencia (W)</th>
+                                    <th class="text-end">Temp. (°C)</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var panel in nodo.Paneles)
+                                {
+                                    <tr data-panel-id="@panel.PanelId">
+                                        <td>@panel.CodigoPanel</td>
+                                        <td class="text-end" data-campo="potencia">@(panel.PotenciaActualW?.ToString("N0") ?? "—")</td>
+                                        <td class="text-end" data-campo="temperatura">@(panel.TemperaturaCelsius?.ToString("N1") ?? "—")</td>
+                                        <td><span class="badge @EstadoSaludHelper.ClaseBadge(panel.Estado)" data-campo="estado">@panel.Estado</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div id="avisos" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+}
+
+@section Scripts {
+    <script src="~/lib/microsoft-signalr/signalr.min.js"></script>
+    <script src="~/js/monitoreo.js" asp-append-version="true"></script>
+}
