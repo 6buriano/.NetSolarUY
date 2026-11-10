@@ -46,4 +46,12 @@ public interface ITelemetriaRepository
     Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoGeneralAsync(Guid? parqueSolarId,
         GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Devuelve las lecturas de todos los paneles con fecha igual o posterior a
+    /// <paramref name="desdeUtc"/> (monitoreo en tiempo real, req012). Se llama siempre con una
+    /// ventana corta (segundos), nunca sin límite: la tabla de lecturas crece sin parar.
+    /// </summary>
+    Task<IReadOnlyList<LecturaTelemetria>> ObtenerDesdeAsync(DateTime desdeUtc,
+        CancellationToken cancellationToken = default);
 }

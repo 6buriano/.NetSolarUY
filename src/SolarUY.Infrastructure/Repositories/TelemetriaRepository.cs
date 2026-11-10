@@ -59,6 +59,14 @@ public class TelemetriaRepository : ITelemetriaRepository
             .ToListAsync(cancellationToken);
     }
 
+
+    public async Task<IReadOnlyList<LecturaTelemetria>> ObtenerDesdeAsync(DateTime desdeUtc,
+        CancellationToken cancellationToken = default)
+        => await _context.LecturasTelemetria
+            .AsNoTracking()
+            .Where(lectura => lectura.FechaHora >= desdeUtc)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoPorPanelAsync(Guid panelSolarId,
         GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
         CancellationToken cancellationToken = default)
