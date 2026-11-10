@@ -63,7 +63,7 @@
 
 - [ ] **6. Verificación de Calidad**
   - [x] 6.1 `dotnet build` desde la raíz, sin errores ni advertencias nuevas. **Hecho: "Compilación correcta", 0 advertencias y 0 errores (8,17 s).**
-  - [ ] 6.2 `dotnet test tests/CodeQuality.Tests` (el proyecto todavía no existe en el repo: hay que crearlo antes de poder cerrar este requerimiento).
+  - [ ] 6.2 `dotnet test tests/CodeQuality.Tests`. Pendiente, no ejecutada: `tests/CodeQuality.Tests` no existe en el repositorio ni existió en req001 a req010. Crearlo requiere subir el proyecto de la cátedra a `net10.0`, referenciar 6 proyectos, agregarlo a `SolarUY.slnx` y acordar con el equipo la excepción de los `Program.cs` en la regla Presentación→Infrastructure (regla 6 §6). Se propone como tarea aparte del equipo.
   - [x] 6.3 `dotnet test tests/SolarUY.Domain.Tests`. **Hecho: 109 pasados, 0 fallados (74 ms).**
   - [x] 6.4 Analizar con SonarQube (`tools/SonarQube/analizar.sh .`; en Windows, `.\tools\SonarQube\analizar.ps1 .`) y corregir los issues nuevos *Blocker* o *Critical*. **Ejecutado el 09/11/2026. Gate Failed por causas anteriores a req011 (grupos A–E, 23 issues) y por la condición new_coverage; req011 aporta 0 issues de confiabilidad/seguridad y 7 de mantenibilidad. Se corrigió S6966 en McpServer/Program.cs. Ver SONARQUBE-SolarUY.md.**
   - [x] 6.5 Criterio 1: el Administrador ve «Consultas» en el menú y entra a la pantalla; sin sesión o sin ese rol no accede. **Verificado a mano el 09/11/2026:** sin sesión redirige al login y el Administrador ve el menú y la pantalla. No se probó un usuario sin el rol.
@@ -135,7 +135,7 @@
 - **Criterios 1 a 6 probados a mano** (del criterio 1 no se probó un usuario sin el rol de Administrador); el
   criterio 7 se verificó con `git grep`.
 - **Tests de arquitectura:** no ejecutados: el proyecto `tests/CodeQuality.Tests` (ArchUnitNET) todavía no
-  existe en el repositorio.
+  existe en el repositorio (deuda del equipo desde req001; ver 6.2).
 
 ### Límites y mejoras
 
