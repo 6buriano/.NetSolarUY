@@ -45,9 +45,6 @@
 </div>
 
 <h2 class="h6 mt-4">Inversor del nodo</h2>
-<p class="text-muted small">
-    Todo nodo tiene exactamente un inversor asignado (regla de negocio 1), por eso se carga en el mismo formulario.
-</p>
 
 <div class="row">
     <div class="col-md-6 mb-3">
@@ -78,14 +75,7 @@
 
 <h2 class="h6 mt-4">Sensor ARM del nodo <span class="text-muted fw-normal">(opcional)</span></h2>
 <p class="text-muted small">
-    Es la dirección a la que el colector de telemetría le pide las lecturas al nodo. El identificador
-    tiene que coincidir con el del hardware: en el simulador son <code>ARM-001</code>, <code>ARM-002</code>, …
-    Podés verlos con <code>GET /simulador/inventario</code>.
-</p>
-<p class="text-muted small">
-    Si el nodo todavía no tiene sensor, dejá el identificador vacío: se puede cargar después. Si
-    escribís un identificador que el simulador no emula, el formulario te va a ofrecer crearlo, o
-    crear el nodo sin sensor.
+    Si el identificador no existe todavía, el formulario te ofrece crearlo o cargar el nodo sin sensor.
 </p>
 
 <div class="row">

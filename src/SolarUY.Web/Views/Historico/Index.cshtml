@@ -55,12 +55,6 @@ else
         </p>
     }
 
-    <p class="text-muted small">
-        La energía es una estimación: se calcula a partir de la potencia que guarda cada lectura,
-        asumiendo que el colector consulta cada @ReporteService.IntervaloLecturaSegundos segundos
-        (no es una medición directa de energía).
-    </p>
-
     @if (Model.Resultados.Count == 0)
     {
         <div class="alert alert-info">No hay lecturas para este panel con estos filtros.</div>

@@ -1,0 +1,86 @@
+@{
+    ViewData["Title"] = "Ayuda";
+}
+
+<h1 class="h3 mb-3">Ayuda</h1>
+
+<p>
+    Esta página reúne las explicaciones de cómo funciona el sistema. Las pantallas muestran los datos;
+    el detalle de por qué se calculan así está acá.
+</p>
+
+<nav class="mb-4" aria-label="Temas de ayuda">
+    <ul class="list-inline small">
+        <li class="list-inline-item"><a href="#energia">Energía estimada</a></li>
+        <li class="list-inline-item"><a href="#estado">Estado de un panel</a></li>
+        <li class="list-inline-item"><a href="#sensor">Sensor del nodo</a></li>
+        <li class="list-inline-item"><a href="#mantenimiento">Mantenimiento</a></li>
+        <li class="list-inline-item"><a href="#monitoreo">Monitoreo en vivo</a></li>
+        <li class="list-inline-item"><a href="#consultas">Consultas</a></li>
+    </ul>
+</nav>
+
+<h2 class="h5" id="energia">Energía estimada</h2>
+<p>
+    El sistema registra la <strong>potencia</strong> que genera cada panel en cada lectura, no la energía.
+    La energía de los históricos se calcula a partir de esa potencia y del tiempo entre lecturas, así que
+    es una <strong>estimación</strong>: sirve para comparar días y meses entre sí, no como medición para
+    facturar.
+</p>
+
+<h2 class="h5" id="estado">Cómo se decide el estado de un panel</h2>
+<p>
+    El estado de cada panel se recalcula con cada lectura, a partir de lo que mide el sensor:
+</p>
+<ul>
+    <li><strong>Desconectado</strong>: el panel está inactivo en el sistema.</li>
+    <li><strong>Falla detectada</strong>: el panel levanta temperatura por encima de lo normal (más de 75 °C) o
+        produce mucho menos que los otros paneles activos del mismo nodo (más de 40 % menos).</li>
+    <li><strong>Rendimiento bajo</strong>: produce entre 15 % y 40 % menos que los otros paneles activos del
+        mismo nodo.</li>
+    <li><strong>Operativo</strong>: dentro de lo esperado.</li>
+</ul>
+<p>
+    La comparación entre paneles se hace con la potencia relativa a la de cada uno, así que un panel de
+    menor potencia no queda marcado por ser más chico. De noche, o cuando no hay al menos dos paneles
+    activos con lectura, sólo se mira la temperatura: no habría contra qué comparar.
+</p>
+
+<h2 class="h5" id="sensor">Sensor del nodo</h2>
+<p>
+    Cada nodo puede tener un <strong>sensor (ARM)</strong> que es el que mide. El sistema le pide las
+    lecturas cada pocos segundos; si no responde, ese nodo se saltea en esa ronda y los demás siguen.
+</p>
+<p>
+    El sensor es opcional: un nodo puede cargarse sin sensor y quedar sin telemetría hasta que se le
+    asigne uno. El identificador tiene que coincidir con el del hardware, y si al dar de alta un nodo se
+    escribe uno que todavía no existe, el formulario ofrece crearlo o seguir sin sensor.
+</p>
+
+<h2 class="h5" id="mantenimiento">Cómo avanza una tarea de mantenimiento</h2>
+<p>
+    Una tarea nace <strong>pendiente</strong>. Desde ahí se puede <strong>iniciar</strong> (pasa a en
+    proceso) o <strong>cancelar</strong>. Sólo una tarea en proceso se puede <strong>completar</strong>, y
+    al completarla queda guardada la fecha en que se hizo. Una tarea completada no se reprograma ni se
+    cancela; una pendiente o en proceso sí se puede reprogramar.
+</p>
+
+<h2 class="h5" id="monitoreo">Monitoreo en vivo</h2>
+<p>
+    La pantalla de Monitoreo se actualiza sola cada 5 segundos: no hace falta recargar. El indicador de
+    arriba dice si la conexión está activa; si se corta, el sistema vuelve a conectarse solo y, mientras
+    tanto, sigue mostrando el último estado conocido.
+</p>
+<p>
+    Cuando un panel pasa a <strong>falla detectada</strong> aparece un aviso en pantalla. El aviso se
+    muestra una sola vez: si el panel sigue en falla, no vuelve a insistir, pero queda marcado en rojo en
+    la lista.
+</p>
+
+<h2 class="h5" id="consultas">Consultas en lenguaje natural</h2>
+<p>
+    Se puede preguntar en español por el estado y la generación de los parques, por ejemplo «¿cómo está
+    funcionando todo hoy?» o «generación del parque Norte en octubre». Las respuestas salen de los datos
+    del sistema: no inventa valores, y si no hay datos para una pregunta lo dice. La respuesta puede
+    tardar unos segundos.
+</p>

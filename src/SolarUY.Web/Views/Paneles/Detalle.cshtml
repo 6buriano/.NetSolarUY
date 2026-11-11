@@ -64,8 +64,7 @@
 @if (Model.UltimaLectura is null)
 {
     <div class="alert alert-info">
-        Este panel todavía no tiene lecturas. Las mide el sensor, y las guarda el colector
-        (<code>SolarUY.Collector</code>) cuando le pregunta al simulador.
+        Este panel todavía no tiene lecturas.
     </div>
 }
 else
@@ -93,13 +92,6 @@ else
             </dd>
         </dl>
     </div>
-
-    <p class="text-muted small mt-2">
-        Regla de estado (spec del simulador, sección 9): el panel queda en <code>DESCONECTADO</code> si está
-        inactivo, en <code>FALLA_DETECTADA</code> si supera los 75 °C, y si no se compara su rendimiento con
-        el promedio de los otros paneles activos del nodo: hasta 15 % de caída sigue operativo, más de 15 %
-        es rendimiento bajo y más de 40 % es falla.
-    </p>
 
     <h2 class="h5 mt-4">Últimas @Model.LecturasRecientes.Count lecturas</h2>
     <p class="text-muted small">
