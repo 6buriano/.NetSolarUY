@@ -25,7 +25,7 @@ El hardware se simula con un servicio HTTP aparte, así que el día que existan 
 cambia: se reemplaza el cliente que habla con el hardware.
 
 **Estado:** todas las funcionalidades de las secciones 5.1 a 5.9 están implementadas; la solución compila
-sin errores ni advertencias y pasan **196 pruebas automáticas** (dominio, aplicación, arquitectura y
+sin errores ni advertencias y pasan **210 pruebas automáticas** (dominio, aplicación, arquitectura y
 simulador). Lo que falta está en la sección 11.
 
 ## 2. Qué hace el sistema
@@ -306,7 +306,7 @@ análisis se corre a mano con `tools/SonarQube/analizar.sh`.
 ### 7.1 Automática
 
 - `dotnet build SolarUY.slnx` → **0 errores y 0 advertencias** (incluye el submódulo del simulador).
-- `dotnet test` → **196 pruebas, 0 fallos**: 109 del dominio, 6 de aplicación, 11 de arquitectura y 70 del
+- `dotnet test` → **210 pruebas, 0 fallos**: 109 del dominio, 20 de aplicación, 11 de arquitectura y 70 del
   simulador.
 - Los tests de arquitectura vigilan las reglas de capas y de nombres: si alguien hace que la web use el
   `DbContext` directamente, el build falla.

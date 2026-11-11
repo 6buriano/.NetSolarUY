@@ -9,11 +9,11 @@
   - [x] 1.1 `ITelemetriaRepository.ObtenerDesdeAsync(desdeUtc)`.
   - [x] 1.2 `TelemetriaRepository.ObtenerDesdeAsync` (`AsNoTracking`, sin migración). *(Un solo commit con 1.1: la 1.1 sola no compila.)*
 
-- [ ] **2. Application**
+- [x] **2. Application**
   - [x] 2.1 DTOs: `MonitoreoPanelDto`, `MonitoreoNodoDto`, `MonitoreoParqueDto`, `InstantaneaMonitoreoDto`, `AlertaFallaDto`.
   - [x] 2.2 `MonitoreoService` con `ArmarInstantanea` pura y `ObtenerInstantaneaAsync`.
   - [x] 2.3 `SeguimientoMonitoreo.Comparar` (lecturas nuevas y paso a falla).
-  - [ ] 2.4 Proyecto `tests/SolarUY.Application.Tests` y tests de 2.2 y 2.3. **Pendiente para la entrega 3** (las dos funciones son puras justamente para poder probarlas).
+  - [x] 2.4 Proyecto `tests/SolarUY.Application.Tests` y tests de 2.2 y 2.3. **Hecho el 11/11/2026:** `MonitoreoServiceTests` (7 casos) y `SeguimientoMonitoreoTests` (7 casos), con un fixture mínimo parque → nodo → panel. Las dos funciones son puras justamente para poder probarlas.
 
 - [x] **3. Web: servidor**
   - [x] 3.1 `MonitoreoHub` con `[Authorize]` y los métodos de suscripción.
@@ -39,7 +39,7 @@
   - [x] 6.6 Failover: `docker stop solaruy-web1` → la pantalla sigue "En vivo" atendida por `web2`, sin recargar ni volver a iniciar sesión.
   - [ ] 6.7 `verificar-calidad` (SonarQube, por cerrar el requerimiento).
 
-- [ ] **7. Documentación**
+- [x] **7. Documentación**
   - [x] 7.1 Sección de Monitoreo en la documentación y tilde en "Próximos pasos" del `README.md`.
 
 ## Uso de IA

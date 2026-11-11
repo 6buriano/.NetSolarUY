@@ -4,7 +4,7 @@ Guía para levantar el proyecto y hacer una prueba corta de la telemetría, sin 
 Tiempo estimado: **15 minutos la primera vez** (casi la mitad se va compilando la imagen del simulador).
 
 > ✅ **Ya está pusheado.** Todo esto está en la rama `main`. Verificado desde un clon limpio: baja el
-> submódulo solo, `dotnet build` termina sin errores ni advertencias y los **179 tests** pasan.
+> submódulo solo, `dotnet build` termina sin errores ni advertencias y los **210 tests** pasan.
 >
 > Asegurate de estar en el **último commit de la rama** (`git pull`): la tabla de "Últimas 20 lecturas" del
 > detalle del panel llegó en un commit posterior.
@@ -328,7 +328,7 @@ docker compose stop
   (`Documentacion/actualizacion-sin-cortes.md`).
 - **Verificación de calidad**: SonarQube local y su análisis, documentados en
   `Documentacion/SONARQUBE-SolarUY.md`.
-- 179 tests automáticos (109 del dominio + 70 del simulador). Corré `dotnet test`.
+- 210 tests automáticos (109 del dominio, 20 de aplicación, 11 de arquitectura y 70 del simulador). Corré `dotnet test`.
 
 **Todavía no:**
 

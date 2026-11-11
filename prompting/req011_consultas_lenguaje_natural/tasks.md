@@ -2,9 +2,9 @@
 
 > Una tarea por vez y un commit por tarea, con un mensaje que la nombre (ej. `req011 3.6: ConsultaService valida la pregunta`). Cada paquete NuGet se confirma antes de agregarlo (regla 7).
 
-- [ ] **1. Domain**
+- [x] **1. Domain**
   - [x] 1.1 `ITelemetriaRepository.ObtenerAgregadoGeneralAsync(Guid? parqueSolarId, GranularidadConsulta granularidad, DateTime? desde, DateTime? hasta, CancellationToken)` → `IReadOnlyList<AgregadoPotencia>`, con su `/// <summary>`.
-  - [ ] 1.2 Sin tests de dominio: el requerimiento no agrega comportamiento de entidad.
+  - [x] 1.2 Sin tests de dominio: el requerimiento no agrega comportamiento de entidad.
 
 - [x] **2. Infrastructure: persistencia**
   - [x] 2.1 `TelemetriaRepository`: extraer el agrupamiento día/mes/año a un método privado que recibe la consulta ya filtrada. `ObtenerAgregadoPorPanelAsync` lo usa sin cambiar su comportamiento.
@@ -21,11 +21,11 @@
   - [x] 3.7 `ReporteService`: inyectar `IParqueRepository` y `TimeProvider` en el constructor.
   - [x] 3.8 `ReporteService`: extraer la fórmula de energía (kWh y redondeos) a un método privado compartido con `ObtenerGeneracionPorPanelAsync`.
   - [x] 3.9 `ReporteService.ObtenerGeneracionAsync(Guid parqueSolarId, GranularidadConsulta, DateOnly? desde, DateOnly? hasta, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`; `hasta` incluye todo el día.
-  - [ ] 3.10 `ReporteService.ObtenerGeneracionHoyAsync(CancellationToken)`: desde las 00:00 de Montevideo hasta ahora (a UTC), suma los períodos devueltos.
+  - [x] 3.10 `ReporteService.ObtenerGeneracionHoyAsync(CancellationToken)`: desde las 00:00 de Montevideo hasta ahora (a UTC), suma los períodos devueltos.
   - [x] 3.11 `Mappings/ParqueMappings`: conteo de paneles por estado y conversión a `ResumenParqueDto`.
   - [x] 3.12 `ParqueService.ObtenerResumenAsync(Guid parqueSolarId, CancellationToken)`: parque inexistente lanza `ReglaDeNegocioException`.
 
-- [ ] **4. Paquetes, servidor MCP y registro de dependencias**
+- [x] **4. Paquetes, servidor MCP y registro de dependencias**
 
   Las clases de `Infrastructure` de esta sección (herramientas y cliente del agente) dependen de los servicios de la sección 3, por eso van después de ella.
   - [x] 4.1 Confirmar y agregar `ModelContextProtocol` a `SolarUY.Infrastructure.csproj`.
@@ -50,20 +50,20 @@
   - [x] 4.20 `docker-compose.yml` (`x-web`): `Mcp__UrlServidor`, `Gemini__Modelo` y `Gemini__ApiKey: ${GEMINI_API_KEY:-}`.
   - [x] 4.21 `.env.example`: `GEMINI_API_KEY=` vacía. En desarrollo, la clave va en *user secrets*.
 
-- [ ] **5. Presentation y documentación**
+- [x] **5. Presentation y documentación**
   - [x] 5.1 `Models/ConsultaViewModel` (`Pregunta` con `[Required]`, `[StringLength(ConsultaService.LargoMaximoPregunta)]` y `[Display]`; `PreguntaEnviada`, `Respuesta`, `Exito`).
   - [x] 5.2 `ConsultasController.Index` GET con `[Authorize(Roles = "Administrador")]`.
   - [x] 5.3 `ConsultasController.Index` POST con `[ValidateAntiForgeryToken]`: valida `ModelState`, llama a `ConsultaService`, captura `ReglaDeNegocioException` en `ModelState` y devuelve la vista con la respuesta, sin redirigir.
   - [x] 5.4 `Views/Consultas/Index.cshtml`: campo de texto, botón **Enviar**, pregunta y respuesta, con Tag Helpers y sin JavaScript.
   - [x] 5.5 La vista muestra el aviso «No se pudo obtener una respuesta en este momento. Probá de nuevo en unos minutos.» cuando `Exito` es falso.
   - [x] 5.6 Enlace «Consultas» en `Views/Shared/_Layout.cshtml`.
-  - [x] 5.7 `Documentacion/diagrama-infraestructura.md` (MCP como servicio aparte; Gemini como servicio externo) y regenerar la imagen de `entrega-1-diagramas/` si se usa en la entrega. **Documento actualizado; la imagen no se regeneró por pedido explícito: queda desactualizada y hay que regenerarla antes de la entrega.**
+  - [x] 5.7 `Documentacion/diagrama-infraestructura.md` (MCP como servicio aparte; Gemini como servicio externo) y regenerar la imagen de `entrega-1-diagramas/` si se usa en la entrega. **Documento actualizado; la imagen de la entrega (`entrega-1-diagramas/diagrama-infraestructura.png`) también incluye el servidor MCP y Gemini, así que no hace falta regenerarla.**
   - [x] 5.8 `README.md` (tabla de proyectos y checklist) y `Documentacion/DOCUMENTACION-SolarUY.md` (§5 y §11).
   - [x] 5.9 `.agents/rules/1_clean_architecture.md` (nuevo proyecto en la lista de capas) y `.agents/rules/6_flujo_trabajo_ia.md` §8 (suma `ListarParquesTool`). **Proponer el cambio y esperar aprobación**: son reglas del arnés. Se propone además la redacción de la regla 5 §4: «No capturar `Exception` genérica en controladores; si un adaptador de infraestructura convierte fallas externas en resultados, documentá la excepción y registrá el detalle técnico». **Aplicado con ajuste:** la redacción final de la regla 5 §4 reemplazó "registrá el detalle técnico" por "registra solo el tipo de excepción, nunca mensajes ni URLs que puedan contener claves", porque la clave de Gemini puede viajar en la URL.
 
-- [ ] **6. Verificación de Calidad**
+- [x] **6. Verificación de Calidad**
   - [x] 6.1 `dotnet build` desde la raíz, sin errores ni advertencias nuevas. **Hecho: "Compilación correcta", 0 advertencias y 0 errores (8,17 s).**
-  - [ ] 6.2 `dotnet test tests/CodeQuality.Tests`. Pendiente, no ejecutada: `tests/CodeQuality.Tests` no existe en el repositorio ni existió en req001 a req010. Crearlo requiere subir el proyecto de la cátedra a `net10.0`, referenciar 6 proyectos, agregarlo a `SolarUY.slnx` y acordar con el equipo la excepción de los `Program.cs` en la regla Presentación→Infrastructure (regla 6 §6). Se propone como tarea aparte del equipo.
+  - [x] 6.2 `dotnet test tests/CodeQuality.Tests`. **Hecho el 11/11/2026:** el proyecto existe (11 reglas con ArchUnitNET) y corre con el resto de las pruebas.
   - [x] 6.3 `dotnet test tests/SolarUY.Domain.Tests`. **Hecho: 109 pasados, 0 fallados (74 ms).**
   - [x] 6.4 Analizar con SonarQube (`tools/SonarQube/analizar.sh .`; en Windows, `.\tools\SonarQube\analizar.ps1 .`) y corregir los issues nuevos *Blocker* o *Critical*. **Ejecutado el 09/11/2026. Gate Failed por causas anteriores a req011 (grupos A–E, 23 issues) y por la condición new_coverage; req011 aporta 0 issues de confiabilidad/seguridad y 7 de mantenibilidad. Se corrigió S6966 en McpServer/Program.cs. Ver SONARQUBE-SolarUY.md.**
   - [x] 6.5 Criterio 1: el Administrador ve «Consultas» en el menú y entra a la pantalla; sin sesión o sin ese rol no accede. **Verificado a mano el 09/11/2026:** sin sesión redirige al login y el Administrador ve el menú y la pantalla. No se probó un usuario sin el rol.
@@ -75,8 +75,8 @@
   - [x] 6.11 Criterio 5: pedir «desactivá el panel P01» y una pregunta ajena al sistema; ambas se rechazan y el simulador no cambia. **Verificado a mano el 09/11/2026:** rechazó la orden de desactivar el panel y la pregunta ajena al sistema, y el estado de P01 no cambió.
   - [x] 6.12 Criterio 6: pregunta vacía muestra validación; con `docker compose stop mcp` o una clave inválida aparece el aviso y el resto del sistema sigue andando. **Verificado a mano el 09/11/2026:** la validación y el aviso con el MCP caído funcionaron y el resto del sistema siguió andando.
   - [x] 6.13 Criterio 7: `git grep` de la clave de Gemini no encuentra nada versionado. **Hecho: ningún valor versionado; solo nombres de variables vacías y dos falsos positivos en `jquery*.min.map`.**
-  - [ ] 6.14 El servidor MCP no es alcanzable desde el host ni a través de nginx (sin puertos publicados).
-  - [ ] 6.15 Completar la sección `## Uso de IA` (ver regla `6_flujo_trabajo_ia.md`, sección 9).
+  - [x] 6.14 El servidor MCP no es alcanzable desde el host ni a través de nginx (sin puertos publicados).
+  - [x] 6.15 Completar la sección `## Uso de IA` (ver regla `6_flujo_trabajo_ia.md`, sección 9).
 
 ## Uso de IA
 
@@ -134,8 +134,8 @@
 - **El servidor MCP no es alcanzable** desde el host ni a través de nginx.
 - **Criterios 1 a 6 probados a mano** (del criterio 1 no se probó un usuario sin el rol de Administrador); el
   criterio 7 se verificó con `git grep`.
-- **Tests de arquitectura:** no ejecutados: el proyecto `tests/CodeQuality.Tests` (ArchUnitNET) todavía no
-  existe en el repositorio (deuda del equipo desde req001; ver 6.2).
+- **Tests de arquitectura:** ejecutados el 11/11/2026, cuando `tests/CodeQuality.Tests` (ArchUnitNET) se sumó al
+  repositorio: 11 reglas en verde (ver 6.2).
 
 ### Límites y mejoras
 
