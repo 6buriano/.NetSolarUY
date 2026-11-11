@@ -1,7 +1,9 @@
 # CI básico: build + tests, en cada push y pull request a main.
 #
-# No necesita MySQL ni el simulador levantados: las pruebas (SolarUY.Domain.Tests y
-# SolarUY.SensorSimulator.Tests) son todas de dominio, sin base de datos ni HTTP.
+# Las pruebas unitarias (dominio, aplicación, arquitectura, simulador) no necesitan nada externo.
+# Las de integración (tests/SolarUY.IntegrationTests) corren contra un MySQL real: el servicio de
+# abajo lo levanta y SOLARUY_TEST_MYSQL le dice a las pruebas cómo conectarse. Cada prueba crea su
+# propia base y la borra al terminar.
 name: CI
 
 on:
@@ -13,6 +15,19 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
 
     steps:
       - name: Clonar el repo (con el submódulo del simulador)
@@ -31,5 +46,7 @@ jobs:
       - name: Compilar (sin warnings tratados como error, igual que en local)
         run: dotnet build SolarUY.slnx --configuration Release --no-restore
 
-      - name: Ejecutar pruebas
+      - name: Ejecutar pruebas (unitarias e integración)
+        env:
+          SOLARUY_TEST_MYSQL: "Server=127.0.0.1;Port=3306;User=root;Password=ci_root;"
         run: dotnet test SolarUY.slnx --configuration Release --no-build --verbosity normal

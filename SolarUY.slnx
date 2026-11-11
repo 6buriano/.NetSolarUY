@@ -11,6 +11,7 @@
     <Project Path="tests/CodeQuality.Tests/CodeQuality.Tests.csproj" />
     <Project Path="tests/SolarUY.Application.Tests/SolarUY.Application.Tests.csproj" />
     <Project Path="tests/SolarUY.Domain.Tests/SolarUY.Domain.Tests.csproj" />
+    <Project Path="tests/SolarUY.IntegrationTests/SolarUY.IntegrationTests.csproj" />
   </Folder>
   <!--
     Simulador del sensor ARM + inversor (mock de hardware por HTTP).
