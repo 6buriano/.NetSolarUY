@@ -6,10 +6,8 @@ namespace SolarUY.Web.Controllers;
 
 public class HomeController : Controller
 {
-    public IActionResult Index()
-    {
-        return View();
-    }
+      // La página de inicio es el monitoreo en tiempo real (req012), no la de la plantilla.
+    public IActionResult Index() => RedirectToAction("Index", "Monitoreo");
 
     public IActionResult Privacy()
     {

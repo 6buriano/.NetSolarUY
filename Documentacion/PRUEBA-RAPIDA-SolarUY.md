@@ -1,4 +1,4 @@
-# Prueba rápida — SolarUY (ABM + telemetría)
+# Prueba rápida — SolarUY (ABM + telemetría + consultas)
 
 Guía para levantar el proyecto y hacer una prueba corta de la telemetría, sin leer todo el código.
 Tiempo estimado: **15 minutos la primera vez** (casi la mitad se va compilando la imagen del simulador).
@@ -193,6 +193,45 @@ Dos advertencias sobre eso:
   HTTP. Fuera del entorno de Development el sistema no verifica nada y crea el nodo con el identificador que
   le des.
 
+### 9. Probar las consultas en lenguaje natural
+
+La pantalla **Consultas** (en el menú) recibe una pregunta en español y devuelve una respuesta. Antes de
+probarla necesitás cuatro cosas:
+
+| Necesitás | Cómo lo tenés |
+|---|---|
+| Rol **Administrador** | El mismo usuario de Keycloak con el que entrás al ABM. |
+| **Client secret** de Keycloak | Ya lo cargaste para poder entrar a la web (ver [`keycloak.md`](keycloak.md)). |
+| **Servidor MCP** levantado | En modo host, en otra terminal: `dotnet run --project src/SolarUY.McpServer`, que escucha en `http://localhost:5099`. En modo Docker ya está corriendo como el servicio `mcp`. |
+| **Clave de Gemini propia** | Cada uno la obtiene en [Google AI Studio](https://aistudio.google.com/apikey) y la carga en su máquina: no se comparte ni se sube al repo. |
+
+La clave se carga una sola vez, en desarrollo con `dotnet run`:
+
+```powershell
+dotnet user-secrets set "Gemini:ApiKey" "tu-clave" --project src/SolarUY.Web
+```
+
+En **modo Docker**, en cambio: `GEMINI_API_KEY=tu-clave` en tu `.env`, y después `docker compose up -d` para
+recrear las réplicas web con el valor nuevo.
+
+Después, **Consultas** en el menú y alguna de estas preguntas:
+
+- «¿Cómo está funcionando todo hoy?»
+- «¿Qué parques hay?»
+- «¿Qué paneles están en falla?»
+- «¿Cuánta energía generó el Parque Norte el 18/10/2026?» — «Parque Norte» es el nombre de ejemplo del paso 5
+  (si le pusiste otro, usá el tuyo), y ese día tiene que existir en tus datos: si cargaste la demo recién,
+  preguntá por «hoy» o por «este mes».
+
+La respuesta puede tardar unos segundos. Si no se puede responder, la pantalla muestra el aviso *«No se pudo
+obtener una respuesta en este momento. Probá de nuevo en unos minutos.»* y el resto del sistema sigue
+funcionando.
+
+⚠️ **Cuota de Gemini.** La capa gratuita permite unos **20 pedidos por día y por modelo** (valor observado en
+noviembre de 2026; Google puede modificarlo), y cada pregunta usa varios. Si se agota, vas a ver ese mismo aviso
+hasta que se renueve la cuota o cambies de modelo con `GEMINI_MODELO` en el `.env` (modo Docker) o
+`Gemini:Modelo` (modo host).
+
 ---
 
 ## La prueba corta: forzar una falla
@@ -233,7 +272,8 @@ docker compose stop
 ```
 
 ⚠️ **Pará el colector cuando termines de mirar.** Escribe 15 filas cada 5 segundos: son unas
-**260.000 filas por día**. Todavía no hay política de retención.
+**260.000 filas por día**. La purga automática del colector borra todo lo que tenga más de 90 días
+(`Colector:RetencionDias`), pero para una demo igual conviene no dejarlo corriendo de más.
 
 ---
 
@@ -273,16 +313,27 @@ docker compose stop
   el nodo sin sensor.
 - La pantalla de **Diagnóstico**, que compara el sistema contra el inventario del simulador y te dice qué
   no cierra y cuántos identificadores de sensor quedan libres.
+- **Órdenes al sensor desde la web**: activar o desactivar un panel y el volcado a red, desde el detalle del
+  panel o del nodo.
+- **Inicio de sesión con Keycloak** y `[Authorize(Roles = "Administrador")]` sobre el ABM, el mantenimiento,
+  el histórico, las consultas y el diagnóstico (ver [`keycloak.md`](keycloak.md)).
+- **Mantenimiento**: tareas programadas sobre un panel, con su ciclo de estados (pendiente → en proceso →
+  completada, o cancelada) y el historial en el detalle del panel.
+- **Consultas históricas**: la pantalla **Histórico** agrupa la generación de un panel por día, mes o año; la
+  energía es una estimación, no una medición.
+- **Consultas en lenguaje natural**: la pantalla **Consultas** responde preguntas en español con el servidor
+  MCP y Gemini. Limitación: la cuota gratuita de Gemini (unos 20 pedidos por día y por modelo), así que para
+  una demo larga conviene una clave con facturación.
+- **Alta disponibilidad**: nginx con dos réplicas en activo/pasivo y actualización sin cortes
+  (`Documentacion/actualizacion-sin-cortes.md`).
+- **Verificación de calidad**: SonarQube local y su análisis, documentados en
+  `Documentacion/SONARQUBE-SolarUY.md`.
 - 179 tests automáticos (109 del dominio + 70 del simulador). Corré `dotnet test`.
 
 **Todavía no:**
 
 - **No hay gráficos ni dashboard.** La serie se ve como tabla en el detalle de cada panel, pero no hay una
   pantalla de monitoreo con gráficos, métricas por día/mes ni actualización automática por SignalR.
-- **Las órdenes al sensor no están cableadas a la interfaz** (activar/desactivar un panel o el volcado a
-  red). El cliente ya las implementa; falta el botón.
-- **No hay autenticación.** Falta Keycloak y el `[Authorize(Roles = "Administrador")]` sobre el ABM.
-- El chat con IA no está empezado.
 
 ---
 

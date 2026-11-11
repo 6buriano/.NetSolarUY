@@ -31,10 +31,16 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Paneles" asp-action="Index">Paneles</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Monitoreo" asp-action="Index">Monitoreo</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Mantenimientos" asp-action="Index">Mantenimiento</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Historico" asp-action="Index">Histórico</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Consultas" asp-action="Index">Consultas</a>
                         </li>
                         @* Solo en desarrollo: depende del inventario del simulador, que no existe con hardware real. *@
                         @if (Entorno.IsDevelopment())

@@ -1,0 +1,44 @@
+@model ConsultaViewModel
+@{
+    ViewData["Title"] = "Consultas";
+}
+
+<h1 class="h3 mb-3">Consultas</h1>
+
+<p class="text-muted small">
+    Solo se pueden hacer consultas sobre el estado y la generación de los parques. La respuesta
+    puede tardar unos segundos.
+</p>
+
+<form asp-action="Index" method="post" class="mb-4">
+    <div class="mb-3">
+        <label asp-for="Pregunta" class="form-label"></label>
+        <textarea asp-for="Pregunta" class="form-control" rows="3"
+                  maxlength="@ConsultaService.LargoMaximoPregunta"></textarea>
+        <span asp-validation-for="Pregunta" class="text-danger"></span>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <button type="submit" class="btn btn-primary">Enviar</button>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.PreguntaEnviada))
+{
+    <div class="border-top pt-3">
+        <p class="text-muted mb-1">Pregunta</p>
+        <p class="fst-italic mb-3">@Model.PreguntaEnviada</p>
+
+        @if (Model.Exito)
+        {
+            @* pre-line conserva los saltos de línea del texto y @Model.Respuesta lo escapa: es texto
+               generado por un modelo, no es confiable, así que nunca se imprime con Html.Raw. *@
+            <div style="white-space: pre-line;">@Model.Respuesta</div>
+        }
+        else
+        {
+            @* El texto del aviso lo pone el servicio (MensajeDeFalla), así hay una sola fuente. *@
+            <div class="alert alert-warning" role="alert">@Model.Respuesta</div>
+        }
+    </div>
+}

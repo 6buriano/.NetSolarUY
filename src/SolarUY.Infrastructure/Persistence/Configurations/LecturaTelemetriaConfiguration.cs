@@ -45,5 +45,9 @@ public class LecturaTelemetriaConfiguration : IEntityTypeConfiguration<LecturaTe
 
         // Acelera la consulta de "última lectura de un panel" y los gráficos por rango de fechas.
         builder.HasIndex(lectura => new { lectura.PanelSolarId, lectura.FechaHora });
+
+        // El histórico de todos los parques filtra por fecha sin acotar el panel: el índice
+        // compuesto no sirve para eso porque su primer campo es panel_solar_id.
+        builder.HasIndex(lectura => lectura.FechaHora);
     }
 }

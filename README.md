@@ -18,7 +18,8 @@ Taller de Programación .NET 2026, UTEC (Equipo 6).
 │   ├── SolarUY.Application/      ← servicios (casos de uso), DTOs y contratos externos
 │   ├── SolarUY.Infrastructure/   ← base de datos (EF Core + MySQL), repositorios, cliente del sensor
 │   ├── SolarUY.Web/              ← aplicación MVC: controladores y vistas
-│   └── SolarUY.Collector/        ← colector de telemetría (Worker Service)
+│   ├── SolarUY.Collector/        ← colector de telemetría (Worker Service)
+│   └── SolarUY.McpServer/        ← servidor MCP: expone por HTTP las herramientas del agente de consultas
 ├── tests/
 │   ├── SolarUY.Domain.Tests/     ← pruebas unitarias del dominio (xUnit)
 │   └── ...
@@ -53,6 +54,7 @@ git submodule update --init
 | `SolarUY.Infrastructure` | Biblioteca de clases | Los detalles técnicos: cómo se guarda en MySQL y cómo se habla con el sensor por HTTP. | `SolarUYDbContext`, `SensorHttpClient` |
 | `SolarUY.Web` | Aplicación MVC | Las pantallas. Recibe pedidos del navegador y llama a los servicios. | `ParquesController`, `Views/Parques/Index.cshtml` |
 | `SolarUY.Collector` | Worker Service | Programa sin pantalla que consulta a los sensores y guarda la telemetría. | `ColectorTelemetriaWorker` |
+| `SolarUY.McpServer` | Servidor MCP (ASP.NET Core) | El proceso aparte que expone cinco herramientas de solo lectura por HTTP para el agente de consultas. Solo conoce la base: no ve la clave de Gemini. | `ListarParquesTool`, `MapMcp("/mcp")` |
 | `SolarUY.SensorSimulator` | Minimal API (submódulo) | El mock del hardware: emula los sensores ARM y sus inversores. Es una caja negra, no conoce nuestro dominio. | `SensorSimulator/Endpoints` |
 | `SolarUY.Domain.Tests` | Proyecto xUnit | Pruebas de la lógica del dominio. | `ParqueSolarTests`, `NodoEvaluarLecturasTests` |
 
@@ -67,10 +69,11 @@ Cada proyecto solo puede usar el código de los proyectos que tiene como referen
 | Infrastructure | Application, Domain | Implementa las interfaces que pide Application (por ejemplo, guardar en MySQL) |
 | Web | Application, Domain, Infrastructure | Es el punto de arranque de la web |
 | Collector | Application, Domain, Infrastructure | Es el punto de arranque del colector de telemetría |
+| McpServer | Application, Domain, Infrastructure | Es el punto de arranque del servidor MCP |
 | Domain.Tests | Domain | Prueba las entidades |
 | SensorSimulator | **nada** | Es el mock del hardware: a propósito no conoce nuestro dominio |
 
-⚠️ **Web referencia a Infrastructure solo para `Program.cs`**, que es donde se conectan las interfaces con sus implementaciones (inyección de dependencias). **Los controladores nunca usan Infrastructure directamente** (ni el `DbContext` ni los repositorios concretos): siempre llaman a un servicio de Application. Lo mismo vale para el Collector.
+⚠️ **Web referencia a Infrastructure solo para `Program.cs`**, que es donde se conectan las interfaces con sus implementaciones (inyección de dependencias). **Los controladores nunca usan Infrastructure directamente** (ni el `DbContext` ni los repositorios concretos): siempre llaman a un servicio de Application. Lo mismo vale para el Collector y para el McpServer.
 
 ## Cómo compilar y correr
 
@@ -90,8 +93,8 @@ La guía paso a paso para alguien que llega nuevo, con los datos de la demo y lo
 
 ### Dos formas de correr el sistema
 
-**Modo Docker (la topología de la entrega).** Levanta Nginx, las dos réplicas de la web, el colector y MySQL.
-Todo entra por `http://localhost:8080`:
+**Modo Docker (la topología de la entrega).** Levanta Nginx, las dos réplicas de la web, el colector, el
+servidor MCP y MySQL. Todo entra por `http://localhost:8080`:
 
 ```powershell
 Copy-Item .env.example .env
@@ -105,6 +108,10 @@ curl.exe -fsS http://localhost:8080/health
 **una sola vez**; las réplicas no migran al arrancar. La secuencia completa de actualización sin cortes está
 en [`Documentacion/actualizacion-sin-cortes.md`](Documentacion/actualizacion-sin-cortes.md).
 
+Para las **consultas en lenguaje natural** hace falta una clave de Gemini en el `.env`: agregá
+`GEMINI_API_KEY=tu-clave`. Cada uno obtiene la suya en [Google AI Studio](https://aistudio.google.com/apikey);
+no se comparte ni se sube al repo. `GEMINI_MODELO` es opcional (por defecto, `gemini-3.5-flash`).
+
 El simulador que se usa es el desplegado, `http://simulador.fabriq.uy`, configurado con `SIMULADOR_URL` en
 `.env`. Para trabajar sin internet, el mock local está detrás de un perfil:
 
@@ -113,17 +120,32 @@ docker compose --profile simulador-local up -d
 # y en .env: SIMULADOR_URL=http://sensor-simulator:8080
 ```
 
-**Modo host (`dotnet run`).** Solo MySQL en Docker; la web y el colector en tu máquina:
+**Modo host (`dotnet run`).** Solo MySQL en Docker; la web, el colector y el servidor MCP en tu máquina:
 
 ```powershell
 docker compose up -d --wait mysql
 docker compose --profile simulador-local up -d
 dotnet tool restore
-dotnet run --project src/SolarUY.Web
+dotnet run --project src/SolarUY.McpServer   # herramientas del agente, en http://localhost:5099
+dotnet run --project src/SolarUY.Web         # la web, en otra terminal
 ```
 
 La cadena de conexión de desarrollo está en `src/SolarUY.Web/appsettings.Development.json`. En este modo la
 web aplica las migraciones sola al arrancar y `Simulador:UrlBase` apunta a `http://localhost:5100`.
+
+**Consultas en lenguaje natural.** La pantalla `Consultas` (solo rol `Administrador`) necesita el **servidor
+MCP** levantado —la web lo busca en `Mcp:UrlServidor`, que en desarrollo es `http://localhost:5099/mcp`— y la
+**clave de Gemini**. La clave no está en el repo:
+
+```powershell
+dotnet user-secrets set "Gemini:ApiKey" "la-clave" --project src/SolarUY.Web
+```
+
+Se obtiene en [Google AI Studio](https://aistudio.google.com/apikey). El modelo y el timeout son públicos y
+están en `appsettings.json` (`Gemini:Modelo` = `gemini-3.5-flash`, `Gemini:TimeoutSegundos` = 30). Si falta la
+clave, el modelo o la URL, la web **arranca igual** y la pantalla muestra el aviso de falla en vez de romper.
+Ojo con la cuota: la capa gratuita de Gemini permite unos 20 pedidos por día y por modelo, y cada pregunta usa
+varios, así que para pruebas intensivas conviene cambiar de modelo o usar una clave con facturación.
 
 > **Ojo con `url_base`.** En Docker el simulador se llama `sensor-simulator` y escucha en el puerto 8080, así
 > que la dirección del sensor es `http://sensor-simulator:8080`; desde el host es `http://localhost:5100`.
@@ -209,6 +231,7 @@ Cada módulo es un corte vertical completo: pantalla → controlador → servici
 | Paneles | `PanelesController` | `PanelService` | `Views/Paneles/` |
 | Mantenimiento | `MantenimientosController` | `MantenimientoService` | `Views/Mantenimientos/` |
 | Consultas históricas | `HistoricoController` | `ReporteService` | `Views/Historico/` |
+| Consultas en lenguaje natural | `ConsultasController` | `ConsultaService` | `Views/Consultas/` |
 | Diagnóstico (solo desarrollo) | `DiagnosticoController` | `VerificacionVinculacionService` | `Views/Diagnostico/` |
 | Inicio y cierre de sesión | `CuentaController` | Keycloak | `Views/Cuenta/` |
 
@@ -258,6 +281,7 @@ SolarUY.Collector  ──GET /sensores/{hw}/estado──▶  SolarUY.SensorSimul
 | `ISensorClient` | `SolarUY.Application/Sensors` | El contrato: permite cambiar el simulador por hardware real sin tocar el resto. |
 | `SensorHttpClient` | `SolarUY.Infrastructure/Sensors` | La implementación HTTP. Es el único lugar que conoce ese contrato. |
 | `ColectorTelemetriaWorker` | `SolarUY.Collector` | Cada `Colector:IntervaloSegundos` consulta cada sensor activo, evalúa y guarda. |
+| `RetencionTelemetriaWorker` | `SolarUY.Collector` | Cada `Colector:IntervaloRetencionHoras` borra las lecturas de más de `Colector:RetencionDias` días: sin esto la tabla crece ~260.000 filas por día. |
 | `Nodo.EvaluarLecturas` | `SolarUY.Domain` | Diagnostica: el sensor mide, el dominio decide. |
 
 **Dónde se ve:** en el detalle de cada panel, la última lectura y la serie de las últimas 20 (con las horas
@@ -348,16 +372,18 @@ No hacemos *vibe coding*: cada funcionalidad sigue el desarrollo guiado por espe
 | `.agents/skills/` | `sdd-generar-specs`, `sdd-generar-tasks` y `verificar-calidad` |
 | `prompting/reqNNN_nombre/` | `requirements.md`, `specs.md` y `tasks.md` de cada funcionalidad. Cada `tasks.md` termina con la sección "Uso de IA" |
 
-Los requerimientos 001 a 007 se documentaron después de implementar (iteración 1 y Keycloak), y el 008
-(órdenes al hardware), el 009 (mantenimiento) y el 010 (consultas históricas) en la iteración 2. La idea del
-proceso es que desde el próximo los documentos vayan antes del código.
+Los requerimientos 001 a 010 se documentaron después de implementar (iteraciones 1 y 2); el 011 (consultas en
+lenguaje natural) y el 012 (monitoreo en tiempo real) ya se escribieron **antes** del código. La idea del
+proceso es que desde ahora siempre sea así.
 
 **Integración continua.** `.github/workflows/ci.yml` compila en Release y corre las pruebas en cada push y
 cada pull request a `main`. No necesita MySQL ni el simulador: las pruebas no tocan infraestructura.
 
-**Pendiente del proceso.** La skill `verificar-calidad` ya está escrita, pero todavía no existen
-`tests/CodeQuality.Tests` (ArchUnitNET) ni `tools/SonarQube/`. Mientras tanto la verificación es compilación,
-pruebas y la prueba manual de cada criterio de aceptación.
+**El chequeo completo del proceso.** La skill `verificar-calidad` ya tiene con qué trabajar:
+`dotnet build`, los tests de arquitectura (`tests/CodeQuality.Tests`, con ArchUnitNET), los tests del dominio,
+los de aplicación y SonarQube (`tools/SonarQube/`). Lo que falta es **obligar Sonar en cada pull request**:
+el workflow `sonar.yml` está listo, pero necesita la variable `SONAR_ENABLED` y los secretos
+`SONAR_HOST_URL`/`SONAR_TOKEN` del repositorio, apuntando a un servidor alcanzable desde el runner.
 
 ## Próximos pasos
 
@@ -374,10 +400,12 @@ pruebas y la prueba manual de cada criterio de aceptación.
 - [x] Integración continua (compilación y pruebas) en cada push y pull request.
 - [x] Reglas y skills de IA en `.agents/`, y las carpetas de `prompting/` del req001 al req010.
 - [x] SonarQube local (`tools/SonarQube/`) y análisis con Quality Gate.
-- [ ] Tests de arquitectura (`tests/CodeQuality.Tests` con ArchUnitNET), para cerrar la skill `verificar-calidad`.
-- [ ] Dashboard de monitoreo en tiempo real (SignalR) y agente MCP con Gemini.
-- [ ] Política de retención de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
-- [ ] Pruebas automáticas de los servicios de aplicación y los controladores.
+- [x] Tests de arquitectura (`tests/CodeQuality.Tests` con ArchUnitNET): capas, nombres y dominio sin EF Core.
+- [x] Consultas en lenguaje natural con servidor MCP y Gemini — ver la pantalla "Consultas" y el apartado de consultas en "Modo host".
+- [x] Monitoreo en tiempo real con SignalR: pantalla de inicio, aviso de fallas, lecturas nuevas sin recargar y reconexión automática a la otra réplica — `req012`.
+- [x] Política de retención de `lecturas_telemetria`: la purga corre en el colector (`Colector:RetencionDias`, 90 por defecto).
+- [ ] SonarQube en cada pull request: cargar `SONAR_ENABLED` y los secretos (`sonar.yml`).
+- [ ] Pruebas automáticas de los controladores y de los workers del monitoreo.
 
 La documentación del sistema, con la arquitectura, el modelo de dominio, las funcionalidades y el proceso de
 desarrollo, está en [`Documentacion/DOCUMENTACION-SolarUY.md`](Documentacion/DOCUMENTACION-SolarUY.md).

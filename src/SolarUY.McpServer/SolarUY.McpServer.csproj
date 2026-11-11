@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SolarUY.Application\SolarUY.Application.csproj" />
+    <ProjectReference Include="..\SolarUY.Domain\SolarUY.Domain.csproj" />
+    <ProjectReference Include="..\SolarUY.Infrastructure\SolarUY.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
+  </ItemGroup>
+
+  <!--
+    Tercer punto de arranque de la solución: expone las herramientas MCP por HTTP, sin sesión y sin
+    publicar puerto (solo lo alcanzan los contenedores de la red de Docker).
+
+    Sin paquetes todavía: la tarea 4.11 agrega ModelContextProtocol.AspNetCore y la 4.12 el
+    Program.cs definitivo (cadena de conexión, AddInfrastructure, servicios, herramientas y endpoint).
+    No lleva UserSecretsId: el servidor MCP no conoce la clave de Gemini, eso es de la web.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

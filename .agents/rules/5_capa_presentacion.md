@@ -9,7 +9,7 @@ trigger: always_on
 * `/Views/Parques/`, `/Views/Nodos/`, `/Views/Paneles/`: Gestión CRUD multiparque, un controlador por recurso.
 * `/Views/Monitoreo/`: Dashboard en tiempo real con gráficos dinámicos (Chart.js / ApexCharts + SignalR).
 * `/Views/Mantenimiento/`: Calendario y lista de tareas para paneles.
-* `/Views/Chat/`: Interfaz para consultas en Lenguaje Natural con Gemini y las herramientas MCP.
+* `/Views/Consultas/`: Interfaz para consultas en Lenguaje Natural con Gemini y las herramientas MCP (`ConsultasController`).
 
 ## Controladores y Vistas "tontos"
 
@@ -21,8 +21,8 @@ trigger: always_on
 1. Si `ModelState` no es válido, devolver la misma vista con el ViewModel recibido.
 2. Convertir el ViewModel en el `Request` del servicio.
 3. Llamar al servicio.
-4. Si el servicio lanza una excepción de dominio esperable (ej. nombre duplicado), agregar el mensaje a `ModelState` y devolver la vista. No capturar `Exception` genérica.
-5. Si todo salió bien, redirigir con `RedirectToAction`. Nunca devolver una vista después de un POST exitoso.
+4. Si el servicio lanza una excepción de dominio esperable (ej. nombre duplicado), agregar el mensaje a `ModelState` y devolver la vista. No capturar `Exception` genérica en controladores. Excepción acotada: un adaptador de infraestructura que convierte fallas de un servicio externo en un resultado de falla (como `GeminiMcpAgentService`) puede hacerlo si lo documenta en un comentario, deja pasar la cancelación pedida por el usuario y registra solo el tipo de excepción, nunca mensajes ni URLs que puedan contener claves.
+5. Si todo salió bien, redirigir con `RedirectToAction`. Nunca devolver una vista después de un POST exitoso. **Excepción:** un POST de solo lectura que muestra su resultado en la misma pantalla puede devolver la vista; es el caso de Consultas, que no modifica datos y cuya respuesta no cabe en `TempData`.
 
 ## ViewModels, no Entidades
 
@@ -33,7 +33,7 @@ trigger: always_on
 
 ## Seguridad
 
-* Los controladores de gestión (`Parques`, `Nodos`, `Paneles`) y `Diagnostico` llevan `[Authorize(Roles = "Administrador")]` a nivel de clase. El nombre del rol debe coincidir exactamente con el de Keycloak (realm `SolarUy`). Detalle en `Documentacion/keycloak.md`.
+* Los controladores de gestión (`Parques`, `Nodos`, `Paneles`), `Diagnostico` y `Consultas` llevan `[Authorize(Roles = "Administrador")]` a nivel de clase. El nombre del rol debe coincidir exactamente con el de Keycloak (realm `SolarUy`). Detalle en `Documentacion/keycloak.md`.
 * El inicio y `/health` quedan abiertos. `CuentaController` es `[AllowAnonymous]`.
 * Toda acción `[HttpPost]` lleva `[ValidateAntiForgeryToken]`.
 * Crear, editar y eliminar son siempre POST. Una acción GET nunca cambia datos.

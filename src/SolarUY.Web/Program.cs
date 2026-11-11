@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -12,6 +13,8 @@ using SolarUY.Infrastructure;
 using SolarUY.Infrastructure.Persistence;
 using SolarUY.Infrastructure.Sensors;
 using SolarUY.Web.Seed;
+using SolarUY.Web.Hubs;
+using SolarUY.Web.Monitoreo;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +57,39 @@ builder.Services.AddScoped<NodoService>();
 builder.Services.AddScoped<PanelService>();
 builder.Services.AddScoped<MantenimientoService>();
 builder.Services.AddScoped<ReporteService>();
+builder.Services.AddScoped<ConsultaService>();
+builder.Services.AddScoped<MonitoreoService>();
+
+// Monitoreo en tiempo real (req012). Los estados viajan como texto ("FALLA_DETECTADA") y no como
+// número, para que el JavaScript los entienda sin una tabla de equivalencias.
+builder.Services.AddSignalR()
+    .AddJsonProtocol(opciones =>
+        opciones.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// Una sola instancia por réplica: recuerda qué se envió en la vuelta anterior.
+builder.Services.AddSingleton<SeguimientoMonitoreo>();
+builder.Services.AddHostedService<MonitoreoTiempoRealWorker>();
+
+// El reloj como dependencia de los casos de uso: en producción es el del sistema. Se registra acá
+// y no en cada servicio para que el contenedor lo resuelva igual en todos.
+builder.Services.AddSingleton(TimeProvider.System);
+
+// Agente de consultas en lenguaje natural. Cada valor sale de un lugar distinto:
+// - Gemini:ApiKey NO está en ningún archivo versionado: en desarrollo vive en user secrets
+//   (dotnet user-secrets) y en el servidor en una variable de entorno del contenedor.
+// - Gemini:Modelo y Gemini:TimeoutSegundos son públicos y están en appsettings.json.
+// - Mcp:UrlServidor está en appsettings.Development.json para el host y en el compose para Docker
+//   (http://mcp:8080/mcp, el nombre del servicio interno).
+var claveGemini = builder.Configuration["Gemini:ApiKey"];
+var modeloGemini = builder.Configuration["Gemini:Modelo"];
+var urlServidorMcp = builder.Configuration["Mcp:UrlServidor"];
+
+// Los segundos se leen como entero y no con GetValue<TimeSpan>: TimeSpan se parsea también de
+// formatos como "00:00:30" o "1.00:00:00", que en un archivo de configuración son una trampa.
+// Si falta o no es positivo, se usa el valor por defecto de 30 segundos.
+var segundosTimeout = builder.Configuration.GetValue("Gemini:TimeoutSegundos", 0);
+var timeoutAgente = TimeSpan.FromSeconds(segundosTimeout > 0 ? segundosTimeout : 30);
+
+builder.Services.AddAgenteConsultas(claveGemini, modeloGemini, urlServidorMcp, timeoutAgente);
 
 // Herramienta de diagnóstico: compara el sistema contra el inventario del simulador.
 // Solo se usa desde DiagnosticoController, que está limitado a desarrollo.
@@ -214,6 +250,8 @@ app.MapStaticAssets();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", machine = Environment.MachineName }))
     .AllowAnonymous();
 
+// Conexión en vivo del monitoreo (req012). nginx la atiende en "location /hubs/".
+app.MapHub<MonitoreoHub>("/hubs/monitoreo");
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")

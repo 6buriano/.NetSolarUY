@@ -59,6 +59,24 @@ public class TelemetriaRepository : ITelemetriaRepository
             .ToListAsync(cancellationToken);
     }
 
+
+    public async Task<IReadOnlyList<LecturaTelemetria>> ObtenerDesdeAsync(DateTime desdeUtc,
+        CancellationToken cancellationToken = default)
+        => await _context.LecturasTelemetria
+            .AsNoTracking()
+            .Where(lectura => lectura.FechaHora >= desdeUtc)
+            .ToListAsync(cancellationToken);
+
+    /// <summary>
+    /// Borra en un solo <c>DELETE</c> las lecturas viejas (política de retención). No trae las
+    /// entidades a memoria: con millones de filas, cargarlas para borrarlas no tendría sentido.
+    /// </summary>
+    public async Task<int> EliminarAnterioresAsync(DateTime limiteUtc,
+        CancellationToken cancellationToken = default)
+        => await _context.LecturasTelemetria
+            .Where(lectura => lectura.FechaHora < limiteUtc)
+            .ExecuteDeleteAsync(cancellationToken);
+
     public async Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoPorPanelAsync(Guid panelSolarId,
         GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
         CancellationToken cancellationToken = default)
@@ -77,6 +95,52 @@ public class TelemetriaRepository : ITelemetriaRepository
             consulta = consulta.Where(lectura => lectura.FechaHora <= hasta.Value);
         }
 
+        return await AgruparPorPeriodoAsync(consulta, granularidad, cancellationToken);
+    }
+
+    /// <summary>
+    /// Agrupa por día, mes o año las lecturas de todos los paneles del sistema, o solo las de un
+    /// parque cuando <paramref name="parqueSolarId"/> no es nulo.
+    /// </summary>
+    public async Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoGeneralAsync(Guid? parqueSolarId,
+        GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
+        CancellationToken cancellationToken = default)
+    {
+        var consulta = _context.LecturasTelemetria.AsNoTracking();
+
+        if (parqueSolarId is not null)
+        {
+            // El panel no tiene navegación al nodo, así que el parque se resuelve con un join
+            // explícito: lectura → panel → nodo → parque.
+            var panelesDelParque = from panel in _context.Paneles
+                                   join nodo in _context.Nodos on panel.NodoId equals nodo.Id
+                                   where nodo.ParqueSolarId == parqueSolarId.Value
+                                   select panel.Id;
+
+            consulta = consulta.Where(lectura => panelesDelParque.Contains(lectura.PanelSolarId));
+        }
+
+        if (desde is not null)
+        {
+            consulta = consulta.Where(lectura => lectura.FechaHora >= desde.Value);
+        }
+
+        if (hasta is not null)
+        {
+            consulta = consulta.Where(lectura => lectura.FechaHora <= hasta.Value);
+        }
+
+        return await AgruparPorPeriodoAsync(consulta, granularidad, cancellationToken);
+    }
+
+    /// <summary>
+    /// Agrupa la consulta ya filtrada por día, mes o año y arma el período del lado del cliente.
+    /// Lo comparten <see cref="ObtenerAgregadoPorPanelAsync"/> y <see cref="ObtenerAgregadoGeneralAsync"/>.
+    /// </summary>
+    private static async Task<IReadOnlyList<AgregadoPotencia>> AgruparPorPeriodoAsync(
+        IQueryable<LecturaTelemetria> consulta, GranularidadConsulta granularidad,
+        CancellationToken cancellationToken)
+    {
         // Se agrupa por año/mes/día como enteros (bien soportado por el proveedor) y recién
         // después se arma el DateTime del período, ya del lado del cliente: construir el DateTime
         // dentro de la consulta no siempre se puede traducir a SQL.

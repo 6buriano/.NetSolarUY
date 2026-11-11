@@ -2,12 +2,13 @@
 #
 #   navegador -> nginx :8080 -> web1 (principal)
 #                            \-> web2 (backup: solo si web1 falla)
+#   web1, web2 -> mcp :8080 (servidor MCP, solo dentro de la red de Docker)
 #   collector (UNA sola instancia) -> GET /sensores/{hw}/estado -> simulador
-#   web1, web2, collector -> MySQL 8.4
+#   web1, web2, mcp y el collector -> MySQL 8.4
 #
 # Puesta en marcha (la secuencia completa está en Documentacion/actualizacion-sin-cortes.md):
 #   Copy-Item .env.example .env          # una vez; .env no se versiona
-#   docker compose up -d                 # mysql + web1 + web2 + collector + nginx
+#   docker compose up -d                 # mysql + web1 + web2 + collector + mcp + nginx
 #   docker compose --profile migracion run --rm migracion   # esquema, una sola vez
 #
 # Sin internet, con el simulador local (que NO arranca por defecto):
@@ -45,6 +46,19 @@ x-web: &web
     Database__ApplyMigrationsOnStartup: "false"
         # Secret del cliente de Keycloak. Sale de .env; Authority y ClientId vienen de appsettings.
     Keycloak__ClientSecret: ${KEYCLOAK_CLIENT_SECRET:-}
+    # Servidor MCP del agente. Es obligatorio: las réplicas corren en Development y, sin esta
+    # variable, leerían Mcp:UrlServidor de appsettings.Development.json, que apunta a
+    # localhost:5099 (el puerto del host, no el del servicio dentro de la red de Docker).
+    # A propósito NO hay depends_on hacia mcp: si el servidor MCP está caído, la web tiene que
+    # seguir funcionando; solo fallan las consultas en lenguaje natural, con su mensaje de error.
+    Mcp__UrlServidor: http://mcp:8080/mcp
+    # Modelo de Gemini. El ":-" con valor por defecto es obligatorio: si la variable quedara
+    # vacía, pisaría el de appsettings.json (una variable de entorno vacía gana igual). Se puede
+    # cambiar desde .env sin tocar el compose, por ejemplo si se agota la cuota de un modelo.
+    Gemini__Modelo: ${GEMINI_MODELO:-gemini-3.5-flash}
+    # Clave de Gemini. Vacía por defecto: sin clave el agente arranca "no configurado" y las
+    # consultas devuelven el mensaje de falla, en vez de romper el arranque de la web.
+    Gemini__ApiKey: ${GEMINI_API_KEY:-}
   volumes:
     - solaruy-data-protection:/var/solaruy/dataprotection
   depends_on:
@@ -144,6 +158,11 @@ services:
       ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
       Colector__Habilitado: "true"
       Colector__IntervaloSegundos: "5"
+      # Retención: el colector escribe ~260.000 filas por día. La purga corre acá porque esta es
+      # la única instancia del colector; si lo hicieran las réplicas de la web se pisarían.
+      Colector__RetencionHabilitada: "true"
+      Colector__RetencionDias: "90"
+      Colector__IntervaloRetencionHoras: "6"
     depends_on:
       # No depende del simulador: le habla a la url_base de cada sensor, que es un dato
       # de la base y hoy apunta al simulador desplegado.
@@ -151,6 +170,39 @@ services:
         condition: service_healthy
     networks:
       - solareuy
+
+  # Servidor MCP: expone las herramientas de solo lectura que usa el agente. UNA sola instancia,
+  # como el colector: no guarda estado entre pedidos y no hay nada que replicar. El container_name
+  # hace que "docker compose up --scale mcp=2" falle en vez de crear dos.
+  #
+  # Sin "ports" a propósito: lo alcanza la web por http://mcp:8080/mcp dentro de la red de Docker.
+  # No lo publica el host ni pasa por nginx, que solo reenvía a las réplicas de la web.
+  mcp:
+    build:
+      context: .
+      dockerfile: src/SolarUY.McpServer/Dockerfile
+    image: solaruy-mcp:${SOLARUY_TAG:-latest}
+    container_name: solaruy-mcp
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
+      # Sin ASPNETCORE_ENVIRONMENT: queda en Production a propósito. No tiene pantalla ni
+      # appsettings.Development.json en la imagen; lo único que necesita (la cadena de conexión)
+      # llega por entorno, y así no se carga configuración de desarrollo en un servicio interno.
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - solareuy
+    healthcheck:
+      # Mismo chequeo que la web: es liveness, no consulta la base.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      # Mismo margen que la web: arranque en frío de .NET.
+      start_period: 40s
 
   # Paso de migración: un contenedor de un solo uso que aplica el esquema y termina.
   # No arranca con "up" (profile) y no se reintenta (restart: "no").

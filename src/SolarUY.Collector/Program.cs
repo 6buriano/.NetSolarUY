@@ -1,3 +1,4 @@
+using SolarUY.Application.Services;
 using SolarUY.Collector;
 using SolarUY.Collector.Configuration;
 using SolarUY.Infrastructure;
@@ -14,7 +15,12 @@ var connectionString = builder.Configuration.GetConnectionString("SolarUY")
 // Inversión de dependencias: DbContext, repositorios y el cliente HTTP que consulta a los sensores.
 builder.Services.AddInfrastructure(connectionString);
 
+// El reloj como dependencia: la política de retención calcula la fecha límite con él.
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<RetencionTelemetriaService>();
+
 builder.Services.AddHostedService<ColectorTelemetriaWorker>();
+builder.Services.AddHostedService<RetencionTelemetriaWorker>();
 
 var host = builder.Build();
 host.Run();
