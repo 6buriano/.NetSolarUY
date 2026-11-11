@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="TngTech.ArchUnitNET.xUnit" Version="0.13.5" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <!--
+      Alineado con lo que fija Infrastructure: Pomelo 9.0.0 arrastra EF Core 9.0.0 y el proyecto
+      usa 9.0.20, así que sin esto MSBuild avisa (MSB3277) de versiones en conflicto.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!--
+    El framework de ASP.NET Core compartido: el proyecto analiza el ensamblado de la web, así que
+    necesita las mismas versiones de ASP.NET que él (si no, MSBuild avisa de versiones en conflicto).
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!--
+    Referencia a las cinco capas para que ArchUnitNET pueda cargarlas y comparar sus dependencias.
+    El McpServer no se referencia: su Program.cs usa Infrastructure igual que el de la web y no es
+    analizable como un tipo público (lo genera el compilador por las instrucciones de nivel superior).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SolarUY.Domain\SolarUY.Domain.csproj" />
+    <ProjectReference Include="..\..\src\SolarUY.Application\SolarUY.Application.csproj" />
+    <ProjectReference Include="..\..\src\SolarUY.Infrastructure\SolarUY.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\SolarUY.Web\SolarUY.Web.csproj" />
+    <ProjectReference Include="..\..\src\SolarUY.Collector\SolarUY.Collector.csproj" />
+  </ItemGroup>
+
+</Project>
