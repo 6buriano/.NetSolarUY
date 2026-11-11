@@ -1,0 +1,68 @@
+# Análisis estático con SonarQube, en cada push y pull request a main (y a mano).
+#
+# Es OPCIONAL y por eso está detrás de una variable del repositorio:
+#   - Settings > Secrets and variables > Actions > Variables: SONAR_ENABLED = true
+#   - Secrets: SONAR_HOST_URL (por ejemplo https://sonar.tudominio) y SONAR_TOKEN
+# Sin la variable, el job se saltea y el CI queda como estaba (compilar + pruebas).
+#
+# El servidor NO se levanta en el runner: se apunta al SonarQube que ya existe. Levantar
+# SonarQube + PostgreSQL en cada corrida tardaría varios minutos y habría que crear el token del
+# administrador desde cero. Para analizar en tu máquina, el camino es el de siempre:
+#   SONAR_TOKEN=squ_xxx ./tools/SonarQube/analizar.sh .
+#
+# Qué se analiza y qué no: mismas exclusiones que tools/SonarQube/scanner/entrypoint.sh
+# (migraciones generadas por EF Core, librerías de la plantilla y el submódulo del simulador).
+name: SonarQube
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  analisis:
+    if: ${{ vars.SONAR_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar el repo (con el submódulo del simulador)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Instalar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # El SonarScanner para .NET es una herramienta Java.
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar el escáner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Iniciar el análisis
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"SolarUY" \
+            /d:sonar.host.url="$SONAR_HOST_URL" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.exclusions="**/Migrations/**,**/wwwroot/lib/**,SolarUY.SensorSimulator/**" \
+            /d:sonar.qualitygate.wait=true
+
+      - name: Compilar (el escáner se engancha al compilador)
+        run: dotnet build SolarUY.slnx --no-incremental
+
+      - name: Enviar los resultados y esperar el Quality Gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
