@@ -158,6 +158,11 @@ services:
       ConnectionStrings__SolarUY: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:?falta en .env};User=${MYSQL_USER:?falta en .env};Password=${MYSQL_PASSWORD:?falta en .env};"
       Colector__Habilitado: "true"
       Colector__IntervaloSegundos: "5"
+      # Retención: el colector escribe ~260.000 filas por día. La purga corre acá porque esta es
+      # la única instancia del colector; si lo hicieran las réplicas de la web se pisarían.
+      Colector__RetencionHabilitada: "true"
+      Colector__RetencionDias: "90"
+      Colector__IntervaloRetencionHoras: "6"
     depends_on:
       # No depende del simulador: le habla a la url_base de cada sensor, que es un dato
       # de la base y hoy apunta al simulador desplegado.

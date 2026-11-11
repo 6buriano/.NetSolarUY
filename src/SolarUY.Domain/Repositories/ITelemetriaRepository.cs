@@ -54,4 +54,10 @@ public interface ITelemetriaRepository
     /// </summary>
     Task<IReadOnlyList<LecturaTelemetria>> ObtenerDesdeAsync(DateTime desdeUtc,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Borra las lecturas anteriores a <paramref name="limiteUtc"/> y devuelve cuántas borró
+    /// (política de retención: el colector escribe una lectura por panel cada pocos segundos).
+    /// </summary>
+    Task<int> EliminarAnterioresAsync(DateTime limiteUtc, CancellationToken cancellationToken = default);
 }

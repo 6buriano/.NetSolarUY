@@ -67,6 +67,16 @@ public class TelemetriaRepository : ITelemetriaRepository
             .Where(lectura => lectura.FechaHora >= desdeUtc)
             .ToListAsync(cancellationToken);
 
+    /// <summary>
+    /// Borra en un solo <c>DELETE</c> las lecturas viejas (política de retención). No trae las
+    /// entidades a memoria: con millones de filas, cargarlas para borrarlas no tendría sentido.
+    /// </summary>
+    public async Task<int> EliminarAnterioresAsync(DateTime limiteUtc,
+        CancellationToken cancellationToken = default)
+        => await _context.LecturasTelemetria
+            .Where(lectura => lectura.FechaHora < limiteUtc)
+            .ExecuteDeleteAsync(cancellationToken);
+
     public async Task<IReadOnlyList<AgregadoPotencia>> ObtenerAgregadoPorPanelAsync(Guid panelSolarId,
         GranularidadConsulta granularidad, DateTime? desde = null, DateTime? hasta = null,
         CancellationToken cancellationToken = default)
