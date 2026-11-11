@@ -1,6 +1,6 @@
 # Especificaciones Técnicas: Inicio de sesión y roles con Keycloak
 
-> Este documento describe el diseño implementado en la rama `guille-keycloak`. Se armó con asistencia de IA a partir del trabajo hecho y lo revisó la responsable del módulo.
+> Este documento describe el diseño implementado (ya mergeado a `main`). Se armó con asistencia de IA a partir del trabajo hecho y lo revisó la responsable del módulo.
 
 ## Preguntas abiertas
 - ¿Qué puede ver el rol `Consulta`? Propuesta: el dashboard de Monitoreo cuando exista (iteración 2) y, si se decide, el listado y el detalle del ABM en modo solo lectura. Hoy solo ve el inicio.

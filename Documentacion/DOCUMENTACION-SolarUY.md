@@ -386,7 +386,7 @@ detalle está en `README.md` y en `Documentacion/keycloak.md`.
 
 | | |
 |---|---|
-| Rama | `guille-signalr` — es donde se prepara la entrega; `main` recibe por pull request |
+| Rama | `main` |
 | Último commit | `657b7fb` — "req012: tasks.md con el avance, la verificación y el uso de IA" (10/11) |
 | Migraciones | `20261012172223_MigracionInicial`, `20261013002412_VinculacionConElSensor` |
 | Documentación | `README.md`, `specs.md`, `Documentacion/` (esta guía, prueba rápida, Keycloak, actualización sin cortes, SonarQube y los dos diagramas) |
@@ -433,8 +433,8 @@ Cronología, según el historial del repositorio:
    producción.
 4. **Cuota de Gemini para la demo**: las consultas en lenguaje natural funcionan, pero la capa gratuita
    permite unos 20 pedidos por día y por modelo.
-5. **Mergear `guille-signalr` a `main` y desplegar**: el monitoreo y las consultas con IA viven hoy en la
-   rama de trabajo.
+5. **Desplegar en el servidor** la versión de `main`: el monitoreo y las consultas con IA ya están
+   mergeados.
 
 ---
 

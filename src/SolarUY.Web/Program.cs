@@ -123,7 +123,6 @@ else
 // - Keycloak lo devuelve a /signin-oidc con un código, y la web lo canjea por los datos del usuario.
 // - La web guarda la sesión en una cookie, así no vuelve a Keycloak en cada pedido.
 
-//aca abajo lo armo en guille-keycloak
 var keycloak = builder.Configuration.GetSection("Keycloak");
 
 builder.Services
@@ -237,7 +236,7 @@ if (builder.Configuration.GetValue("HttpsRedirection:Enabled", true))
 app.UseRequestLocalization();
 app.UseRouting();
 
-//agrego autenticacion guille-keycloak
+// Login con Keycloak (ya configurado arriba) y roles de cada controlador.
 app.UseAuthentication();
 app.UseAuthorization();
 

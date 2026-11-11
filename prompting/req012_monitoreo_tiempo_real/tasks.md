@@ -1,6 +1,6 @@
 # Tareas de Implementación: Monitoreo en tiempo real
 
-> Rama `guille-signalr`, creada desde `main` (`78c2d62`). Se trajo la rama `mariano` (req011) con un merge porque req012 usa el índice `fecha_hora` que agrega esa rama y toca los mismos archivos (`Program.cs`, `_Layout.cshtml`, `ITelemetriaRepository`). Un commit por tarea (`req012 N.M: …`), compilando antes de cada commit.
+> Se desarrolló en una rama de trabajo creada desde `main` (`78c2d62`), ya mergeada. Se trajo el req011 (`mariano`) con un merge porque req012 usa el índice `fecha_hora` que agrega ese requerimiento y toca los mismos archivos (`Program.cs`, `_Layout.cshtml`, `ITelemetriaRepository`). Un commit por tarea (`req012 N.M: …`), compilando antes de cada commit.
 
 - [x] **0. Preparación**
   - [x] 0.1 Commit de `requirements.md`, `specs.md` y `tasks.md` (antes de cualquier código).

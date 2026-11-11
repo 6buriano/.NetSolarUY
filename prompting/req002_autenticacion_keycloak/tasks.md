@@ -1,6 +1,6 @@
 # Tareas de Implementación: Inicio de sesión y roles con Keycloak
 
-> Rama: `guille-keycloak`. Todas las tareas están hechas; queda marcado lo pendiente de decisión del equipo.
+> Se implementó en una rama de trabajo, ya mergeada a `main`. Todas las tareas están hechas; queda marcado lo pendiente de decisión del equipo.
 
 - [x] **1. Keycloak** *(configuración externa, con Mariano)*
   - [x] 1.1 Realm `SolarUy` y cliente confidencial `solaruy-web`.
