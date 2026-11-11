@@ -388,7 +388,7 @@ detalle está en `README.md` y en `Documentacion/keycloak.md`.
 |---|---|
 | Rama | `main` |
 | Último commit | `657b7fb` — "req012: tasks.md con el avance, la verificación y el uso de IA" (10/11) |
-| Migraciones | `20261012172223_MigracionInicial`, `20261013002412_VinculacionConElSensor` |
+| Migraciones | `20261012172223_MigracionInicial`, `20261013002412_VinculacionConElSensor`, `20261108035931_IndiceFechaHoraLecturas` |
 | Documentación | `README.md`, `specs.md`, `Documentacion/` (esta guía, prueba rápida, Keycloak, actualización sin cortes, SonarQube y los dos diagramas) |
 
 Cronología, según el historial del repositorio:
@@ -471,8 +471,9 @@ curva solar que da 0 W de noche, zona horaria `America/Montevideo` y una probabi
 MySQL 8.4 con EF Core y Pomelo 9.0.0. Tablas: `parques_solares`, `nodos`, `inversores`,
 `sensores_dispositivos`, `paneles`, `lecturas_telemetria` y `mantenimientos`. Las reglas de unicidad del
 dominio están además respaldadas con índices únicos (número de serie, identificador de hardware, un inversor
-por nodo, código de panel por nodo). El esquema se versiona con dos migraciones; el mantenimiento y los
-históricos no necesitaron cambios de esquema.
+por nodo, código de panel por nodo). El esquema se versiona con tres migraciones: la inicial, la de vinculación
+con el sensor y la que agrega el **índice por `fecha_hora`** de las lecturas (req011), que es el que usan el
+monitoreo en vivo y la purga de retención. El mantenimiento y los históricos no necesitaron cambios de esquema.
 
 ### B.3 Configuración y despliegue
 
