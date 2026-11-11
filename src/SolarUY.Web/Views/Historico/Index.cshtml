@@ -61,6 +61,24 @@ else
     }
     else
     {
+        // La tabla va del más nuevo al más viejo; el gráfico, como toda serie de tiempo, de izquierda a derecha.
+        var puntosGrafico = Model.Resultados.Reverse().Select(fila => new
+        {
+            etiqueta = fila.Etiqueta,
+            energiaKWh = fila.EnergiaEstimadaKWh,
+            potenciaMaximaW = fila.PotenciaMaximaW,
+            lecturas = fila.CantidadLecturas
+        });
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h6 card-title">Energía estimada por período (kWh)</h2>
+                <div id="grafico-historico" data-puntos="@System.Text.Json.JsonSerializer.Serialize(puntosGrafico, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })">
+                    <p class="text-muted small mb-0">El gráfico necesita JavaScript; los mismos datos están en la tabla de abajo.</p>
+                </div>
+            </div>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
                 <thead>
@@ -96,4 +114,8 @@ else
             </table>
         </div>
     }
+}
+
+@section Scripts {
+    <script src="~/js/historico-grafico.js" asp-append-version="true"></script>
 }
