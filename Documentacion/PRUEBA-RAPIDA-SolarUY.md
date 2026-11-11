@@ -272,7 +272,8 @@ docker compose stop
 ```
 
 ⚠️ **Pará el colector cuando termines de mirar.** Escribe 15 filas cada 5 segundos: son unas
-**260.000 filas por día**. Todavía no hay política de retención.
+**260.000 filas por día**. La purga automática del colector borra todo lo que tenga más de 90 días
+(`Colector:RetencionDias`), pero para una demo igual conviene no dejarlo corriendo de más.
 
 ---
 

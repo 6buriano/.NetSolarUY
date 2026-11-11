@@ -281,6 +281,7 @@ SolarUY.Collector  ──GET /sensores/{hw}/estado──▶  SolarUY.SensorSimul
 | `ISensorClient` | `SolarUY.Application/Sensors` | El contrato: permite cambiar el simulador por hardware real sin tocar el resto. |
 | `SensorHttpClient` | `SolarUY.Infrastructure/Sensors` | La implementación HTTP. Es el único lugar que conoce ese contrato. |
 | `ColectorTelemetriaWorker` | `SolarUY.Collector` | Cada `Colector:IntervaloSegundos` consulta cada sensor activo, evalúa y guarda. |
+| `RetencionTelemetriaWorker` | `SolarUY.Collector` | Cada `Colector:IntervaloRetencionHoras` borra las lecturas de más de `Colector:RetencionDias` días: sin esto la tabla crece ~260.000 filas por día. |
 | `Nodo.EvaluarLecturas` | `SolarUY.Domain` | Diagnostica: el sensor mide, el dominio decide. |
 
 **Dónde se ve:** en el detalle de cada panel, la última lectura y la serie de las últimas 20 (con las horas
@@ -371,16 +372,18 @@ No hacemos *vibe coding*: cada funcionalidad sigue el desarrollo guiado por espe
 | `.agents/skills/` | `sdd-generar-specs`, `sdd-generar-tasks` y `verificar-calidad` |
 | `prompting/reqNNN_nombre/` | `requirements.md`, `specs.md` y `tasks.md` de cada funcionalidad. Cada `tasks.md` termina con la sección "Uso de IA" |
 
-Los requerimientos 001 a 007 se documentaron después de implementar (iteración 1 y Keycloak), y el 008
-(órdenes al hardware), el 009 (mantenimiento) y el 010 (consultas históricas) en la iteración 2. La idea del
-proceso es que desde el próximo los documentos vayan antes del código.
+Los requerimientos 001 a 010 se documentaron después de implementar (iteraciones 1 y 2); el 011 (consultas en
+lenguaje natural) y el 012 (monitoreo en tiempo real) ya se escribieron **antes** del código. La idea del
+proceso es que desde ahora siempre sea así.
 
 **Integración continua.** `.github/workflows/ci.yml` compila en Release y corre las pruebas en cada push y
 cada pull request a `main`. No necesita MySQL ni el simulador: las pruebas no tocan infraestructura.
 
-**Pendiente del proceso.** La skill `verificar-calidad` ya está escrita, pero todavía no existen
-`tests/CodeQuality.Tests` (ArchUnitNET) ni `tools/SonarQube/`. Mientras tanto la verificación es compilación,
-pruebas y la prueba manual de cada criterio de aceptación.
+**El chequeo completo del proceso.** La skill `verificar-calidad` ya tiene con qué trabajar:
+`dotnet build`, los tests de arquitectura (`tests/CodeQuality.Tests`, con ArchUnitNET), los tests del dominio,
+los de aplicación y SonarQube (`tools/SonarQube/`). Lo que falta es **obligar Sonar en cada pull request**:
+el workflow `sonar.yml` está listo, pero necesita la variable `SONAR_ENABLED` y los secretos
+`SONAR_HOST_URL`/`SONAR_TOKEN` del repositorio, apuntando a un servidor alcanzable desde el runner.
 
 ## Próximos pasos
 
@@ -397,11 +400,12 @@ pruebas y la prueba manual de cada criterio de aceptación.
 - [x] Integración continua (compilación y pruebas) en cada push y pull request.
 - [x] Reglas y skills de IA en `.agents/`, y las carpetas de `prompting/` del req001 al req010.
 - [x] SonarQube local (`tools/SonarQube/`) y análisis con Quality Gate.
-- [ ] Tests de arquitectura (`tests/CodeQuality.Tests` con ArchUnitNET), para cerrar la skill `verificar-calidad`.
+- [x] Tests de arquitectura (`tests/CodeQuality.Tests` con ArchUnitNET): capas, nombres y dominio sin EF Core.
 - [x] Consultas en lenguaje natural con servidor MCP y Gemini — ver la pantalla "Consultas" y el apartado de consultas en "Modo host".
-- [ ] Dashboard de monitoreo en tiempo real (SignalR).
-- [ ] Política de retención de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
-- [ ] Pruebas automáticas de los servicios de aplicación y los controladores.
+- [x] Monitoreo en tiempo real con SignalR: pantalla de inicio, aviso de fallas, lecturas nuevas sin recargar y reconexión automática a la otra réplica — `req012`.
+- [x] Política de retención de `lecturas_telemetria`: la purga corre en el colector (`Colector:RetencionDias`, 90 por defecto).
+- [ ] SonarQube en cada pull request: cargar `SONAR_ENABLED` y los secretos (`sonar.yml`).
+- [ ] Pruebas automáticas de los controladores y de los workers del monitoreo.
 
 La documentación del sistema, con la arquitectura, el modelo de dominio, las funcionalidades y el proceso de
 desarrollo, está en [`Documentacion/DOCUMENTACION-SolarUY.md`](Documentacion/DOCUMENTACION-SolarUY.md).

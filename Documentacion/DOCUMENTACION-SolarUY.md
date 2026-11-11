@@ -6,7 +6,7 @@
 | **Equipo** | Gonzalo Buriano · Guillermina Rodriguez · Mariano Ramos · Fabricio Rivero |
 | **Materia** | Taller de Programación .NET 2026 — UTEC |
 | **Repositorio** | `github.com/6buriano/.NetSolarUY` — rama `main` |
-| **Actualizado** | 28/10/2026 |
+| **Actualizado** | 11/11/2026 |
 
 **Cómo está organizado.** Las secciones 1 a 5 describen el sistema para quien necesita entender **qué hace**
 y **cómo está armado**, sin entrar en el código. La sección 6 cuenta **cómo lo desarrollamos** y la 7 cómo lo
@@ -24,9 +24,9 @@ Está construido en .NET 10 con Clean Architecture, MySQL sobre Docker y ASP.NET
 El hardware se simula con un servicio HTTP aparte, así que el día que existan sensores reales el sistema no
 cambia: se reemplaza el cliente que habla con el hardware.
 
-**Estado:** todas las funcionalidades de las secciones 5.1 a 5.7 están implementadas y verificadas; la
-solución compila sin errores ni advertencias y pasan 179 pruebas automáticas. Lo que falta está en la
-sección 11.
+**Estado:** todas las funcionalidades de las secciones 5.1 a 5.9 están implementadas; la solución compila
+sin errores ni advertencias y pasan **196 pruebas automáticas** (dominio, aplicación, arquitectura y
+simulador). Lo que falta está en la sección 11.
 
 ## 2. Qué hace el sistema
 
@@ -37,8 +37,10 @@ sección 11.
 | **Órdenes al hardware** | Activar o desactivar un panel y el volcado a la red del inversor, desde la pantalla de detalle. | Operación |
 | **Mantenimiento** | Tareas programadas sobre un panel, con tipo, responsable y ciclo de vida (pendiente, en proceso, completada, cancelada). | Mantenimiento |
 | **Consultas históricas** | Generación de un panel agrupada por día, mes o año, con potencia promedio, máxima y energía estimada. | Administración y operación |
+| **Monitoreo en vivo** | Estado de cada parque, nodo y panel con lo que genera en el momento. Se actualiza solo cada 5 segundos sin recargar, avisa cuando un panel pasa a falla y las lecturas nuevas aparecen en el detalle del panel. | Administración y operación (también el rol `Consulta`) |
+| **Consultas en lenguaje natural** | Se escribe una pregunta en español y el sistema la responde consultando la base a través del servidor MCP y Gemini. | Administración |
 | **Diagnóstico** | Pantalla de apoyo que compara lo cargado en el sistema contra el hardware simulado y lista lo que no cierra. Solo en desarrollo. | Equipo de desarrollo |
-| **Acceso** | Inicio de sesión con Keycloak; el ABM, el mantenimiento, el histórico y el diagnóstico piden el rol `Administrador`. El inicio y `/health` quedan abiertos. | Todos |
+| **Acceso** | Inicio de sesión con Keycloak. El ABM, el mantenimiento, el histórico, las consultas y el diagnóstico piden el rol `Administrador`; Monitoreo lo ven `Administrador` y `Consulta`. El inicio y `/health` quedan abiertos. | Todos |
 
 ## 3. Arquitectura
 
@@ -50,9 +52,16 @@ sección 11.
 queda de respaldo y solo recibe pedidos si `web1` no responde. Las dos réplicas son idénticas y **no guardan
 sesión en el servidor**: comparten el anillo de claves de cifrado en un volumen, así que cualquiera puede
 atender un formulario que empezó la otra. Comparten también **MySQL**, donde viven parques, paneles,
-mantenimiento y telemetría. Aparte corren el **colector** (el único que escribe las lecturas) y el
-**simulador del hardware**, que es una caja negra HTTP: no conoce la base ni nuestro dominio. El login lo
-resuelve **Keycloak** por OpenID Connect. El detalle de cada caja y cómo se levanta está en el anexo B.
+mantenimiento y telemetría. Aparte corren el **colector** (el único que escribe las lecturas), el
+**simulador del hardware** —una caja negra HTTP que no conoce la base ni nuestro dominio— y el **servidor
+MCP**, que le ofrece al agente de consultas cinco herramientas de sólo lectura sobre la base. El login lo
+resuelve **Keycloak** por OpenID Connect. El monitoreo en vivo viaja por un hub de **SignalR** alojado en la
+web: un worker lee de la base las lecturas nuevas y las empuja a los navegadores conectados, así que no hace
+falta que el navegador pregunte. El detalle de cada caja y cómo se levanta está en el anexo B.
+
+El diagrama dibuja la **arquitectura objetivo** completa (balanceo round-robin con Redis como backplane de
+SignalR). La implementación de hoy es más simple y no necesita nada de eso: `web2` está en `backup` y la
+sesión no vive en el servidor, así que con dos réplicas alcanza (ver la fila "Alta disponibilidad" en §3.2).
 
 ### 3.2 Por qué elegimos estas tecnologías
 
@@ -148,6 +157,13 @@ El resultado se ve en el detalle de cada panel: la última lectura (corriente, v
 estado) y la serie de las últimas 20, con las horas en hora de Montevideo y las filas en falla y en rendimiento
 bajo resaltadas.
 
+**Retención.** El colector escribe una lectura por panel cada pocos segundos: con tres nodos son unas 260.000
+filas por día. Para que la tabla no crezca sin límite, el mismo colector purga lo viejo: cada 6 horas borra
+las lecturas de más de **90 días** (`Colector:RetencionDias`). Lo hace el colector y no la web porque el
+colector es una sola instancia; si lo hicieran las réplicas, cada una intentaría borrar lo mismo. Se puede
+apagar con `Colector:RetencionHabilitada = false`, por ejemplo en una demo donde se quieren conservar todas
+las lecturas.
+
 ### 5.3 Órdenes al hardware
 
 Desde el detalle de un panel se puede **activar o desactivar ese panel** en el sensor; desde el detalle de un
@@ -180,8 +196,8 @@ Existe únicamente en desarrollo, porque depende de una API que sólo tiene el s
 
 El inicio de sesión lo resuelve **Keycloak**: la aplicación no guarda usuarios ni contraseñas, sólo confía en
 lo que Keycloak le responde y exige el rol `Administrador` para el ABM, el mantenimiento, el histórico, las
-consultas y el diagnóstico. El inicio y `/health` quedan abiertos (el segundo para el chequeo de vida del
-despliegue).
+consultas y el diagnóstico, y acepta `Administrador` o `Consulta` en Monitoreo. El inicio y `/health` quedan
+abiertos (el segundo para el chequeo de vida del despliegue).
 
 ### 5.8 Consultas en lenguaje natural
 
@@ -208,6 +224,20 @@ URL, la web **arranca igual**: registra un aviso en el log y la pantalla muestra
 **Cuota de Gemini.** La capa gratuita permite unos **20 pedidos por día y por modelo**, y cada pregunta usa
 varios (uno por cada vuelta de herramientas). Para pruebas intensivas conviene cambiar de modelo o usar una
 clave con facturación; si la cuota se agota, la pantalla muestra el mismo aviso de falla.
+
+### 5.9 Monitoreo en vivo
+
+Es la página de inicio. Muestra en una sola pantalla cuánto genera el parque elegido, cada nodo y cada panel,
+con su estado de salud. La foto inicial se arma al entrar y después **se actualiza sola cada 5 segundos sin
+recargar**: el servidor detecta las lecturas nuevas y se las empuja al navegador por SignalR, sin que la
+pantalla tenga que preguntar.
+
+Dos avisos completan la pantalla: cuando un panel pasa a `FALLA_DETECTADA` aparece un aviso (una sola vez, no
+insiste) y en el detalle de un panel las lecturas nuevas se agregan arriba de la tabla sin recargar. Si la
+réplica que estaba atendiendo se cae, el navegador **se reconecta solo**: Nginx lo manda a la otra réplica y,
+como la sesión no vive en el servidor, no se pierde el login.
+
+La ven los roles `Administrador` y `Consulta`.
 
 ## 6. Proceso de desarrollo con IA
 
@@ -248,31 +278,41 @@ incluye su carpeta de `prompting/` junto con los cambios.
 | `req008_acciones_sensor` | Órdenes al hardware desde la interfaz | Retroactiva |
 | `req009_mantenimiento` | Tareas de mantenimiento | Retroactiva |
 | `req010_consultas_historicas` | Consultas de generación por período | Retroactiva |
+| `req011_consultas_lenguaje_natural` | Consultas en lenguaje natural (servidor MCP + Gemini) | Antes del código |
+| `req012_monitoreo_tiempo_real` | Monitoreo en tiempo real con SignalR | Antes del código |
 
-Los requerimientos 001 a 007 se documentaron **después** de implementar, cuando adoptamos el proceso; desde el
-008 la idea es escribir los documentos antes del código. Cada `tasks.md` cierra con una sección **Uso de IA**
-que registra qué generó la IA, qué corrigió una persona y qué encontraron las verificaciones.
+Los requerimientos 001 a 010 se documentaron **después** de implementar, cuando adoptamos el proceso; el 011 y
+el 012 ya se escribieron **antes** del código. Cada `tasks.md` cierra con una sección **Uso de IA** que
+registra qué generó la IA, qué corrigió una persona y qué encontraron las verificaciones.
 
 ### 6.4 Versionado e integración continua
 
 Nadie trabaja directo en `main`: cada uno abre una rama y un pull request que otro revisa. Cada push y cada
 pull request a `main` dispara una **integración continua** que restaura, compila en Release y corre las
-pruebas; no necesita base ni simulador porque las pruebas no tocan infraestructura.
+pruebas; no necesita base ni simulador porque las pruebas no tocan infraestructura. El **análisis con
+SonarQube** corre en un workflow aparte (`sonar.yml`) contra el servidor que ya existe: es opcional y se
+activa con la variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL` y `SONAR_TOKEN`.
 
 ### 6.5 Lo que falta del proceso
 
-La skill `verificar-calidad` ya está escrita y define el chequeo completo, pero **todavía no están integrados**
-los tests de arquitectura (`tests/CodeQuality.Tests`, con ArchUnitNET) ni el análisis de SonarQube
-(`tools/SonarQube/`). Mientras tanto la verificación es compilación, tests y prueba manual de cada criterio.
+Nada de lo que la skill `verificar-calidad` pide: la compilación, los tests de arquitectura
+(`tests/CodeQuality.Tests`, con ArchUnitNET), los tests del dominio y el análisis de SonarQube ya están. Lo
+único pendiente es **obligar el análisis de Sonar en cada pull request**: el workflow existe, pero hasta que
+el repositorio tenga la variable `SONAR_ENABLED` y los secretos apuntando a un servidor alcanzable, el
+análisis se corre a mano con `tools/SonarQube/analizar.sh`.
 
 ## 7. Verificación y calidad
 
 ### 7.1 Automática
 
 - `dotnet build SolarUY.slnx` → **0 errores y 0 advertencias** (incluye el submódulo del simulador).
-- `dotnet test` → **179 pruebas, 0 fallos**: 109 del dominio y 70 del simulador.
+- `dotnet test` → **196 pruebas, 0 fallos**: 109 del dominio, 6 de aplicación, 11 de arquitectura y 70 del
+  simulador.
+- Los tests de arquitectura vigilan las reglas de capas y de nombres: si alguien hace que la web use el
+  `DbContext` directamente, el build falla.
 - `dotnet list package --vulnerable` → sin paquetes vulnerables.
-- Integración continua en cada push y pull request a `main` (compilación en Release y pruebas).
+- Integración continua en cada push y pull request a `main` (compilación en Release y pruebas), más el
+  análisis de SonarQube opcional (§6.4).
 
 ### 7.2 Funcional
 
@@ -289,11 +329,14 @@ Las funcionalidades se probaron contra el simulador corriendo, con MySQL y el co
 | Activar y desactivar un panel desde el detalle | 🟡 La orden llega al sensor y el cambio se ve en la ronda siguiente |
 | Ciclo completo de una tarea de mantenimiento | 🟡 Pendiente → en proceso → completada, con su fecha de realización |
 | Consulta histórica por día, mes y año | 🟡 Devuelve los períodos con promedio, máximo y energía estimada |
+| Monitoreo en vivo con las dos réplicas | 🟡 Se actualiza solo, avisa la falla y se reconecta a la otra réplica sin perder la sesión |
+| Consulta en lenguaje natural de punta a punta | 🟡 Responde con datos reales usando las herramientas del servidor MCP |
+| Purga de telemetría vieja | ✅ Verificada contra MySQL: con 90 días de retención borró la lectura de 100 días y dejó la del día |
 | Pantalla de Diagnóstico | ✅ "Todo vinculado", sin errores ni avisos |
 
-Las filas marcadas 🟡 corresponden a la iteración 2: están implementadas, compilan y tienen su
-`requirements.md` con los criterios de aceptación, pero **la prueba manual contra el simulador todavía no está
-registrada**: la tiene que confirmar quien implementó cada una.
+Las filas marcadas 🟡 corresponden a las iteraciones 2 y 3: están implementadas, compilan y tienen su
+`requirements.md` con los criterios de aceptación, pero **la prueba manual contra el simulador no está
+registrada acá**: la confirman quienes las implementaron (ver `## Uso de IA` en `req011` y `req012`).
 
 ### 7.3 Evidencia
 
@@ -323,9 +366,8 @@ registrada**: la tiene que confirmar quien implementó cada una.
 
 ### 7.4 Lo que falta verificar
 
-Tests de arquitectura y SonarQube (ver §6.5), y cobertura automática de los servicios de aplicación y los
-controladores: hoy las pruebas automáticas cubren las siete entidades del dominio y el simulador, y el resto
-se verifica a mano con la tabla de §7.2.
+Cobertura automática de los controladores y de los workers del monitoreo: los tests cubren el dominio, la
+política de retención, la arquitectura y el simulador, y el resto se verifica a mano con la tabla de §7.2.
 
 ## 8. Cómo levantar y probar
 
@@ -344,10 +386,10 @@ detalle está en `README.md` y en `Documentacion/keycloak.md`.
 
 | | |
 |---|---|
-| Rama | `main` |
-| Último commit | `322f9f3` — "Consultas históricas" (28/10) |
+| Rama | `guille-signalr` — es donde se prepara la entrega; `main` recibe por pull request |
+| Último commit | `657b7fb` — "req012: tasks.md con el avance, la verificación y el uso de IA" (10/11) |
 | Migraciones | `20261012172223_MigracionInicial`, `20261013002412_VinculacionConElSensor` |
-| Documentación | `README.md`, `specs.md`, `Documentacion/` (esta guía, prueba rápida, Keycloak, actualización sin cortes y los dos diagramas) |
+| Documentación | `README.md`, `specs.md`, `Documentacion/` (esta guía, prueba rápida, Keycloak, actualización sin cortes, SonarQube y los dos diagramas) |
 
 Cronología, según el historial del repositorio:
 
@@ -360,31 +402,39 @@ Cronología, según el historial del repositorio:
 | 19–21/10 | Login con Keycloak, roles, Nginx, réplicas y despliegue Docker con migración única |
 | 26/10 | Proceso SDD: reglas y skills en `.agents/`, y los requerimientos 001 a 007 documentados |
 | 28/10 | Órdenes al hardware desde la interfaz, mantenimiento y consultas históricas |
+| 01/11 | SonarQube: servidor en Docker, escáner y documentación del análisis |
+| 09–10/11 | Consultas en lenguaje natural (servidor MCP + Gemini) y monitoreo en tiempo real con SignalR |
 
 ## 10. Riesgos y limitaciones
 
-1. **Volumen de telemetría.** El colector escribe 15 filas cada 5 segundos: unas 260.000 por día. Todavía no
-   hay política de retención, así que no conviene dejarlo corriendo varios días.
+1. **Volumen de telemetría.** El colector escribe 15 filas cada 5 segundos: unas 260.000 por día. La purga
+   automática (§5.2) lo controla, pero es una retención fija de 90 días: si el disco del servidor es chico,
+   conviene bajarla. La primera purga sobre una base con meses de datos puede tardar.
 2. **Los sensores creados en el simulador viven en su memoria.** Si se reinicia el contenedor, desaparecen y
    esos nodos quedan sin telemetría hasta recrearlos.
 3. **Un solo servidor.** Las réplicas protegen de una caída de proceso o de una actualización, no de que se
    caiga la máquina: la base y el servidor son un punto único.
 4. **La energía de los históricos es estimada**, no medida: sale de la potencia instantánea y el intervalo de
    lectura.
-5. **Sin dashboard ni gráficos.** Las lecturas se ven como tabla en el detalle del panel y en el histórico.
-6. **Cobertura de pruebas concentrada en el dominio** (§7.4).
+5. **El monitoreo no guarda series propias.** Muestra el estado del momento y las lecturas nuevas; para series
+   largas está el histórico por período.
+6. **Cuota de Gemini.** La capa gratuita son unos 20 pedidos por día y por modelo: alcanza para la demo, no
+   para uso sostenido (§5.8).
+7. **El servidor MCP no publica puerto** y no pasa por Nginx: sólo lo alcanzan los contenedores de la red
+   `solareuy`. Es a propósito, pero significa que no se puede probar desde fuera del servidor.
+8. **Cobertura de pruebas concentrada en el dominio** (§7.4).
 
-## 11. Próximos pasos (iteración 3)
+## 11. Próximos pasos
 
-1. **Monitoreo en tiempo real**: hub de SignalR y dashboard con gráficos, alimentado por el colector que ya
-   existe.
-2. **Tests de arquitectura y SonarQube**: integrar `tests/CodeQuality.Tests` y `tools/SonarQube/` para que la
-   skill `verificar-calidad` quede completa (§6.5).
-3. **Política de retención** de `lecturas_telemetria` antes de dejar el colector corriendo varios días.
-4. **Cobertura de pruebas** de los servicios de aplicación y los controladores.
-5. **Cuota de Gemini para la demo**: las consultas en lenguaje natural ya están (§5.8), pero la capa gratuita
-   permite unos 20 pedidos por día y por modelo; para la presentación conviene una clave con facturación o
-   cambiar de modelo.
+1. **Obligar SonarQube en los pull requests**: cargar la variable `SONAR_ENABLED` y los secretos
+   `SONAR_HOST_URL`/`SONAR_TOKEN` del repositorio, y apuntarlos a un servidor alcanzable desde el runner.
+2. **Cobertura de pruebas** de los controladores y de los workers del monitoreo.
+3. **Ajustar la retención** al disco del VPS (hoy 90 días) y medir la primera purga sobre la base de
+   producción.
+4. **Cuota de Gemini para la demo**: las consultas en lenguaje natural funcionan, pero la capa gratuita
+   permite unos 20 pedidos por día y por modelo.
+5. **Mergear `guille-signalr` a `main` y desplegar**: el monitoreo y las consultas con IA viven hoy en la
+   rama de trabajo.
 
 ---
 
@@ -394,7 +444,7 @@ Cronología, según el historial del repositorio:
 |---|---|---|
 | **1** | 14/10 | Modelo de dominio; ABM de Parques, Nodos y Paneles (un módulo por integrante); simulador de inversores |
 | **2** | 28/10 | Keycloak y roles; alta disponibilidad con Nginx y réplicas; órdenes al hardware; mantenimiento; consultas históricas; proceso SDD |
-| **3** | 11/11 | Consultas en lenguaje natural (MCP); y los pendientes de la sección 11 |
+| **3** | 11/11 | Consultas en lenguaje natural (MCP + Gemini); monitoreo en tiempo real con SignalR; SonarQube y tests de arquitectura; retención de telemetría |
 
 ## Anexo B — Detalle técnico
 
@@ -430,7 +480,8 @@ históricos no necesitaron cambios de esquema.
 |---|---|
 | Cadena de conexión | `ConnectionStrings:SolarUY` (en desarrollo, `appsettings.Development.json`) |
 | Keycloak | `Keycloak:Authority`, `ClientId` y `ClientSecret` (el secreto, por user secrets o `KEYCLOAK_CLIENT_SECRET`) |
-| Colector | `Colector:Habilitado` y `Colector:IntervaloSegundos` |
+| Colector | `Colector:Habilitado` y `Colector:IntervaloSegundos`, más la retención: `Colector:RetencionHabilitada`, `Colector:RetencionDias` (90) y `Colector:IntervaloRetencionHoras` (6) |
+| Agente de consultas | `Gemini:ApiKey` (user secrets o `GEMINI_API_KEY`), `Gemini:Modelo`, `Gemini:TimeoutSegundos` y `Mcp:UrlServidor` |
 | Simulador | `Simulador:UrlBase` para la web; la dirección del sensor de cada nodo es un dato, no configuración |
 | Anillo de claves | Volumen compartido `solaruy-data-protection` entre las réplicas |
 

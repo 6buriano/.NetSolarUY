@@ -201,13 +201,16 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
   condición falla siempre: el gate no va a pasar hasta que se recoja cobertura o el equipo decida cambiar la
   condición.
 - **Local y por persona.** Cada integrante tiene su propio servidor, token y resultados: no hay un SonarQube compartido.
-- **No está integrado a la integración continua.** `.github/workflows/ci.yml` compila y corre las pruebas, pero no analiza con SonarQube.
+- **En el CI es opcional.** El workflow `.github/workflows/sonar.yml` ya está escrito, pero se saltea mientras el
+  repositorio no tenga la variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN` apuntando a un
+  servidor alcanzable desde el runner.
 - **El gate es estricto sobre todo el código**, no solo sobre el código nuevo de cada cambio.
-- **No cubre la arquitectura.** Las reglas de capas y nombres las verificará `tests/CodeQuality.Tests` (ArchUnitNET), que todavía no existe.
+- **No cubre la arquitectura.** Las reglas de capas y nombres las verifica `tests/CodeQuality.Tests` (ArchUnitNET),
+  que ya existe y corre en el CI con el resto de las pruebas.
 
 ## 10. Próximos pasos
 
-1. Corregir los issues de los grupos A a E hasta que el Quality Gate pase.
-2. Sumar `tests/CodeQuality.Tests` (ArchUnitNET) para cerrar la skill `verificar-calidad`.
-3. Evaluar un SonarQube compartido o su integración al CI.
+1. Activar `sonar.yml`: variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN`.
+2. Sumar cobertura de pruebas al análisis, para que el gate pueda pasar.
+3. Corregir los issues de los grupos A a E.
 4. Reducir la complejidad de los métodos señalados.

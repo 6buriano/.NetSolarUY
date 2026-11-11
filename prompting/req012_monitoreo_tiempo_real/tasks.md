@@ -40,7 +40,7 @@
   - [ ] 6.7 `verificar-calidad` (SonarQube, por cerrar el requerimiento).
 
 - [ ] **7. Documentación**
-  - [ ] 7.1 Sección de Monitoreo en la documentación y tilde en "Próximos pasos" del `README.md`.
+  - [x] 7.1 Sección de Monitoreo en la documentación y tilde en "Próximos pasos" del `README.md`.
 
 ## Uso de IA
 - **Documentos SDD:** `requirements.md`, `specs.md` y este `tasks.md` se escribieron con asistencia de IA **antes** del código, a partir de la letra y de la devolución del docente, y los revisó la responsable.
