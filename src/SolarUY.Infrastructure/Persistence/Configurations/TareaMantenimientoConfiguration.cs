@@ -44,5 +44,9 @@ public class TareaMantenimientoConfiguration : IEntityTypeConfiguration<TareaMan
         builder.Property(tarea => tarea.PersonalAsignado)
             .HasColumnName("personal_asignado")
             .HasMaxLength(150);
+
+        builder.Property(tarea => tarea.ObservacionesCierre)
+            .HasColumnName("observaciones_cierre")
+            .HasMaxLength(TareaMantenimiento.LargoMaximoObservaciones);
     }
 }

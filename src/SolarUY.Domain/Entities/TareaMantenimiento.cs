@@ -8,6 +8,9 @@ namespace SolarUY.Domain.Entities;
 /// </summary>
 public class TareaMantenimiento
 {
+    /// <summary>Largo máximo de las observaciones que se anotan al completar la tarea.</summary>
+    public const int LargoMaximoObservaciones = 500;
+
     public Guid Id { get; private set; }
     public Guid PanelSolarId { get; private set; }
     public TipoMantenimiento Tipo { get; private set; }
@@ -18,6 +21,12 @@ public class TareaMantenimiento
 
     /// <summary>Campo que agrega el diagrama de clases por sobre specs.md.</summary>
     public string? PersonalAsignado { get; private set; }
+
+    /// <summary>
+    /// Qué se hizo, anotado al completar la tarea. Queda como registro del trabajo y no como una
+    /// simple marca de tiempo.
+    /// </summary>
+    public string? ObservacionesCierre { get; private set; }
 
     /// <summary>Constructor sin parámetros que exige Entity Framework Core para materializar.</summary>
     private TareaMantenimiento()
@@ -66,13 +75,31 @@ public class TareaMantenimiento
         Estado = EstadoMantenimiento.EN_PROCESO;
     }
 
-    public void Completar(DateTime fechaRealizada)
+    /// <summary>
+    /// Completa la tarea. La fecha de realización la informa quien hizo el trabajo (no es la del
+    /// servidor): si el técnico la marca más tarde, la hora del sistema no coincidiría con la real.
+    /// </summary>
+    /// <param name="fechaRealizada">Cuándo se terminó el trabajo, en UTC.</param>
+    /// <param name="observaciones">Qué se hizo; opcional.</param>
+    /// <param name="ahoraUtc">Momento actual, para rechazar una fecha de realización futura.</param>
+    public void Completar(DateTime fechaRealizada, string? observaciones, DateTime ahoraUtc)
     {
         if (Estado != EstadoMantenimiento.EN_PROCESO)
             throw new ReglaDeNegocioException("Solo una tarea en proceso puede completarse.");
 
+        if (fechaRealizada == default)
+            throw new ReglaDeNegocioException("La fecha de realización es obligatoria.");
+
+        if (fechaRealizada > ahoraUtc)
+            throw new ReglaDeNegocioException("La fecha de realización no puede ser posterior al momento actual.");
+
+        if (observaciones is not null && observaciones.Trim().Length > LargoMaximoObservaciones)
+            throw new ReglaDeNegocioException(
+                $"Las observaciones del cierre no pueden superar los {LargoMaximoObservaciones} caracteres.");
+
         Estado = EstadoMantenimiento.COMPLETADO;
         FechaRealizada = fechaRealizada;
+        ObservacionesCierre = string.IsNullOrWhiteSpace(observaciones) ? null : observaciones.Trim();
     }
 
     public void Cancelar()

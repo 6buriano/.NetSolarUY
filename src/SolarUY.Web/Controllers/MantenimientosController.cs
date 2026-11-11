@@ -4,6 +4,7 @@ using SolarUY.Application.DTOs;
 using SolarUY.Application.Services;
 using SolarUY.Domain.Enums;
 using SolarUY.Domain.Exceptions;
+using SolarUY.Web.Helpers;
 using SolarUY.Web.Models;
 
 namespace SolarUY.Web.Controllers;
@@ -168,11 +169,41 @@ public class MantenimientosController : Controller
         => CambiarEstadoAsync(id, () => _mantenimientoService.IniciarAsync(id, cancellationToken),
             "La tarea pasó a estar en proceso.");
 
+    /// <summary>
+    /// Completa la tarea con la fecha real del trabajo y las observaciones que cargó quien la hizo: la
+    /// fecha del servidor no coincide con la real si la marca más tarde. La hora del formulario viene
+    /// en hora de Montevideo y se guarda en UTC, como todo el sistema.
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public Task<IActionResult> Completar(Guid id, CancellationToken cancellationToken)
-        => CambiarEstadoAsync(id, () => _mantenimientoService.CompletarAsync(id, cancellationToken),
-            "La tarea se marcó como completada.");
+    public async Task<IActionResult> Completar(Guid id, CierreMantenimientoViewModel cierre,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["MensajeError"] = "Revisá la fecha de realización y las observaciones.";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        try
+        {
+            var aplicado = await _mantenimientoService.CompletarAsync(id,
+                HoraLocal.AParaUtc(cierre.FechaRealizada), cierre.ObservacionesCierre, cancellationToken);
+
+            if (!aplicado)
+            {
+                return NotFound();
+            }
+
+            TempData["MensajeExito"] = "La tarea se marcó como completada.";
+        }
+        catch (ReglaDeNegocioException ex)
+        {
+            TempData["MensajeError"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(Detalle), new { id });
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]

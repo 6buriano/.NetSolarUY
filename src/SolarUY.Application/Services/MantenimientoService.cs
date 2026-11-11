@@ -15,11 +15,14 @@ public class MantenimientoService
 {
     private readonly IMantenimientoRepository _mantenimientoRepository;
     private readonly IPanelRepository _panelRepository;
+    private readonly TimeProvider _reloj;
 
-    public MantenimientoService(IMantenimientoRepository mantenimientoRepository, IPanelRepository panelRepository)
+    public MantenimientoService(IMantenimientoRepository mantenimientoRepository, IPanelRepository panelRepository,
+        TimeProvider reloj)
     {
         _mantenimientoRepository = mantenimientoRepository;
         _panelRepository = panelRepository;
+        _reloj = reloj;
     }
 
     public async Task<IReadOnlyList<MantenimientoDto>> ObtenerTodosAsync(EstadoMantenimiento? estado = null,
@@ -88,8 +91,16 @@ public class MantenimientoService
     public async Task<bool> IniciarAsync(Guid id, CancellationToken cancellationToken = default)
         => await CambiarEstadoAsync(id, tarea => tarea.Iniciar(), cancellationToken);
 
-    public async Task<bool> CompletarAsync(Guid id, CancellationToken cancellationToken = default)
-        => await CambiarEstadoAsync(id, tarea => tarea.Completar(DateTime.UtcNow), cancellationToken);
+    /// <summary>
+    /// Completa la tarea con la fecha en que se terminó el trabajo y las observaciones de cierre. La
+    /// fecha la informa quien hizo el trabajo: la del servidor no coincide con la real si la marca
+    /// más tarde.
+    /// </summary>
+    public async Task<bool> CompletarAsync(Guid id, DateTime fechaRealizada, string? observaciones,
+        CancellationToken cancellationToken = default)
+        => await CambiarEstadoAsync(id,
+            tarea => tarea.Completar(fechaRealizada, observaciones, _reloj.GetUtcNow().UtcDateTime),
+            cancellationToken);
 
     public async Task<bool> CancelarAsync(Guid id, CancellationToken cancellationToken = default)
         => await CambiarEstadoAsync(id, tarea => tarea.Cancelar(), cancellationToken);

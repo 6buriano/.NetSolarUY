@@ -31,7 +31,7 @@ public class TareaMantenimientoTests
                 break;
             case EstadoMantenimiento.COMPLETADO:
                 tarea.Iniciar();
-                tarea.Completar(FechaProgramada.AddHours(4));
+                tarea.Completar(FechaProgramada.AddHours(4), null, FechaProgramada.AddHours(5));
                 break;
             case EstadoMantenimiento.CANCELADO:
                 tarea.Cancelar();
@@ -110,15 +110,62 @@ public class TareaMantenimientoTests
     // ---------- Completar ----------
 
     [Fact]
-    public void Completar_DesdeEnProceso_CambiaElEstadoYGuardaLaFecha()
+    public void Completar_DesdeEnProceso_CambiaElEstadoYGuardaLaFechaYLasObservaciones()
     {
         var tarea = CrearTareaEnEstado(EstadoMantenimiento.EN_PROCESO);
         var fechaRealizada = FechaProgramada.AddHours(6);
 
-        tarea.Completar(fechaRealizada);
+        tarea.Completar(fechaRealizada, "  Se limpiaron los paneles y se ajustó el conector  ", fechaRealizada);
 
         Assert.Equal(EstadoMantenimiento.COMPLETADO, tarea.Estado);
         Assert.Equal(fechaRealizada, tarea.FechaRealizada);
+        Assert.Equal("Se limpiaron los paneles y se ajustó el conector", tarea.ObservacionesCierre);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Completar_SinObservaciones_LasDejaNulas(string? observaciones)
+    {
+        var tarea = CrearTareaEnEstado(EstadoMantenimiento.EN_PROCESO);
+        var fechaRealizada = FechaProgramada.AddHours(6);
+
+        tarea.Completar(fechaRealizada, observaciones, fechaRealizada);
+
+        Assert.Null(tarea.ObservacionesCierre);
+    }
+
+    [Fact]
+    public void Completar_ConObservacionesDemasiadoLargas_LanzaReglaDeNegocio()
+    {
+        var tarea = CrearTareaEnEstado(EstadoMantenimiento.EN_PROCESO);
+        var fechaRealizada = FechaProgramada.AddHours(6);
+        var largas = new string('a', TareaMantenimiento.LargoMaximoObservaciones + 1);
+
+        Assert.Throws<ReglaDeNegocioException>(() => tarea.Completar(fechaRealizada, largas, fechaRealizada));
+        Assert.Equal(EstadoMantenimiento.EN_PROCESO, tarea.Estado);
+    }
+
+    [Fact]
+    public void Completar_ConFechaFutura_LanzaReglaDeNegocio()
+    {
+        var tarea = CrearTareaEnEstado(EstadoMantenimiento.EN_PROCESO);
+        var ahora = FechaProgramada.AddHours(6);
+
+        Assert.Throws<ReglaDeNegocioException>(() =>
+            tarea.Completar(ahora.AddMinutes(1), "Trabajo terminado", ahora));
+
+        Assert.Equal(EstadoMantenimiento.EN_PROCESO, tarea.Estado);
+        Assert.Null(tarea.FechaRealizada);
+    }
+
+    [Fact]
+    public void Completar_SinFechaDeRealizacion_LanzaReglaDeNegocio()
+    {
+        var tarea = CrearTareaEnEstado(EstadoMantenimiento.EN_PROCESO);
+
+        Assert.Throws<ReglaDeNegocioException>(() => tarea.Completar(default, null, FechaProgramada));
     }
 
     [Theory]
@@ -127,7 +174,7 @@ public class TareaMantenimientoTests
     [InlineData(EstadoMantenimiento.CANCELADO)]
     public void Completar_CuandoNoEstaEnProceso_LanzaReglaDeNegocio(EstadoMantenimiento estado)
         => Assert.Throws<ReglaDeNegocioException>(() =>
-            CrearTareaEnEstado(estado).Completar(FechaProgramada.AddHours(6)));
+            CrearTareaEnEstado(estado).Completar(FechaProgramada.AddHours(6), null, FechaProgramada.AddHours(6)));
 
     // ---------- Cancelar ----------
 

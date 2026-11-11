@@ -12,4 +12,5 @@ public record MantenimientoDto(
     DateTime? FechaRealizada,
     string Descripcion,
     EstadoMantenimiento Estado,
-    string? PersonalAsignado);
+    string? PersonalAsignado,
+    string? ObservacionesCierre);

@@ -25,31 +25,52 @@
         <dd class="col-sm-9">@Model.FechaProgramada.ToString("dd/MM/yyyy")</dd>
 
         <dt class="col-sm-3">Fecha realizada</dt>
-        <dd class="col-sm-9">@(Model.FechaRealizada is null ? "—" : Model.FechaRealizada.Value.ToString("dd/MM/yyyy HH:mm"))</dd>
+        <dd class="col-sm-9">
+            @(Model.FechaRealizada is null
+                ? "—"
+                : HoraLocal.DesdeUtc(Model.FechaRealizada.Value).ToString("dd/MM/yyyy HH:mm"))
+        </dd>
 
         <dt class="col-sm-3">Personal asignado</dt>
         <dd class="col-sm-9">@(Model.PersonalAsignado ?? "—")</dd>
 
         <dt class="col-sm-3">Descripción</dt>
         <dd class="col-sm-9">@Model.Descripcion</dd>
+
+        <dt class="col-sm-3">Observaciones del cierre</dt>
+        <dd class="col-sm-9">@(Model.ObservacionesCierre ?? "—")</dd>
     </dl>
 </div>
 
-<div class="d-flex gap-2 mb-4">
+<div class="d-flex gap-2 flex-wrap align-items-end mb-4">
     @if (Model.Estado == EstadoMantenimiento.PENDIENTE)
     {
         <form asp-action="Iniciar" asp-route-id="@Model.Id" method="post">
             <button type="submit" class="btn btn-warning">Iniciar</button>
         </form>
-        <form asp-action="Cancelar" asp-route-id="@Model.Id" method="post">
-            <button type="submit" class="btn btn-outline-danger">Cancelar tarea</button>
-        </form>
     }
     else if (Model.Estado == EstadoMantenimiento.EN_PROCESO)
     {
-        <form asp-action="Completar" asp-route-id="@Model.Id" method="post">
-            <button type="submit" class="btn btn-success">Completar</button>
+        <form asp-action="Completar" asp-route-id="@Model.Id" method="post"
+              class="row g-2 align-items-end flex-grow-1">
+            <div class="col-auto">
+                <label for="FechaRealizada" class="form-label mb-0">Fecha y hora real de realización</label>
+                <input id="FechaRealizada" name="FechaRealizada" type="datetime-local" class="form-control"
+                       value="@HoraLocal.DesdeUtc(DateTime.UtcNow).ToString("yyyy-MM-ddTHH:mm")" required />
+            </div>
+            <div class="col-12 col-md">
+                <label for="ObservacionesCierre" class="form-label mb-0">Observaciones (opcional)</label>
+                <textarea id="ObservacionesCierre" name="ObservacionesCierre" class="form-control" rows="2"
+                          maxlength="@TareaMantenimiento.LargoMaximoObservaciones"
+                          placeholder="Qué se hizo en el panel"></textarea>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-success">Completar</button>
+            </div>
         </form>
+    }
+    @if (Model.Estado == EstadoMantenimiento.PENDIENTE || Model.Estado == EstadoMantenimiento.EN_PROCESO)
+    {
         <form asp-action="Cancelar" asp-route-id="@Model.Id" method="post">
             <button type="submit" class="btn btn-outline-danger">Cancelar tarea</button>
         </form>

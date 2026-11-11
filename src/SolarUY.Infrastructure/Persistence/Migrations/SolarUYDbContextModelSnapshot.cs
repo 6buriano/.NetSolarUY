@@ -297,6 +297,11 @@ namespace SolarUY.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("fecha_realizada");
 
+                    b.Property<string>("ObservacionesCierre")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("observaciones_cierre");
+
                     b.Property<Guid>("PanelSolarId")
                         .HasColumnType("char(36)")
                         .HasColumnName("panel_solar_id");

@@ -20,6 +20,14 @@ public static class HoraLocal
     public static DateTime DesdeUtc(DateTime fechaUtc)
         => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(fechaUtc, DateTimeKind.Utc), Zona);
 
+    /// <summary>
+    /// Vuelve a UTC una hora de Montevideo que el usuario eligió en un formulario. Es el camino
+    /// inverso de <see cref="DesdeUtc"/> y se usa, por ejemplo, al completar una tarea de mantenimiento
+    /// con la hora real del trabajo.
+    /// </summary>
+    public static DateTime AParaUtc(DateTime fechaLocal)
+        => TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(fechaLocal, DateTimeKind.Unspecified), Zona);
+
     private static TimeZoneInfo ResolverZona()
     {
         try

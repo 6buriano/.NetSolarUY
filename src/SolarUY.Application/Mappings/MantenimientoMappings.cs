@@ -19,5 +19,6 @@ public static class MantenimientoMappings
             tarea.FechaRealizada,
             tarea.Descripcion,
             tarea.Estado,
-            tarea.PersonalAsignado);
+            tarea.PersonalAsignado,
+            tarea.ObservacionesCierre);
 }
