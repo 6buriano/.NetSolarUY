@@ -25,7 +25,7 @@ El hardware se simula con un servicio HTTP aparte, así que el día que existan 
 cambia: se reemplaza el cliente que habla con el hardware.
 
 **Estado:** todas las funcionalidades de las secciones 5.1 a 5.9 están implementadas; la solución compila
-sin errores ni advertencias y pasan **210 pruebas automáticas** (dominio, aplicación, arquitectura y
+sin errores ni advertencias y pasan **216 pruebas automáticas** (dominio, aplicación, arquitectura y
 simulador). Lo que falta está en la sección 11.
 
 ## 2. Qué hace el sistema
@@ -130,7 +130,8 @@ salud son `OPERATIVO`, `RENDIMIENTO_BAJO`, `FALLA_DETECTADA` y `DESCONECTADO`.
    `OPERATIVO`, más de 15 % y hasta 40 % es `RENDIMIENTO_BAJO`, más de 40 % es `FALLA_DETECTADA`. De noche, o
    con menos de dos paneles activos con lectura, sólo manda la temperatura.
 6. **Mantenimiento.** Una tarea completada no se reprograma ni se cancela; sólo una pendiente pasa a en
-   proceso, y sólo una en proceso se completa (ahí se guarda la fecha de realización).
+   proceso, y sólo una en proceso se completa. Al completarla se guardan la **fecha real de realización** —que
+   informa quien hizo el trabajo y no puede ser futura— y las **observaciones del cierre**, si se escribieron.
 
 ## 5. Funcionalidades
 
@@ -178,6 +179,11 @@ Las tareas se programan sobre un panel con su tipo (limpieza, reparación, inspe
 fecha, descripción y personal asignado. Se listan con filtros por panel y por estado, se pueden reprogramar
 mientras no estén completadas y avanzar por el ciclo pendiente → en proceso → completada, o cancelarse. El
 detalle de cada panel muestra su historial de mantenimiento.
+
+Al completar una tarea se registra la **fecha y hora reales del trabajo** —las informa quien lo hizo, con el
+momento actual propuesto, porque la fecha del servidor no coincide con la real si la marca más tarde— y,
+opcionalmente, una **observación de cierre** con lo que se hizo. Así el historial del panel guarda algo más
+que una marca de tiempo.
 
 ### 5.5 Consultas históricas
 
@@ -301,12 +307,23 @@ Nada de lo que la skill `verificar-calidad` pide: la compilación, los tests de 
 el repositorio tenga la variable `SONAR_ENABLED` y los secretos apuntando a un servidor alcanzable, el
 análisis se corre a mano con `tools/SonarQube/analizar.sh`.
 
+### 6.6 La devolución del docente y qué cambiamos
+
+Después de la segunda entrega el docente dejó cuatro observaciones. Esto es lo que se hizo con cada una.
+
+| Observación | Qué hicimos |
+|---|---|
+| **Las aclaraciones dentro de las pantallas cansan al usuario.** Es información que se lee una vez y después molesta; corresponde a una ayuda o a la documentación. | Se agregó la pantalla **Ayuda** al menú, con las explicaciones de negocio (energía estimada, cómo se decide el estado de un panel, qué es el sensor, el ciclo del mantenimiento, el monitoreo en vivo, las consultas). De las pantallas se sacaron los párrafos técnicos y quedó sólo lo operativo: estados vacíos de una línea y ayudas cortas de campo. |
+| **Al completar una tarea de mantenimiento habría que poder anotar qué se hizo, y que la fecha sea la real** (si el técnico la marca después, la hora del sistema no coincide con la del trabajo). | Se agregó el cierre con **observaciones** y **fecha de realización** elegida por el usuario; el detalle de la tarea pide las dos cosas al completarla (ver §5.4). |
+| **Las lecturas del detalle del panel deberían actualizarse solas** a medida que llegan. | Resuelto con el monitoreo en tiempo real (§5.9): el detalle del panel agrega las lecturas nuevas arriba de la tabla sin recargar, y la pantalla de Monitoreo se actualiza cada 5 segundos. |
+| **Pensar las funcionalidades desde un rol de negocio y no tan técnico.** | Es el criterio con el que quedaron escritas las pantallas: la Ayuda está redactada para quien opera el parque y no menciona proyectos, endpoints ni códigos de estado; las explicaciones técnicas quedaron en esta documentación. |
+
 ## 7. Verificación y calidad
 
 ### 7.1 Automática
 
 - `dotnet build SolarUY.slnx` → **0 errores y 0 advertencias** (incluye el submódulo del simulador).
-- `dotnet test` → **210 pruebas, 0 fallos**: 109 del dominio, 20 de aplicación, 11 de arquitectura y 70 del
+- `dotnet test` → **216 pruebas, 0 fallos**: 115 del dominio, 20 de aplicación, 11 de arquitectura y 70 del
   simulador.
 - Los tests de arquitectura vigilan las reglas de capas y de nombres: si alguien hace que la web use el
   `DbContext` directamente, el build falla.
@@ -388,7 +405,7 @@ detalle está en `README.md` y en `Documentacion/keycloak.md`.
 |---|---|
 | Rama | `main` |
 | Último commit | `657b7fb` — "req012: tasks.md con el avance, la verificación y el uso de IA" (10/11) |
-| Migraciones | `20261012172223_MigracionInicial`, `20261013002412_VinculacionConElSensor`, `20261108035931_IndiceFechaHoraLecturas` |
+| Migraciones | `20261012172223_MigracionInicial`, `20261013002412_VinculacionConElSensor`, `20261108035931_IndiceFechaHoraLecturas`, `20261111154825_CierreDeMantenimiento` |
 | Documentación | `README.md`, `specs.md`, `Documentacion/` (esta guía, prueba rápida, Keycloak, actualización sin cortes, SonarQube y los dos diagramas) |
 
 Cronología, según el historial del repositorio:
@@ -471,9 +488,10 @@ curva solar que da 0 W de noche, zona horaria `America/Montevideo` y una probabi
 MySQL 8.4 con EF Core y Pomelo 9.0.0. Tablas: `parques_solares`, `nodos`, `inversores`,
 `sensores_dispositivos`, `paneles`, `lecturas_telemetria` y `mantenimientos`. Las reglas de unicidad del
 dominio están además respaldadas con índices únicos (número de serie, identificador de hardware, un inversor
-por nodo, código de panel por nodo). El esquema se versiona con tres migraciones: la inicial, la de vinculación
-con el sensor y la que agrega el **índice por `fecha_hora`** de las lecturas (req011), que es el que usan el
-monitoreo en vivo y la purga de retención. El mantenimiento y los históricos no necesitaron cambios de esquema.
+por nodo, código de panel por nodo). El esquema se versiona con cuatro migraciones: la inicial, la de vinculación
+con el sensor, la que agrega el **índice por `fecha_hora`** de las lecturas (req011) —que es el que usan el
+monitoreo en vivo y la purga de retención— y la que agrega `observaciones_cierre` a las tareas de mantenimiento
+(req013). El mantenimiento y los históricos no necesitaron cambios de esquema, salvo esa columna.
 
 ### B.3 Configuración y despliegue
 

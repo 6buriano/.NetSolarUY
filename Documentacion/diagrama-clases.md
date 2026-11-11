@@ -101,10 +101,11 @@ classDiagram
         +DateTime FechaRealizada
         +string Descripcion
         +string PersonalAsignado
+        +string ObservacionesCierre
         +EstadoMantenimiento Estado
         +Reprogramar(fechaProgramada, descripcion, personalAsignado) void
         +Iniciar() void
-        +Completar(fechaRealizada) void
+        +Completar(fechaRealizada, observaciones, ahoraUtc) void
         +Cancelar() void
     }
 

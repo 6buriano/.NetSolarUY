@@ -229,16 +229,24 @@ Cada módulo es un corte vertical completo: pantalla → controlador → servici
 | Parques solares | `ParquesController` | `ParqueService` | `Views/Parques/` |
 | Nodos (con su inversor y su sensor) | `NodosController` | `NodoService` | `Views/Nodos/` |
 | Paneles | `PanelesController` | `PanelService` | `Views/Paneles/` |
+| Monitoreo en vivo | `MonitoreoController` + `MonitoreoHub` | `MonitoreoService` | `Views/Monitoreo/` |
 | Mantenimiento | `MantenimientosController` | `MantenimientoService` | `Views/Mantenimientos/` |
 | Consultas históricas | `HistoricoController` | `ReporteService` | `Views/Historico/` |
 | Consultas en lenguaje natural | `ConsultasController` | `ConsultaService` | `Views/Consultas/` |
+| Ayuda | `AyudaController` | — (contenido fijo) | `Views/Ayuda/` |
 | Diagnóstico (solo desarrollo) | `DiagnosticoController` | `VerificacionVinculacionService` | `Views/Diagnostico/` |
 | Inicio y cierre de sesión | `CuentaController` | Keycloak | `Views/Cuenta/` |
 
 Los tres del ABM tienen listado con filtros, alta, edición, detalle y baja con confirmación. Mantenimiento
-suma el ciclo de estados (pendiente → en proceso → completada, o cancelada) y el historial en el detalle del
-panel; el histórico agrupa la generación de un panel por día, mes o año. Todas son vistas Razor comunes sobre
-ASP.NET Core MVC, no Blazor, como pide `specs.md`.
+suma el ciclo de estados (pendiente → en proceso → completada, o cancelada), el registro de la **fecha real y
+las observaciones** al completar, y el historial en el detalle del panel; el histórico agrupa la generación de
+un panel por día, mes o año. Todas son vistas Razor comunes sobre ASP.NET Core MVC, no Blazor, como pide
+`specs.md`.
+
+**Las pantallas muestran datos, la explicación vive en Ayuda.** Quien opera el parque todos los días no
+necesita leer de nuevo qué significa cada estado, así que los textos largos (cómo se decide el estado de un
+panel, por qué la energía es estimada, qué es el sensor del nodo) están en la pantalla **Ayuda** del menú y no
+repetidos en cada pantalla.
 
 **Órdenes al hardware.** Desde el detalle de un panel se puede activar o desactivar ese panel en el sensor, y
 desde el detalle de un nodo, el volcado a la red del inversor. El controlador llama a `ISensorClient`, que
