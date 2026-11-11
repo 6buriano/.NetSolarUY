@@ -326,8 +326,7 @@ docker compose stop
   una demo larga conviene una clave con facturación.
 - **Alta disponibilidad**: nginx con dos réplicas en activo/pasivo y actualización sin cortes
   (`Documentacion/actualizacion-sin-cortes.md`).
-- **Verificación de calidad**: SonarQube local y su análisis, documentados en
-  `Documentacion/SONARQUBE-SolarUY.md`.
+- **Verificación de calidad**: el análisis con SonarQube local se puede correr (ver `Documentacion/SONARQUBE-SolarUY.md`). El Quality Gate hoy da *Failed* por causas conocidas y documentadas en ese archivo.
 - 216 tests automáticos (115 del dominio, 20 de aplicación, 11 de arquitectura y 70 del simulador). Corré `dotnet test`.
 
 **Todavía no:**
