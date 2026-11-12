@@ -6,7 +6,7 @@
 | **Materia** | Taller de Programación .NET 2026 — UTEC |
 | **Repositorio** | `github.com/6buriano/.NetSolarUY` |
 | **Carpeta** | `tools/SonarQube/` |
-| **Actualizado** | 09/11/2026 |
+| **Actualizado** | 12/11/2026 |
 
 ## 1. Para qué sirve
 
@@ -27,11 +27,12 @@ analizar.ps1 / analizar.sh
    │  1. comprueba que el servidor responda y crea el Quality Gate "EstrictoTaller"
    ▼
 contenedor "solaruy-scanner"  (SDK de .NET 10 + Java + dotnet-sonarscanner)
-   │  2. sonarscanner begin  →  3. dotnet build SolarUY.slnx  →  4. sonarscanner end
-   │     (el escáner se engancha al compilador para analizar el código)
+   │  2. sonarscanner begin  →  3. dotnet build SolarUY.slnx  →  4. dotnet test (con cobertura)
+   │     →  5. sonarscanner end
+   │     (el escáner se engancha al compilador para analizar el código; las pruebas aportan la cobertura)
    ▼
 servidor SonarQube  (http://localhost:9000, contenedor aparte con su Postgres)
-      5. guarda el resultado y calcula el veredicto del Quality Gate
+      6. guarda el resultado y calcula el veredicto del Quality Gate
 ```
 
 Todo corre en Docker: no hace falta instalar Java, SonarScanner ni nada en la máquina.
@@ -40,7 +41,7 @@ Todo corre en Docker: no hace falta instalar Java, SonarScanner ni nada en la m�
 |---|---|
 | `docker-compose.yml` | Levanta el servidor SonarQube (edición Community) y su base Postgres. Solo escucha en `127.0.0.1:9000`. |
 | `scanner/Dockerfile` | Imagen del analizador: SDK de .NET 10, Java (lo pide SonarScanner) y `dotnet-sonarscanner`. |
-| `scanner/entrypoint.sh` | Lo que corre dentro del contenedor: `begin`, `dotnet build` y `end`. Acá están las exclusiones. |
+| `scanner/entrypoint.sh` | Lo que corre dentro del contenedor: `begin`, `dotnet build`, `dotnet test` con cobertura y `end`. Acá están las exclusiones. |
 | `analizar.ps1` / `analizar.sh` | Lo que se ejecuta desde la máquina: valida, configura el Quality Gate y lanza el contenedor. |
 
 ## 3. Primera vez
@@ -107,8 +108,9 @@ Entrar a `http://localhost:9000/dashboard?id=SolarUY`:
 - **Measures**: métricas del proyecto completo, como duplicación.
 
 Cada issue tiene un **tipo** (bug, vulnerabilidad, code smell) y un **impacto** sobre una cualidad del software
-(seguridad, confiabilidad o mantenibilidad). El Quality Gate mira esa cualidad, no el nombre del tipo: un issue
-que SonarQube llama *code smell* puede afectar la confiabilidad y hacer fallar el gate.
+(seguridad, confiabilidad o mantenibilidad). Ojo: el panel muestra la calificación de cada cualidad según el
+impacto, pero la condición del gate puede no coincidir con ella. El 12/11 el panel mostraba confiabilidad C
+(11 issues de impacto *Medium*) y el gate no falló por eso: solo falló la calificación de seguridad (ver 7.1).
 
 ### Quality Gate "EstrictoTaller"
 
@@ -152,6 +154,8 @@ cambios:
 | `sonar.qualitygate.wait=true` | El análisis espera el veredicto y falla si el gate no pasa. |
 | Servidor solo en `127.0.0.1` | Es una herramienta de desarrollo: no se expone a la red. |
 | `sed` de finales de línea en el Dockerfile | Si el repo se clona en Windows con CRLF, `bash` no puede ejecutar `entrypoint.sh`. |
+| Las pruebas corren dentro del análisis, con cobertura en formato OpenCover | Sin ellas SonarQube no recibe datos y muestra 0 % de cobertura aunque haya pruebas. Si una prueba falla, el análisis se corta: no tiene sentido evaluar la calidad de código que no pasa sus pruebas. (12/11/2026) |
+| Los reportes de cobertura se guardan en `/tmp` del contenedor | No ensucian el repo con carpetas generadas. |
 
 ## 7. Primer análisis (01/11/2026)
 
@@ -178,8 +182,63 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 |---|---|---|---|---|
 | 01/11/2026 | Failed | C | B | Primer análisis, 23 issues (ver arriba). |
 | 09/11/2026 | Failed | C | B | Tras req011: 23 issues de confiabilidad/seguridad, todos de los grupos A–E (A 12, B 4, C 3, D 1, E 3); req011 no agrega ninguno. 7 issues nuevos de mantenibilidad (Low/Info); cobertura nueva 0 % (limitación conocida). |
+| 12/11/2026 | Failed | C | B | Primer análisis **con cobertura**: 16,7 % sobre código nuevo. 72 issues abiertos (21 nuevos): 11 de confiabilidad, 1 de seguridad, 60 de mantenibilidad. Se corrigió el grupo A (13 issues de etiquetas). Detalle en la sección 7.1. |
 
 *Agregar una fila después de cada análisis relevante.*
+
+### 7.1 Análisis del 12/11/2026: primero con cobertura
+
+El Quality Gate sigue en *Failed*, ahora con los números reales. En **código nuevo** (desde el 01/11) fallan dos
+condiciones; duplicación y *hotspots* pasan:
+
+| Condición | Resultado | Exigido |
+|---|---|---|
+| Issues nuevos | 21 (eran 22 antes de corregir las etiquetas) | 0 |
+| Cobertura nueva | 16,7 %, sobre 884 líneas a cubrir | ≥ 80 % |
+| Duplicación nueva | 0,0 % | ≤ 3 % |
+| *Hotspots* nuevos | ninguno (calificación A) | 100 % revisados |
+
+La cobertura y la duplicación se midieron en la corrida anterior de ese mismo día; el cambio posterior solo tocó
+vistas `.cshtml`, que no cuentan como líneas a cubrir.
+
+En **todo el código** hay 72 issues abiertos: 11 de confiabilidad (todos *Medium*), 1 de seguridad (*Low*) y 60 de
+mantenibilidad. El panel muestra confiabilidad **C**, seguridad **B** y mantenibilidad **A** (la calificación la fija
+el issue más grave que quede abierto). La cobertura total es de 13,0 % sobre 3,9 mil líneas a cubrir y la
+duplicación, de 0,0 % sobre 10 mil líneas.
+
+Sobre todo el código, el gate falla por **una sola condición: la calificación de seguridad (B)**. La causa es el
+único issue de seguridad abierto: la imagen del analizador corre como `root` (grupo D). La confiabilidad figura en C
+y aun así no hace fallar el gate. Por eso, de los grupos de abajo, solo el D sostiene hoy el fallo de calificación.
+Los grupos A, B, C y E mejoran la confiabilidad del código, pero solo pesan en el gate a través de la condición de
+issues nuevos cuando son de código nuevo (hoy, `CierreMantenimientoViewModel`).
+
+**Estado de los grupos de la sección 7:**
+
+| Grupo | Estado |
+|---|---|
+| A. Etiquetas de formularios | **Corregido el 12/11**: 13 issues, incluida la del selector de parque de Monitoreo. |
+| B. Código bloqueante al arrancar | Pendiente (4): `Migrate()` y `Run()` en `Program.cs` de Web y Collector. |
+| C. Campos que pueden faltar | Pendiente (4): se sumó `CierreMantenimientoViewModel`. |
+| D. Dockerfile del analizador | Pendiente (1): corre como `root`. Es el único issue de seguridad. |
+| E. Script de la entrega | Pendiente (3): expresiones regulares de `generar-docx.py`. |
+
+**Los 21 issues nuevos**, por tipo:
+
+| Tipo | Cant. | Qué es |
+|---|---|---|
+| `S1135` | 7 | **Falsos positivos por el idioma** (ver abajo). |
+| `CA1861` | 3 | Arrays constantes en pruebas de `MonitoreoServiceTests`. |
+| `S1192`, `S1450` | 4 | Literal repetido (`MensajeExito`/`MensajeError`) y campos que pueden ser variables locales. |
+| `CA1873` | 2 | Argumentos de log que se evalúan aunque el log esté apagado. |
+| `S6964` | 1 | `CierreMantenimientoViewModel`: campo que puede llegar vacío (grupo C). |
+| `S3776`, `S101` | 2 | Complejidad cognitiva de `SeguimientoMonitoreo` (18 de 15) y nombre `IMCPAgentService`. |
+| `CA1826`, `S6667` | 2 | Método de `Enumerable` sobre lista indexable y `catch` que no pasa la excepción al log. |
+
+**Falsos positivos de `S1135` por el idioma.** La regla busca la palabra `TODO` sin distinguir mayúsculas, y en
+castellano "todo" es una palabra común ("todo el sistema", "todo lo que no cierra"). De los 15 issues `S1135` del
+proyecto, 14 son comentarios de ese tipo: se revisó línea por línea. El único `TODO` real es el de `Program.cs`
+línea 117, ligado a la etapa de seguridad (Keycloak). No se marcaron como *False positive* ni se desactivó la regla:
+el tratamiento (reescribir los comentarios, marcarlos o ajustar el perfil) queda como decisión del equipo.
 
 ## 8. Problemas típicos
 
@@ -193,13 +252,21 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | `admin` / `admin` no entra | La clave ya se había cambiado. | Si no hay nada que conservar, `down -v` y empezar de cero. |
 | Quality Gate *Failed* | Hay issues que superan lo permitido. | Leer **Overview** e **Issues** y corregir en el código. |
 | Avisos de "blame" de archivos del simulador | El submódulo tiene su propio git. | Se pueden ignorar. |
+| Cambié `entrypoint.sh` y el análisis sigue haciendo lo de antes | `analizar` solo construye la imagen si no existe, y el `entrypoint.sh` va copiado adentro de ella. | `docker build -t solaruy-scanner tools/SonarQube/scanner` y repetir. |
+| El análisis se corta en "Ejecutando pruebas con cobertura" | Hay una prueba fallando. | Correr `dotnet test SolarUY.slnx` en la máquina y corregir la prueba. |
 
 ## 9. Limitaciones
 
-- **Sin cobertura de pruebas, y por eso el gate no puede pasar.** El análisis no ejecuta las pruebas, así que la
-  cobertura figura en 0 %. Como el gate exige `new_coverage` de al menos 80 % sobre el código nuevo, esa
-  condición falla siempre: el gate no va a pasar hasta que se recoja cobertura o el equipo decida cambiar la
-  condición.
+- **La cobertura se mide, pero está lejos del umbral.** Desde el 12/11 el análisis ejecuta las pruebas y envía la
+  cobertura (antes figuraba en 0 %). El resultado es 16,7 % sobre el código nuevo contra el 80 % que exige el gate:
+  con 884 líneas a cubrir, harían falta unas 560 más cubiertas (estimación a partir de esos números). Hoy el
+  dominio está bien probado, siete servicios de `Application` no tienen pruebas, y `Infrastructure`, `Web` y
+  `Collector` tampoco. Hay dos caminos y los dos son decisión del equipo: escribir esas pruebas, o ajustar la
+  condición `new_coverage` con un umbral alcanzable y justificado.
+- **La exclusión del simulador no alcanza a sus pruebas.** `SolarUY.SensorSimulator/**` deja afuera el código del
+  simulador, pero dos issues (`CA1861`) de `SolarUY.SensorSimulator.Tests` siguen apareciendo. La causa probable es
+  que el escáner de .NET resuelve las exclusiones respecto de la carpeta de cada proyecto. No afecta al gate: no son
+  código nuevo ni de confiabilidad o seguridad.
 - **Local y por persona.** Cada integrante tiene su propio servidor, token y resultados: no hay un SonarQube compartido.
 - **En el CI es opcional.** El workflow `.github/workflows/sonar.yml` ya está escrito, pero se saltea mientras el
   repositorio no tenga la variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN` apuntando a un
@@ -211,6 +278,11 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 ## 10. Próximos pasos
 
 1. Activar `sonar.yml`: variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN`.
-2. Sumar cobertura de pruebas al análisis, para que el gate pueda pasar.
-3. Corregir los issues de los grupos A a E.
-4. Reducir la complejidad de los métodos señalados.
+2. Decidir con el equipo qué hacer con la condición de cobertura: más pruebas o un umbral justificado.
+3. Escribir pruebas de los servicios de `Application` que no tienen (`Nodo`, `Panel`, `Parque`, `Mantenimiento`,
+   `Reporte`, `Consulta`, `VerificacionVinculacion`): es lo que más cobertura aporta por línea escrita.
+4. Corregir el grupo D (Dockerfile sin `root`): es lo único que sostiene la calificación de seguridad en B, que es
+   hoy la única condición que falla sobre todo el código. Después los grupos B (arranque asíncrono) y C (campos que
+   pueden faltar), que mejoran la confiabilidad. El A ya está corregido.
+5. Decidir cómo tratar los falsos positivos de `S1135` (sección 7.1).
+6. Reducir la complejidad de los métodos señalados (`S3776`).
