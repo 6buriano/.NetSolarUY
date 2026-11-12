@@ -57,10 +57,19 @@ jobs:
             /d:sonar.host.url="$SONAR_HOST_URL" \
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.exclusions="**/Migrations/**,**/wwwroot/lib/**,SolarUY.SensorSimulator/**" \
+            /d:sonar.cs.opencover.reportsPaths="$RUNNER_TEMP/cobertura/**/coverage.opencover.xml" \
             /d:sonar.qualitygate.wait=true
 
       - name: Compilar (el escáner se engancha al compilador)
         run: dotnet build SolarUY.slnx --no-incremental
+
+      # Misma lógica que tools/SonarQube/scanner/entrypoint.sh: sin este paso Sonar ve 0 % de cobertura.
+      - name: Ejecutar pruebas con cobertura
+        run: |
+          dotnet test SolarUY.slnx --no-build \
+            --collect:"XPlat Code Coverage" \
+            --results-directory "$RUNNER_TEMP/cobertura" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
       - name: Enviar los resultados y esperar el Quality Gate
         env:
