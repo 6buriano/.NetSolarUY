@@ -23,7 +23,8 @@ else
     @if (Model.Instantanea.Parques.Count > 1)
     {
         <form method="get" class="mb-3" style="max-width: 20rem">
-            <select name="parqueId" class="form-select" onchange="this.form.submit()">
+            <label for="parqueId" class="visually-hidden">Parque</label>
+            <select id="parqueId" name="parqueId" class="form-select" onchange="this.form.submit()">
                 @foreach (var opcion in Model.Instantanea.Parques)
                 {
                     <option value="@opcion.ParqueId" selected="@(opcion.ParqueId == Model.Parque.ParqueId)">@opcion.Nombre</option>

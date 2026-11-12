@@ -10,8 +10,8 @@
 
 <form method="get" class="row g-2 align-items-end mb-3">
     <div class="col-auto">
-        <label class="form-label mb-0">Panel</label>
-        <select name="panelId" class="form-select" onchange="this.form.submit()">
+        <label for="panelId" class="form-label mb-0">Panel</label>
+        <select id="panelId" name="panelId" class="form-select" onchange="this.form.submit()">
             <option value="">Todos los paneles</option>
             @foreach (var panel in Model.Paneles)
             {
@@ -22,8 +22,8 @@
         </select>
     </div>
     <div class="col-auto">
-        <label class="form-label mb-0">Estado</label>
-        <select name="estado" class="form-select" onchange="this.form.submit()">
+        <label for="estado" class="form-label mb-0">Estado</label>
+        <select id="estado" name="estado" class="form-select" onchange="this.form.submit()">
             <option value="">Todos los estados</option>
             @foreach (var valor in Enum.GetValues<EstadoMantenimiento>())
             {

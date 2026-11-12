@@ -14,8 +14,8 @@ else
 {
     <form method="get" class="row g-2 align-items-end mb-3">
         <div class="col-auto">
-            <label class="form-label mb-0">Panel</label>
-            <select name="panelId" class="form-select">
+            <label for="panelId" class="form-label mb-0">Panel</label>
+            <select id="panelId" name="panelId" class="form-select">
                 @foreach (var panel in Model.Paneles)
                 {
                     <option value="@panel.Id" selected="@(panel.Id == Model.PanelSolarId)">
@@ -25,8 +25,8 @@ else
             </select>
         </div>
         <div class="col-auto">
-            <label class="form-label mb-0">Agrupar por</label>
-            <select name="granularidad" class="form-select">
+            <label for="granularidad" class="form-label mb-0">Agrupar por</label>
+            <select id="granularidad" name="granularidad" class="form-select">
                 @foreach (var valor in Enum.GetValues<GranularidadConsulta>())
                 {
                     <option value="@valor" selected="@(valor == Model.Granularidad)">@valor</option>
@@ -34,12 +34,12 @@ else
             </select>
         </div>
         <div class="col-auto">
-            <label class="form-label mb-0">Desde</label>
-            <input type="date" name="desde" class="form-control" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+            <label for="desde" class="form-label mb-0">Desde</label>
+            <input type="date" id="desde" name="desde" class="form-control" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
         </div>
         <div class="col-auto">
-            <label class="form-label mb-0">Hasta</label>
-            <input type="date" name="hasta" class="form-control" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+            <label for="hasta" class="form-label mb-0">Hasta</label>
+            <input type="date" id="hasta" name="hasta" class="form-control" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
         </div>
         <div class="col-auto">
             <button type="submit" class="btn btn-primary">Consultar</button>
