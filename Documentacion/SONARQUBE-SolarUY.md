@@ -114,7 +114,10 @@ impacto, pero la condición del gate puede no coincidir con ella. El 12/11 el pa
 
 ### Quality Gate "EstrictoTaller"
 
-Lo crea `analizar` con las condiciones del taller y lo deja como predeterminado del servidor local:
+`analizar` lo deja como predeterminado del servidor local. El script solo crea tres condiciones (`blocker_violations`,
+`security_rating` y `reliability_rating`); las otras tres (`new_violations`, `new_coverage` y
+`new_duplicated_lines_density`) figuran en el gate de este servidor, pero el script no las crea y no se confirmó si las
+agrega SonarQube al crear un gate o se sumaron a mano. Las seis son las que se evalúan:
 
 | Condición | Falla si… |
 |---|---|
@@ -212,6 +215,8 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 16/11/2026 | Failed | A (gate) | A | Los dos archivos JavaScript dejan de contar para la cobertura y se refactoriza `SeguimientoMonitoreo.Comparar`: **`new_coverage` pasa a 82,8 % y cumple el umbral (≥ 80)**; `new_violations` baja de 11 a 10. 55 issues abiertos (10 nuevos). Solo falla `new_violations`. Detalle en la sección 7.9. |
 | 16/11/2026 (2.º) | Failed | A (gate) | A | Se reescriben los 7 comentarios con la palabra "todo" (`S1135`) y el campo de fecha de cierre pasa a ser nullable (`S6964`): `new_violations` baja de 10 a **2**; `new_coverage` sigue en 82,8 %. 47 issues abiertos (2 nuevos: `S6667` y `S101`). Detalle en la sección 7.10. |
 | 16/11/2026 (3.º) | Failed | A (gate) | A | Se renombra `IMCPAgentService` a `IMcpAgentService` (`S101`): `new_violations` baja de 2 a **1** (solo `S6667`, decisión justificada); `new_coverage` sigue en 82,8 %. 46 issues abiertos (1 nuevo). Es la única condición que falla. Detalle en la sección 7.10. |
+
+| 16/11/2026 (4.º) | **Passed** | A | A | El `S6667` de `GeminiMcpAgentService` se marca como *Accepted* en SonarQube, con un comentario sobre la clave de la API. **El gate pasa a `OK` en sus seis condiciones**: `new_violations` 0 y `new_coverage` 82,8 %. 45 issues abiertos (0 nuevos). Detalle en la sección 7.10. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -556,10 +561,22 @@ conservan el nombre viejo a propósito: son el registro histórico del diseño.
 
 **El único issue nuevo: `S6667` en `GeminiMcpAgentService`, línea 91.** La regla pide pasar la excepción al log. No
 se hizo a propósito: el mensaje de una excepción HTTP puede incluir la URL de la solicitud y ahí puede ir la clave
-de la API del proveedor (sección 7.4). El gate queda en `ERROR` **solo por esta condición**. Las dos formas de
-cerrarlo son del responsable del proyecto: marcar el issue como *Accepted* (*Won't fix*) en la interfaz de
-SonarQube con un comentario que explique el riesgo, o dejarlo abierto y explicarlo en la defensa. Mientras no se
-decida, esta sección es la justificación escrita.
+de la API del proveedor (sección 7.4). El gate quedaba en `ERROR` **solo por esta condición**. El responsable del
+proyecto decidió el 16/11/2026 marcar el issue como *Accepted* en la interfaz de SonarQube, con un comentario que
+explica el riesgo y remite a esta sección. En el análisis siguiente **el Quality Gate pasó a `OK` con sus seis
+condiciones**: `new_violations` 0, `new_coverage` 82,8 %, duplicación 0,0 %, sin *Blocker* y seguridad y
+confiabilidad en A. Quedan 45 issues abiertos y ninguno es nuevo; el aceptado ya no se cuenta.
+
+> **Alcance de la decisión.** El estado *Accepted* vive en la base del SonarQube local, no en el repositorio.
+> Quien analice en otro servidor tiene que repetirlo. Si se modifica esa línea del código, SonarQube puede volver a
+> mostrar el issue como nuevo y habrá que aceptarlo de nuevo.
+
+**El panel de todo el código muestra confiabilidad C.** No contradice el gate. La condición `reliability_rating` del
+gate se calcula con los *bugs* (hay 0) y da A; el panel califica por el impacto de cada issue, y los 6 de
+confiabilidad que siguen abiertos tienen impacto *Medium*: `S6562` ×3 en `TelemetriaRepository` (líneas 166, 188 y
+209: `DateTime` sin `DateTimeKind`) y `S6964` ×3 en `MantenimientoFormViewModel`, `NodoFormViewModel` y
+`PanelFormViewModel` (`Guid` de formulario que puede llegar vacío). La seguridad figura en A (0 issues) y la
+mantenibilidad en A (39 issues).
 
 **Código nuevo que sigue sin cubrirse** (sin cambios desde 7.9): `GeminiMcpAgentService` (66 líneas),
 `TelemetriaRepository` (30), `Program.cs` de Web (18), de `McpServer` (13) y de Collector (4), más unas 9 en
@@ -599,14 +616,15 @@ configuraciones de EF y controladores triviales.
   repositorio no tenga la variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN` apuntando a un
   servidor alcanzable desde el runner.
 - **El gate es estricto sobre todo el código**, no solo sobre el código nuevo de cada cambio.
-- **El gate sigue en `ERROR` por un issue justificado.** Es el `S6667` de `GeminiMcpAgentService` (sección 7.10): corregirlo expondría la clave de la API en los registros. Las demás condiciones cumplen.
+- **El gate pasa con un issue aceptado.** El `S6667` de `GeminiMcpAgentService` se marcó como *Accepted* en el servidor local (sección 7.10); corregirlo expondría la clave de la API en los registros. El estado no está en el repositorio.
+- **El panel de todo el código muestra confiabilidad C** por 6 issues de impacto *Medium* (`S6562` ×3 y `S6964` ×3, sección 7.10) que no son *bugs* y no hacen fallar el gate.
 - **No cubre la arquitectura.** Las reglas de capas y nombres las verifica `tests/CodeQuality.Tests` (ArchUnitNET),
   que ya existe y corre en el CI con el resto de las pruebas.
 
 ## 10. Próximos pasos
 
 1. Activar `sonar.yml`: variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN`.
-2. Confirmar con el equipo el criterio de cobertura (82,8 % con los dos JavaScript excluidos, sección 5) y decidir qué hacer con el `S6667` de `GeminiMcpAgentService` (marcarlo como *Accepted* en SonarQube o defenderlo, sección 7.10).
+2. Confirmar con el equipo el criterio de cobertura (82,8 % con los dos JavaScript excluidos, sección 5) (la cobertura del código completo sigue en 35,6 %).
 3. Pruebas de `Application`: ya están `Mantenimiento`, `Reporte`, `Consulta` y `Monitoreo`. También están el worker de
    retención y los controladores `Consultas` y `Mantenimientos`. Faltan `Nodo`, `Panel`, `Parque` y
    `VerificacionVinculacion`, y los caminos de falla del agente Gemini; para `new_coverage` pesan más los
