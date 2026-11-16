@@ -188,6 +188,7 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 12/11/2026 | Failed | C | B | Primer análisis **con cobertura**: 16,7 % sobre código nuevo. 72 issues abiertos (21 nuevos): 11 de confiabilidad, 1 de seguridad, 60 de mantenibilidad. Se corrigió el grupo A (13 issues de etiquetas). Detalle en la sección 7.1. |
 | 15/11/2026 | Failed | C | A | Escáner sin `root` (grupo D corregido): la seguridad pasa a A. El panel sigue mostrando confiabilidad C (11 issues de impacto *Medium*), pero la condición del gate (`reliability_rating`) está en A. 70 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades. Solo fallan `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.2. |
 | 15/11/2026 (2.º) | Failed | A (gate) | A | Grupo B corregido: `MigrateAsync()` y `RunAsync()` en Web y Collector. 66 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas siguen pasando. Fallan las mismas dos condiciones: `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.3. |
+| 15/11/2026 (3.º) | Failed | A (gate) | A | Se corrigieron 8 de los 21 issues nuevos (`S1192`, `CA1861`, `CA1826`, `S1450`). 58 issues abiertos (13 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas pasan. Fallan las mismas dos condiciones: `new_coverage` (16,5 %) y `new_violations` (13). Detalle en la sección 7.4. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -284,6 +285,38 @@ espera. Los 4 issues `S6966` desaparecieron: de 70 a 66 issues abiertos.
 El gate no cambia: siguen fallando `new_coverage` (16,7 %) y `new_violations` (21), porque los 4 issues corregidos
 eran de código viejo. Los 4 pertenecían a los 11 issues de confiabilidad de impacto *Medium*; quedan 7
 (`S6964` ×4 y `S6562` ×3). Cobertura total 13,0 %, duplicación 0,0 %, 7.546 líneas de código.
+
+### 7.4 Análisis del 15/11/2026 (tercero): issues nuevos sencillos
+
+Se corrigieron 8 de los 21 issues nuevos, con cambios que no alteran el comportamiento (compilan y las 216 pruebas
+pasan):
+
+| Regla | Cant. | Cambio |
+|---|---|---|
+| `S1192` | 2 | `MantenimientosController`: constantes para las claves de `TempData` que lee `_Layout.cshtml`. |
+| `CA1861` | 3 | `MonitoreoServiceTests`: los arrays de las comparaciones pasan a campos `static readonly`. |
+| `CA1826` | 1 | `MonitoreoController`: `Count > 0 ? [0] : null` en lugar de `FirstOrDefault()` sobre una lista. |
+| `S1450` | 2 | `AgenteNoConfigurado`: los campos solo se usaban en el constructor. |
+
+Resultado: de 66 a 58 issues abiertos y de 21 a 13 nuevos. La cobertura nueva figura en 16,5 % (era 16,7 %): se
+agregaron algunas líneas sin pruebas propias. El gate sigue fallando por `new_coverage` y `new_violations`.
+
+**Los 13 issues nuevos que quedan:**
+
+| Regla | Cant. | Situación |
+|---|---|---|
+| `S1135` | 7 | Falsos positivos por el idioma (sección 7.1). Decisión del equipo. |
+| `CA1873` | 2 | `RetencionTelemetriaWorker`: guardar los valores en variables locales **no** alcanzó, la regla sigue marcando las dos llamadas de log. Falta probar con `if (_logger.IsEnabled(...))` o `[LoggerMessage]`. |
+| `S6667` | 1 | `GeminiMcpAgentService`: ver abajo. |
+| `S3776` | 1 | `SeguimientoMonitoreo`: complejidad 18 de 15. Requiere refactor. |
+| `S101` | 1 | Renombrar `IMCPAgentService` a `IMcpAgentService`: toca varios módulos, hay que acordarlo. |
+| `S6964` | 1 | `CierreMantenimientoViewModel`: grupo C, decisión pendiente. |
+
+**`S6667` en `GeminiMcpAgentService` (propuesta, pendiente de aprobación del equipo).** El código registra solo el
+tipo de la excepción, no la excepción completa, y es deliberado: el mensaje de una excepción HTTP puede incluir la
+URL de la solicitud, y ahí puede ir la clave de la API del proveedor. Pasar la excepción al log para cumplir la
+regla arriesgaría filtrar un secreto. Se propone dejar el issue abierto y documentado como decisión justificada,
+sin marcarlo como *False positive* hasta que el equipo lo apruebe.
 
 ## 8. Problemas típicos
 
