@@ -23,4 +23,4 @@ builder.Services.AddHostedService<ColectorTelemetriaWorker>();
 builder.Services.AddHostedService<RetencionTelemetriaWorker>();
 
 var host = builder.Build();
-host.Run();
+await host.RunAsync();

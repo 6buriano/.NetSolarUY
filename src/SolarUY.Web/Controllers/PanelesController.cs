@@ -142,7 +142,7 @@ public class PanelesController : Controller
                 formulario.Estado,
                 formulario.Activo,
                 formulario.FechaInstalacion,
-                formulario.NodoId);
+                formulario.NodoId.GetValueOrDefault());
 
             var panelId = await _panelService.CrearAsync(request, cancellationToken);
 
@@ -208,7 +208,7 @@ public class PanelesController : Controller
                 formulario.Estado,
                 formulario.Activo,
                 formulario.FechaInstalacion,
-                formulario.NodoId);
+                formulario.NodoId.GetValueOrDefault());
 
             var actualizado = await _panelService.ActualizarAsync(request, cancellationToken);
             if (!actualizado)

@@ -42,8 +42,9 @@ public class PanelFormViewModel
     [Display(Name = "Fecha de instalación")]
     public DateTime FechaInstalacion { get; set; } = DateTime.Today;
 
+    [Required(ErrorMessage = "Elegí el nodo al que pertenece el panel.")]
     [Display(Name = "Nodo")]
-    public Guid NodoId { get; set; }
+    public Guid? NodoId { get; set; }
 
     /// <summary>Nodos disponibles para el desplegable. No se postea, lo llena el controlador.</summary>
     public IReadOnlyList<NodoDto> Nodos { get; set; } = [];

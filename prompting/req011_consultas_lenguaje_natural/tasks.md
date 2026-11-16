@@ -75,7 +75,7 @@
   - [x] 6.11 Criterio 5: pedir «desactivá el panel P01» y una pregunta ajena al sistema; ambas se rechazan y el simulador no cambia. **Verificado a mano el 09/11/2026:** rechazó la orden de desactivar el panel y la pregunta ajena al sistema, y el estado de P01 no cambió.
   - [x] 6.12 Criterio 6: pregunta vacía muestra validación; con `docker compose stop mcp` o una clave inválida aparece el aviso y el resto del sistema sigue andando. **Verificado a mano el 09/11/2026:** la validación y el aviso con el MCP caído funcionaron y el resto del sistema siguió andando.
   - [x] 6.13 Criterio 7: `git grep` de la clave de Gemini no encuentra nada versionado. **Hecho: ningún valor versionado; solo nombres de variables vacías y dos falsos positivos en `jquery*.min.map`.**
-  - [x] 6.14 El servidor MCP no es alcanzable desde el host ni a través de nginx (sin puertos publicados).
+  - [x] 6.14 El servidor MCP no es alcanzable desde el host ni a través de nginx (sin puertos publicados). **Verificado el 09/11/2026:** el MCP no tiene puerto publicado (`docker compose port mcp 8080` devuelve `:0` y `docker inspect` muestra `{"8080/tcp":null}`); el puerto 8080 del host es nginx y `/mcp` por nginx devuelve 404; solo `web1` alcanza `http://mcp:8080/health` por la red interna.
   - [x] 6.15 Completar la sección `## Uso de IA` (ver regla `6_flujo_trabajo_ia.md`, sección 9).
 
 ## Uso de IA

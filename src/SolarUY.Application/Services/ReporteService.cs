@@ -20,7 +20,7 @@ public class ReporteService
 
     /// <summary>
     /// Desfase fijo de Montevideo respecto de UTC: UTC−3. Uruguay no tiene horario de verano, así que
-    /// el desfase no cambia en todo el año. Se usa una constante y no <see cref="TimeZoneInfo"/>
+    /// el desfase no cambia durante el año. Se usa una constante y no <see cref="TimeZoneInfo"/>
     /// porque el identificador de la zona cambia entre sistemas operativos ("Monte Standard Time" en
     /// Windows, "America/Montevideo" en Linux) y el mismo código corre en los dos.
     /// Es público porque el cliente del agente también lo usa para saber qué día es "hoy".

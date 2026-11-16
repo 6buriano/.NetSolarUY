@@ -347,7 +347,7 @@ Las funcionalidades se probaron contra el simulador corriendo, con MySQL y el co
 | Ciclo completo de una tarea de mantenimiento | 🟡 Pendiente → en proceso → completada, con su fecha de realización |
 | Consulta histórica por día, mes y año | 🟡 Devuelve los períodos con promedio, máximo y energía estimada |
 | Monitoreo en vivo con las dos réplicas | 🟡 Se actualiza solo, avisa la falla y se reconecta a la otra réplica sin perder la sesión |
-| Consulta en lenguaje natural de punta a punta | 🟡 Responde con datos reales usando las herramientas del servidor MCP |
+| Consulta en lenguaje natural de punta a punta | ✅ Verificada en producción: respondió con el parque, sus paneles operativos y la generación del día |
 | Purga de telemetría vieja | ✅ Verificada contra MySQL: con 90 días de retención borró la lectura de 100 días y dejó la del día |
 | Pantalla de Diagnóstico | ✅ "Todo vinculado", sin errores ni avisos |
 
@@ -357,29 +357,65 @@ registrada acá**: la confirman quienes las implementaron (ver `## Uso de IA` en
 
 ### 7.3 Evidencia
 
+Las pantallas de abajo son del sistema desplegado, con datos del parque de prueba.
+
+![Monitoreo en vivo, la página de inicio](../entrega-1-capturas/07-monitoreo.png)
+
+**Monitoreo en vivo (inicio).** Generación del parque, de cada nodo y de cada panel, con el estado de salud. El
+indicador de arriba dice «En vivo» y la hora de la última actualización: la pantalla se refresca sola cada 5
+segundos.
+
+![Listado de parques](../entrega-1-capturas/08-parques.png)
+
+**Parques.** Listado con búsqueda, alta, edición, detalle y baja con confirmación.
+
 ![Listado de nodos](../entrega-1-capturas/01-nodos.png)
 
-**Listado de nodos.** Cada nodo con su inversor y la cantidad de paneles.
+**Nodos.** Cada nodo con su inversor y la cantidad de paneles.
 
-![Detalle del nodo con el sensor creado](../entrega-1-capturas/02-nodo-detalle.png)
+![Detalle del nodo con su inversor y su sensor](../entrega-1-capturas/02-nodo-detalle.png)
 
-**Detalle del nodo.** El inversor y el sensor `ARM-004`, creado desde el propio formulario de alta.
+**Detalle del nodo.** El inversor y el sensor ARM asociado, con la dirección a la que se le piden las lecturas.
 
-![Alta de nodo con ARM inexistente](../entrega-1-capturas/03-oferta-arm.png)
+![Alta de nodo](../entrega-1-capturas/14-alta-nodo.png)
 
-**Alta con un identificador inexistente.** La pantalla avisa cuáles existen y ofrece las dos salidas.
+**Alta de nodo.** El inversor se carga en el mismo formulario, porque todo nodo tiene exactamente uno; el sensor
+ARM es opcional.
+
+![Listado de paneles](../entrega-1-capturas/09-paneles.png)
+
+**Paneles.** Listado con búsqueda y filtro por estado de salud.
 
 ![Detalle del panel con la serie de lecturas](../entrega-1-capturas/04-panel-lecturas.png)
 
-**Detalle del panel.** Última lectura y serie de las últimas 20, en hora de Montevideo.
+**Detalle del panel.** Última lectura, serie de las últimas 20 en hora de Montevideo y su historial de
+mantenimiento. Las lecturas nuevas aparecen arriba sin recargar mientras la pantalla está abierta.
 
 ![Panel en falla](../entrega-1-capturas/06-panel-en-falla.png)
 
-**Panel en falla.** Forzando sobretemperatura, el dominio diagnostica `FALLA_DETECTADA` en la ronda siguiente.
+**Panel en falla.** Forzando una sobretemperatura en el simulador, el dominio diagnostica `FALLA_DETECTADA` en la
+ronda siguiente: 85 °C y las filas en rojo.
+
+![Listado de mantenimiento](../entrega-1-capturas/10-mantenimiento.png)
+
+**Mantenimiento.** Tareas con su estado, filtrables por panel y por estado.
+
+![Consultas históricas](../entrega-1-capturas/11-historico.png)
+
+**Histórico.** Generación de un panel agrupada por día, mes o año, con la energía estimada por período.
+
+![Consulta en lenguaje natural](../entrega-1-capturas/12-consultas.png)
+
+**Consultas en lenguaje natural.** La pregunta viaja al agente, que consulta la base con las herramientas del
+servidor MCP y responde con los datos del parque.
+
+![Pantalla de Ayuda](../entrega-1-capturas/13-ayuda.png)
+
+**Ayuda.** Las explicaciones de negocio viven acá y no repetidas en cada pantalla.
 
 ![Pantalla de Diagnóstico](../entrega-1-capturas/05-diagnostico.png)
 
-**Diagnóstico.** Comparación del sistema contra el inventario del simulador.
+**Diagnóstico.** Comparación del sistema contra el inventario del simulador. Sólo existe en desarrollo.
 
 ### 7.4 Lo que falta verificar
 

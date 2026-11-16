@@ -56,7 +56,7 @@ public class MonitoreoTiempoRealWorker : BackgroundService
 
     private async Task EnviarAsync(CancellationToken cancellationToken)
     {
-        // El worker vive todo el tiempo (Singleton) y los repositorios son Scoped: se crea un
+        // El worker vive mientras corre la aplicación (Singleton) y los repositorios son Scoped: se crea un
         // scope por vuelta para tener un DbContext nuevo cada vez.
         using var scope = _scopeFactory.CreateScope();
         var monitoreoService = scope.ServiceProvider.GetRequiredService<MonitoreoService>();

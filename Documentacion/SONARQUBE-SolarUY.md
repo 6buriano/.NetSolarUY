@@ -6,7 +6,7 @@
 | **Materia** | Taller de Programación .NET 2026 — UTEC |
 | **Repositorio** | `github.com/6buriano/.NetSolarUY` |
 | **Carpeta** | `tools/SonarQube/` |
-| **Actualizado** | 09/11/2026 |
+| **Actualizado** | 12/11/2026 |
 
 ## 1. Para qué sirve
 
@@ -27,11 +27,12 @@ analizar.ps1 / analizar.sh
    │  1. comprueba que el servidor responda y crea el Quality Gate "EstrictoTaller"
    ▼
 contenedor "solaruy-scanner"  (SDK de .NET 10 + Java + dotnet-sonarscanner)
-   │  2. sonarscanner begin  →  3. dotnet build SolarUY.slnx  →  4. sonarscanner end
-   │     (el escáner se engancha al compilador para analizar el código)
+   │  2. sonarscanner begin  →  3. dotnet build SolarUY.slnx  →  4. dotnet test (con cobertura)
+   │     →  5. sonarscanner end
+   │     (el escáner se engancha al compilador para analizar el código; las pruebas aportan la cobertura)
    ▼
 servidor SonarQube  (http://localhost:9000, contenedor aparte con su Postgres)
-      5. guarda el resultado y calcula el veredicto del Quality Gate
+      6. guarda el resultado y calcula el veredicto del Quality Gate
 ```
 
 Todo corre en Docker: no hace falta instalar Java, SonarScanner ni nada en la máquina.
@@ -39,8 +40,8 @@ Todo corre en Docker: no hace falta instalar Java, SonarScanner ni nada en la m�
 | Archivo | Qué hace |
 |---|---|
 | `docker-compose.yml` | Levanta el servidor SonarQube (edición Community) y su base Postgres. Solo escucha en `127.0.0.1:9000`. |
-| `scanner/Dockerfile` | Imagen del analizador: SDK de .NET 10, Java (lo pide SonarScanner) y `dotnet-sonarscanner`. |
-| `scanner/entrypoint.sh` | Lo que corre dentro del contenedor: `begin`, `dotnet build` y `end`. Acá están las exclusiones. |
+| `scanner/Dockerfile` | Imagen del analizador: SDK de .NET 10, Java (lo pide SonarScanner) y `dotnet-sonarscanner`. Corre como usuario `scanner`, no como `root`. |
+| `scanner/entrypoint.sh` | Lo que corre dentro del contenedor: copia el código a `/tmp`, `begin`, `dotnet build`, `dotnet test` con cobertura y `end`. Acá están las exclusiones. |
 | `analizar.ps1` / `analizar.sh` | Lo que se ejecuta desde la máquina: valida, configura el Quality Gate y lanza el contenedor. |
 
 ## 3. Primera vez
@@ -107,26 +108,31 @@ Entrar a `http://localhost:9000/dashboard?id=SolarUY`:
 - **Measures**: métricas del proyecto completo, como duplicación.
 
 Cada issue tiene un **tipo** (bug, vulnerabilidad, code smell) y un **impacto** sobre una cualidad del software
-(seguridad, confiabilidad o mantenibilidad). El Quality Gate mira esa cualidad, no el nombre del tipo: un issue
-que SonarQube llama *code smell* puede afectar la confiabilidad y hacer fallar el gate.
+(seguridad, confiabilidad o mantenibilidad). Ojo: el panel muestra la calificación de cada cualidad según el
+impacto, pero la condición del gate puede no coincidir con ella. El 12/11 el panel mostraba confiabilidad C
+(11 issues de impacto *Medium*) y el gate no falló por eso: solo falló la calificación de seguridad (ver 7.1).
 
 ### Quality Gate "EstrictoTaller"
 
-Lo crea `analizar` con las condiciones del taller y lo deja como predeterminado del servidor local:
+`analizar` lo deja como predeterminado del servidor local. El script solo crea tres condiciones (`blocker_violations`,
+`security_rating` y `reliability_rating`); las otras tres (`new_violations`, `new_coverage` y
+`new_duplicated_lines_density`) figuran en el gate de este servidor, pero el script no las crea y no se confirmó si las
+agrega SonarQube al crear un gate o se sumaron a mano. Las seis son las que se evalúan:
 
 | Condición | Falla si… |
 |---|---|
 | `new_violations` | hay más de 0 issues nuevos |
 | `new_coverage` | la cobertura del código nuevo es menor a 80 % |
 | `new_duplicated_lines_density` | la duplicación del código nuevo supera el 3 % |
-| `new_security_hotspots_reviewed` | se revisó menos del 100 % de los *hotspots* nuevos |
 | `blocker_violations` | hay algún issue *Blocker* |
 | `security_rating` | es peor que A |
 | `reliability_rating` | es peor que A |
 
-Las dos calificaciones se miden sobre **todo el código** del proyecto; las cuatro primeras, sobre el **código
-nuevo** de cada cambio. Una calificación A significa que **no queda ningún issue** de esa cualidad, de ninguna
-severidad. Por eso un solo problema menor alcanza para que el gate falle.
+Las dos calificaciones se miden sobre **todo el código** del proyecto; las tres primeras, sobre el **código
+nuevo** de cada cambio. Las calificaciones del gate (`security_rating`, `reliability_rating`) dependen de los
+issues de tipo vulnerabilidad y *bug*: con 0 vulnerabilidades y 0 *bugs* quedan en A. Un solo problema de esos
+tipos, aunque sea menor, alcanza para que el gate falle. La condición de *hotspots* revisados no está en el gate
+que se ve en el servidor (se comprobó el 15/11 con la API); los *hotspots* se revisan igual en el panel.
 
 ### Qué se analiza y qué no
 
@@ -139,6 +145,20 @@ equipo. Se excluyen estas rutas, definidas en `scanner/entrypoint.sh`:
 | `**/wwwroot/lib/**` | Bootstrap y jQuery de la plantilla MVC. |
 | `SolarUY.SensorSimulator/**` | El mock del hardware: es otro repositorio (submódulo). |
 
+Además, dos archivos se **analizan pero no cuentan para la cobertura** (`sonar.coverage.exclusions`, definido en el
+mismo `entrypoint.sh` y en `sonar.yml`):
+
+| Archivo | Motivo |
+|---|---|
+| `src/SolarUY.Web/wwwroot/js/monitoreo.js` | JavaScript del front-end: el proyecto no tiene herramientas de prueba de front-end y la cobertura de .NET no mide JavaScript. |
+| `src/SolarUY.Web/wwwroot/js/panel-detalle.js` | Ídem. |
+
+Se listan los dos archivos y no la carpeta, para que un JavaScript nuevo sí cuente. Siguen apareciendo en el análisis
+de calidad (reglas de código); lo único que se les quita es la expectativa de cobertura. Es una decisión del
+responsable del proyecto, tomada el 16/11/2026 después de cubrir con pruebas el resto del código nuevo (sección 7.8).
+**Los valores de `new_coverage` anteriores a esa fecha (de 12 % a 73 %) se midieron con los dos archivos incluidos y
+no son comparables con los posteriores.**
+
 ## 6. Decisiones tomadas
 
 El entorno parte del que provee la cátedra (`ControlCalidad/SonarQube` del repositorio del taller), con estos
@@ -146,12 +166,17 @@ cambios:
 
 | Decisión | Por qué |
 |---|---|
+| El analizador corre como usuario `scanner`, no como `root` | Sonar marcaba `docker:S6471` (la imagen corría como `root`), el único issue de seguridad y lo que dejaba la calificación en B. (15/11/2026) |
+| El contenedor analiza una **copia** del código en `/tmp` | La carpeta del repo montada desde Windows llega como propiedad de `root` y el usuario `scanner` no puede escribir ahí (`.sonarqube`, `bin`, `obj`). Copiar evita dar permisos de más y deja el repo sin archivos generados. Se excluyen `bin`, `obj`, `.sonarqube` y `node_modules` de la copia. (15/11/2026) |
 | El token se pasa por variable de entorno | La regla 7 de `.agents/rules/6_flujo_trabajo_ia.md` prohíbe secretos en archivos versionados. |
 | El contenedor llega al servidor por `host.docker.internal` | `--network host` puede no funcionar en Docker Desktop para Windows; esta forma sirve en Windows, Mac y Linux. |
 | `sonar.token` en lugar de `sonar.login` | `sonar.login` está obsoleto. |
 | `sonar.qualitygate.wait=true` | El análisis espera el veredicto y falla si el gate no pasa. |
 | Servidor solo en `127.0.0.1` | Es una herramienta de desarrollo: no se expone a la red. |
 | `sed` de finales de línea en el Dockerfile | Si el repo se clona en Windows con CRLF, `bash` no puede ejecutar `entrypoint.sh`. |
+| Las pruebas corren dentro del análisis, con cobertura en formato OpenCover | Sin ellas SonarQube no recibe datos y muestra 0 % de cobertura aunque haya pruebas. Si una prueba falla, el análisis se corta: no tiene sentido evaluar la calidad de código que no pasa sus pruebas. (12/11/2026) |
+| Los reportes de cobertura se guardan en `/tmp` del contenedor | No ensucian el repo con carpetas generadas. |
+| `monitoreo.js` y `panel-detalle.js` no cuentan para la cobertura | Eran 123 de las 263 líneas nuevas sin cubrir y el proyecto no tiene pruebas de front-end. Se excluyen los dos archivos, no la carpeta, y se documenta que la serie de `new_coverage` cambia de criterio. (16/11/2026) |
 
 ## 7. Primer análisis (01/11/2026)
 
@@ -178,8 +203,384 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 |---|---|---|---|---|
 | 01/11/2026 | Failed | C | B | Primer análisis, 23 issues (ver arriba). |
 | 09/11/2026 | Failed | C | B | Tras req011: 23 issues de confiabilidad/seguridad, todos de los grupos A–E (A 12, B 4, C 3, D 1, E 3); req011 no agrega ninguno. 7 issues nuevos de mantenibilidad (Low/Info); cobertura nueva 0 % (limitación conocida). |
+| 12/11/2026 | Failed | C | B | Primer análisis **con cobertura**: 16,7 % sobre código nuevo. 72 issues abiertos (21 nuevos): 11 de confiabilidad, 1 de seguridad, 60 de mantenibilidad. Se corrigió el grupo A (13 issues de etiquetas). Detalle en la sección 7.1. |
+| 15/11/2026 | Failed | C | A | Escáner sin `root` (grupo D corregido): la seguridad pasa a A. El panel sigue mostrando confiabilidad C (11 issues de impacto *Medium*), pero la condición del gate (`reliability_rating`) está en A. 70 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades. Solo fallan `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.2. |
+| 15/11/2026 (2.º) | Failed | A (gate) | A | Grupo B corregido: `MigrateAsync()` y `RunAsync()` en Web y Collector. 66 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas siguen pasando. Fallan las mismas dos condiciones: `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.3. |
+| 15/11/2026 (3.º) | Failed | A (gate) | A | Se corrigieron 8 de los 21 issues nuevos (`S1192`, `CA1861`, `CA1826`, `S1450`). 58 issues abiertos (13 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas pasan. Fallan las mismas dos condiciones: `new_coverage` (16,5 %) y `new_violations` (13). Detalle en la sección 7.4. |
+| 15/11/2026 (4.º) | Failed | A (gate) | A | Pruebas nuevas de `MantenimientoService`, `ReporteService`, `ConsultaService` y `MonitoreoService` (41 pruebas, 257 en total): `new_coverage` sube de 17,4 % a 26,2 % y la cobertura total de 15,0 % a 18,0 %. 58 issues abiertos (13 nuevos). Fallan `new_coverage` y `new_violations` (13). Detalle en la sección 7.5. |
+| 15/11/2026 (5.º) | Failed | A (gate) | A | Pruebas nuevas de `RetencionTelemetriaWorker`, `ConsultasController` y `MantenimientosController` (41 pruebas, 298 en total, en dos proyectos de prueba nuevos): `new_coverage` sube de 26,2 % a 39,1 % y la cobertura total de 18,0 % a 25,0 %. 58 issues abiertos (13 nuevos). Fallan `new_coverage` y `new_violations` (13). Detalle en la sección 7.6. |
+| 15/11/2026 (6.º) | Failed | A (gate) | A | Pruebas de las cinco herramientas MCP (proyecto nuevo `SolarUY.Infrastructure.Tests`): `new_coverage` sube de 39,1 % a 58,7 % y la cobertura total de 25,0 % a 30,4 %. 58 issues abiertos (13 nuevos). Detalle en la sección 7.7. |
+| 15/11/2026 (7.º) | Failed | A (gate) | A | Pruebas de `MonitoreoTiempoRealWorker`, `MonitoreoController`, `MonitoreoHub`, el registro de servicios (`DependencyInjection`) y `AgenteNoConfigurado`: `new_coverage` sube de 58,7 % a **73,1 %** y la cobertura total de 30,4 % a 34,4 %. 58 issues abiertos (13 nuevos). Falla `new_coverage` (73,1 contra 80) y `new_violations` (13). Detalle en la sección 7.8. |
+| 15/11/2026 (8.º) | Failed | A (gate) | A | `CA1873` corregido en `RetencionTelemetriaWorker` con `IsEnabled` (más 2 pruebas del log): `new_violations` baja de 13 a 11 y `new_coverage` pasa de 73,1 % a 73,3 %. 56 issues abiertos (11 nuevos). Detalle en la sección 7.9. |
+| 16/11/2026 | Failed | A (gate) | A | Los dos archivos JavaScript dejan de contar para la cobertura y se refactoriza `SeguimientoMonitoreo.Comparar`: **`new_coverage` pasa a 82,8 % y cumple el umbral (≥ 80)**; `new_violations` baja de 11 a 10. 55 issues abiertos (10 nuevos). Solo falla `new_violations`. Detalle en la sección 7.9. |
+| 16/11/2026 (2.º) | Failed | A (gate) | A | Se reescriben los 7 comentarios con la palabra "todo" (`S1135`) y el campo de fecha de cierre pasa a ser nullable (`S6964`): `new_violations` baja de 10 a **2**; `new_coverage` sigue en 82,8 %. 47 issues abiertos (2 nuevos: `S6667` y `S101`). Detalle en la sección 7.10. |
+| 16/11/2026 (3.º) | Failed | A (gate) | A | Se renombra `IMCPAgentService` a `IMcpAgentService` (`S101`): `new_violations` baja de 2 a **1** (solo `S6667`, decisión justificada); `new_coverage` sigue en 82,8 %. 46 issues abiertos (1 nuevo). Es la única condición que falla. Detalle en la sección 7.10. |
+
+| 16/11/2026 (4.º) | **Passed** | A | A | El `S6667` de `GeminiMcpAgentService` se marca como *Accepted* en SonarQube, con un comentario sobre la clave de la API. **El gate pasa a `OK` en sus seis condiciones**: `new_violations` 0 y `new_coverage` 82,8 %. 45 issues abiertos (0 nuevos). Detalle en la sección 7.10. |
 
 *Agregar una fila después de cada análisis relevante.*
+
+### 7.1 Análisis del 12/11/2026: primero con cobertura
+
+El Quality Gate sigue en *Failed*, ahora con los números reales. En **código nuevo** (desde el 01/11) fallan dos
+condiciones; duplicación y *hotspots* pasan:
+
+| Condición | Resultado | Exigido |
+|---|---|---|
+| Issues nuevos | 21 (eran 22 antes de corregir las etiquetas) | 0 |
+| Cobertura nueva | 16,7 %, sobre 884 líneas a cubrir | ≥ 80 % |
+| Duplicación nueva | 0,0 % | ≤ 3 % |
+| *Hotspots* nuevos | ninguno (calificación A) | no es condición del gate |
+
+La cobertura y la duplicación se midieron en la corrida anterior de ese mismo día; el cambio posterior solo tocó
+vistas `.cshtml`, que no cuentan como líneas a cubrir.
+
+En **todo el código** hay 72 issues abiertos: 11 de confiabilidad (todos *Medium*), 1 de seguridad (*Low*) y 60 de
+mantenibilidad. El panel muestra confiabilidad **C**, seguridad **B** y mantenibilidad **A** (la calificación la fija
+el issue más grave que quede abierto). La cobertura total es de 13,0 % sobre 3,9 mil líneas a cubrir y la
+duplicación, de 0,0 % sobre 10 mil líneas.
+
+Sobre todo el código, el gate falla por **una sola condición: la calificación de seguridad (B)**. La causa es el
+único issue de seguridad abierto: la imagen del analizador corre como `root` (grupo D). La confiabilidad figura en C
+y aun así no hace fallar el gate. Por eso, de los grupos de abajo, solo el D sostiene hoy el fallo de calificación.
+Los grupos A, B, C y E mejoran la confiabilidad del código, pero solo pesan en el gate a través de la condición de
+issues nuevos cuando son de código nuevo (hoy, `CierreMantenimientoViewModel`).
+
+**Estado de los grupos de la sección 7:**
+
+| Grupo | Estado |
+|---|---|
+| A. Etiquetas de formularios | **Corregido el 12/11**: 13 issues, incluida la del selector de parque de Monitoreo. |
+| B. Código bloqueante al arrancar | **Corregido el 15/11**: `MigrateAsync()` y `RunAsync()` en `Program.cs` de Web y Collector (ver 7.3). |
+| C. Campos que pueden faltar | Pendiente (4): se sumó `CierreMantenimientoViewModel`. |
+| D. Dockerfile del analizador | **Corregido el 15/11**: el escáner corre como usuario `scanner` (ver 7.2). |
+| E. Script de la entrega | Pendiente (3): expresiones regulares de `generar-docx.py`. |
+
+**Los 21 issues nuevos**, por tipo:
+
+| Tipo | Cant. | Qué es |
+|---|---|---|
+| `S1135` | 7 | **Falsos positivos por el idioma** (ver abajo). |
+| `CA1861` | 3 | Arrays constantes en pruebas de `MonitoreoServiceTests`. |
+| `S1192`, `S1450` | 4 | Literal repetido (`MensajeExito`/`MensajeError`) y campos que pueden ser variables locales. |
+| `CA1873` | 2 | Argumentos de log que se evalúan aunque el log esté apagado. |
+| `S6964` | 1 | `CierreMantenimientoViewModel`: campo que puede llegar vacío (grupo C). |
+| `S3776`, `S101` | 2 | Complejidad cognitiva de `SeguimientoMonitoreo` (18 de 15) y nombre `IMCPAgentService`. |
+| `CA1826`, `S6667` | 2 | Método de `Enumerable` sobre lista indexable y `catch` que no pasa la excepción al log. |
+
+**Falsos positivos de `S1135` por el idioma.** La regla busca la palabra `TODO` sin distinguir mayúsculas, y en
+castellano "todo" es una palabra común ("todo el sistema", "todo lo que no cierra"). De los 15 issues `S1135` del
+proyecto, 14 son comentarios de ese tipo: se revisó línea por línea. El único `TODO` real es el de `Program.cs`
+línea 117, ligado a la etapa de seguridad (Keycloak). No se marcaron como *False positive* ni se desactivó la regla:
+el tratamiento (reescribir los comentarios, marcarlos o ajustar el perfil) queda como decisión del equipo.
+
+### 7.2 Análisis del 15/11/2026: escáner sin `root`
+
+Se corrigió el grupo D. El Quality Gate sigue en *Failed*, pero ahora **solo por dos condiciones del código nuevo**;
+las calificaciones sobre todo el código ya cumplen:
+
+| Condición | Resultado | Exigido | Estado |
+|---|---|---|---|
+| `security_rating` | A | A | OK (antes B) |
+| `reliability_rating` | A (0 *bugs*) | A | OK |
+| `blocker_violations` | 0 | 0 | OK |
+| `new_duplicated_lines_density` | 0,0 % | ≤ 3 % | OK |
+| `new_coverage` | 16,7 % | ≥ 80 % | **Falla** |
+| `new_violations` | 21 | 0 | **Falla** |
+
+Medidas sobre todo el código: 70 issues abiertos (11 de confiabilidad y 59 de mantenibilidad, según el panel), 0
+*bugs*, 0 vulnerabilidades, 0 *hotspots*, cobertura total 13,0 %, duplicación 0,0 % y 7.546 líneas de código. Las 216
+pruebas pasan (115 de Domain, 20 de Application, 70 del simulador y 11 de calidad de arquitectura).
+
+Respecto del 12/11 hay 2 issues menos (72 → 70), entre ellos `docker:S6471`; los 21 nuevos siguen siendo 21
+(sección 7.1). Siguen abiertos `S6966` ×4, `S6964` ×4 y `S6562` ×3, que suman los 11 issues de confiabilidad de
+impacto *Medium* que el panel sigue mostrando (confiabilidad C). El gate no los toma en cuenta, porque su
+`reliability_rating` está en A con 0 *bugs*. Es la misma diferencia entre panel y gate que se explica en la sección 5.
+
+Cómo se llegó, y qué decisiones quedan: el usuario sin `root` obligó a analizar sobre una copia en `/tmp` (ver
+sección 6). Para pasar el gate sobre código nuevo faltan las dos condiciones de arriba: corregir los 21 issues
+nuevos (los 7 `S1135` son falsos positivos por el idioma, ver 7.1) y subir la cobertura nueva, o ajustar esas
+condiciones con el equipo.
+
+### 7.3 Análisis del 15/11/2026 (segundo): grupo B
+
+Se corrigió el grupo B: las 4 llamadas bloqueantes del arranque pasaron a su versión asíncrona
+(`Database.MigrateAsync()` en el modo `--migrate-only` y en el arranque de desarrollo de Web, `app.RunAsync()` en
+Web y `host.RunAsync()` en Collector). Ambos `Program.cs` ya usaban instrucciones de nivel superior, así que
+alcanzó con agregar `await`; el comportamiento al arrancar no cambia, solo deja de bloquearse un hilo mientras se
+espera. Los 4 issues `S6966` desaparecieron: de 70 a 66 issues abiertos.
+
+El gate no cambia: siguen fallando `new_coverage` (16,7 %) y `new_violations` (21), porque los 4 issues corregidos
+eran de código viejo. Los 4 pertenecían a los 11 issues de confiabilidad de impacto *Medium*; quedan 7
+(`S6964` ×4 y `S6562` ×3). Cobertura total 13,0 %, duplicación 0,0 %, 7.546 líneas de código.
+
+### 7.4 Análisis del 15/11/2026 (tercero): issues nuevos sencillos
+
+Se corrigieron 8 de los 21 issues nuevos, con cambios que no alteran el comportamiento (compilan y las 216 pruebas
+pasan):
+
+| Regla | Cant. | Cambio |
+|---|---|---|
+| `S1192` | 2 | `MantenimientosController`: constantes para las claves de `TempData` que lee `_Layout.cshtml`. |
+| `CA1861` | 3 | `MonitoreoServiceTests`: los arrays de las comparaciones pasan a campos `static readonly`. |
+| `CA1826` | 1 | `MonitoreoController`: `Count > 0 ? [0] : null` en lugar de `FirstOrDefault()` sobre una lista. |
+| `S1450` | 2 | `AgenteNoConfigurado`: los campos solo se usaban en el constructor. |
+
+Resultado: de 66 a 58 issues abiertos y de 21 a 13 nuevos. La cobertura nueva figura en 16,5 % (era 16,7 %): se
+agregaron algunas líneas sin pruebas propias. El gate sigue fallando por `new_coverage` y `new_violations`.
+
+**Los 13 issues nuevos que quedan:**
+
+| Regla | Cant. | Situación |
+|---|---|---|
+| `S1135` | 7 | Falsos positivos por el idioma (sección 7.1). Decisión del equipo. |
+| `CA1873` | 2 | `RetencionTelemetriaWorker`: guardar los valores en variables locales **no** alcanzó, la regla sigue marcando las dos llamadas de log. Falta probar con `if (_logger.IsEnabled(...))` o `[LoggerMessage]`. |
+| `S6667` | 1 | `GeminiMcpAgentService`: ver abajo. |
+| `S3776` | 1 | `SeguimientoMonitoreo`: complejidad 18 de 15. Requiere refactor. |
+| `S101` | 1 | Renombrar `IMCPAgentService` a `IMcpAgentService`: toca varios módulos. **Hecho el 16/11/2026 (sección 7.10).** |
+| `S6964` | 1 | `CierreMantenimientoViewModel`: grupo C, decisión pendiente. |
+
+**`S6667` en `GeminiMcpAgentService` (propuesta, pendiente de aprobación del equipo).** El código registra solo el
+tipo de la excepción, no la excepción completa, y es deliberado: el mensaje de una excepción HTTP puede incluir la
+URL de la solicitud, y ahí puede ir la clave de la API del proveedor. Pasar la excepción al log para cumplir la
+regla arriesgaría filtrar un secreto. Se propone dejar el issue abierto y documentado como decisión justificada,
+sin marcarlo como *False positive* hasta que el equipo lo apruebe.
+
+### 7.5 Análisis del 15/11/2026 (cuarto): pruebas de `Application`
+
+Se escribieron pruebas unitarias para cuatro servicios de `Application`, con repositorios falsos en memoria (el
+proyecto no usa librerías de mocks): `MantenimientoService` (20 pruebas), `ReporteService` (10),
+`ConsultaService` (8) y `MonitoreoService.ObtenerInstantaneaAsync` (3). Las 257 pruebas pasan.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 17,4 % | **26,2 %** |
+| Cobertura total | 15,0 % | 18,0 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+Un hallazgo que conviene tener presente: **las pruebas de `MantenimientoService` subieron la cobertura total pero
+casi no movieron `new_coverage`** (de 16,5 % a 17,4 %), porque `new_coverage` solo cuenta el código nuevo o
+modificado desde el período de referencia (01/11). Para ese número sirven las pruebas de lo que se tocó después.
+
+**Qué falta cubrir del código nuevo.** Quedan 682 líneas nuevas sin cubrir en 35 archivos (según
+`api/measures/component_tree`). Agrupadas:
+
+| Zona | Líneas sin cubrir | Archivos principales |
+|---|---|---|
+| Agente y herramientas MCP | 236 | `GeminiMcpAgentService` (75), `ObtenerGeneracionHistoricaTool` (70), `ListarPanelesEnFallaTool` (26) |
+| Web (controladores, worker, `Program.cs`) | 139 | `MonitoreoTiempoRealWorker` (44), `ConsultasController` (29), `MantenimientosController` (24) |
+| JavaScript (`monitoreo.js`, `panel-detalle.js`) | 123 | El proyecto no tiene pruebas de front-end |
+| Infraestructura (inyección, repositorio) | 88 | `DependencyInjection` (54), `TelemetriaRepository` (30) |
+| Collector | 66 | `RetencionTelemetriaWorker` (59) |
+| Application | 30 | `ParqueMappings` (12), `ResumenParqueDto` (9), `ParqueService` (7) |
+
+El total de líneas nuevas a cubrir no sale directo del reporte: se estima en unas 924 (682 sin cubrir con 26,2 % de
+cobertura). Con esa estimación, llegar al 80 % exigiría cubrir unas 500 líneas más, y la mayor parte está en zonas
+que piden pruebas de integración o de infraestructura, no unitarias simples.
+
+**Decisiones pendientes (del responsable del proyecto):** si se excluyen los archivos JavaScript de la medida de
+cobertura (`sonar.coverage.exclusions`) por no haber pruebas de front-end; qué pruebas se escriben antes de la
+defensa; y qué valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
+
+### 7.6 Análisis del 15/11/2026 (quinto): pruebas de `Collector` y de los controladores
+
+Se crearon dos proyectos de prueba, que antes no existían: `tests/SolarUY.Collector.Tests` (8 pruebas de
+`RetencionTelemetriaWorker`) y `tests/SolarUY.Web.Tests` (5 de `ConsultasController` y 28 de
+`MantenimientosController`). Los dos están en `SolarUY.slnx`, así que el CI los corre con `dotnet test SolarUY.slnx`;
+los Dockerfiles publican cada proyecto por separado y no se ven afectados. Las pruebas del worker usan el
+`RetencionTelemetriaService` real dentro de un contenedor de servicios real y esperan con `TaskCompletionSource` en
+lugar de dormir, para no depender de tiempos. Las 298 pruebas pasan.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 26,2 % | **39,1 %** |
+| Cobertura total | 18,0 % | 25,0 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+La estimación previa era de 36 a 38 %; el resultado real quedó algo por encima. `RetencionTelemetriaWorker` pasó de
+59 a 2 líneas sin cubrir, y `ConsultasController` y `MantenimientosController` salieron por completo de la lista de
+archivos con código nuevo sin cubrir.
+
+**Qué falta cubrir del código nuevo.** Quedan 561 líneas nuevas sin cubrir (antes 682), según
+`api/measures/component_tree`:
+
+| Zona | Líneas sin cubrir | Archivos principales |
+|---|---|---|
+| Agente y herramientas MCP | 236 | `GeminiMcpAgentService` (75), `ObtenerGeneracionHistoricaTool` (70), `ListarPanelesEnFallaTool` (26) |
+| JavaScript (`monitoreo.js`, `panel-detalle.js`) | 123 | El proyecto no tiene pruebas de front-end |
+| Infraestructura (inyección, repositorio) | 88 | `DependencyInjection` (54), `TelemetriaRepository` (30) |
+| Web (worker, `Program.cs`, otros) | 79 | `MonitoreoTiempoRealWorker` (44), `Program.cs` (18), `MonitoreoController` (10) |
+| Application | 29 | `ParqueMappings` (12), `ResumenParqueDto` (9), `ParqueService` (7) |
+| Collector | 6 | `Program.cs` (4), `RetencionTelemetriaWorker` (2) |
+
+**Cuánto falta para el 80 %.** El total de líneas nuevas a cubrir se estima en unas 920 (561 sin cubrir con 39,1 %
+de cobertura); es una estimación, no un dato del reporte. Con ella, llegar al 80 % exige cubrir unas 380 líneas más.
+Si se excluyeran los dos archivos JavaScript de la medida, el total bajaría a unas 800 líneas, la cobertura actual
+equivaldría a un 45 % aproximado y faltarían unas 280 líneas. En ambos casos la mayor parte está en el agente y las
+herramientas MCP (que dependen de un proveedor externo o de acceso a datos) y en `Infrastructure`, que piden pruebas
+con dobles de HTTP o de base de datos, bastante más costosas que las pruebas unitarias de los servicios.
+
+**Decisiones pendientes (del responsable del proyecto):** si se excluyen los archivos JavaScript de la medida de
+cobertura (`sonar.coverage.exclusions`); si se escriben pruebas de las herramientas MCP antes de la defensa; y qué
+valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
+
+### 7.7 Análisis del 15/11/2026 (sexto): herramientas MCP
+
+Se creó el proyecto `tests/SolarUY.Infrastructure.Tests` con 31 casos para las cinco herramientas MCP que usa el
+agente (`listar_parques`, `obtener_resumen_parque`, `listar_paneles_en_falla`, `obtener_generacion_hoy` y
+`obtener_generacion_historica`). Se llama a cada método directamente, sin servidor MCP ni red, con repositorios
+falsos en memoria, y se verifica el texto o el JSON que le llegaría al modelo: identificadores y agrupaciones
+inválidos, fechas mal escritas, parque inexistente, rango invertido, el recorte a 200 paneles en falla y el tope de
+400 períodos. De paso se ejercitan `ParqueService`, `ParqueMappings`, `ReporteService` y `PanelService`.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 39,1 % | **58,7 %** |
+| Cobertura total | 25,0 % | 30,4 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+La estimación previa era de 55 a 58 %. Quedaron sin cubrir 396 líneas nuevas (antes 561).
+
+### 7.8 Análisis del 15/11/2026 (séptimo): monitoreo en tiempo real y registro de servicios
+
+Se agregaron 21 casos: `MonitoreoTiempoRealWorker` (deshabilitado, primera vuelta, segunda vuelta con falla y lectura
+nuevas, error en una vuelta), `MonitoreoController` (qué parque queda elegido), `MonitoreoHub` (a qué grupo se
+suscribe cada conexión), `DependencyInjection` (qué repositorios y clientes se registran, y qué agente se resuelve
+según la configuración) y `AgenteNoConfigurado`. El worker se prueba con un hub falso que anota lo enviado a cada
+grupo y espera con un tope, para que una prueba nunca quede colgada. Nada abre conexiones reales.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 58,7 % | **73,1 %** |
+| Cobertura total | 30,4 % | 34,4 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+La estimación previa era de 68 a 72 %. En este punto el *Quality Gate* sigue en `ERROR` por dos condiciones:
+`new_coverage` (73,1 % contra 80 %) y `new_violations` (13 contra 0). Seguridad y confiabilidad están en A.
+
+**Qué falta cubrir del código nuevo.** Quedan 263 líneas nuevas sin cubrir:
+
+| Zona | Líneas sin cubrir | Archivos principales |
+|---|---|---|
+| JavaScript (`monitoreo.js`, `panel-detalle.js`) | 123 | El proyecto no tiene pruebas de front-end |
+| Agente Gemini | 66 | `GeminiMcpAgentService`: la conversación necesita un servidor MCP real o un doble de HTTP |
+| Persistencia | 34 | `TelemetriaRepository` (30), `TareaMantenimientoConfiguration` y `LecturaTelemetriaConfiguration`: piden una base de datos |
+| Arranque (`Program.cs`) | 35 | Web (18), `McpServer` (13), Collector (4) |
+| Otros | 5 | `RetencionTelemetriaWorker` (2), `HomeController`, `AyudaController`, `MonitoreoNodoDto` (1 cada uno) |
+
+**Cuánto falta para el 80 %.** El total de líneas nuevas a cubrir se estima en unas 980 (263 sin cubrir con 73,1 %);
+es una estimación, no un dato del reporte, porque la cobertura de Sonar también cuenta condiciones. Con ella:
+
+- sin tocar la medida, faltarían unas 70 líneas más, y las que quedan son las más caras de probar (agente Gemini,
+  base de datos y arranque de la aplicación);
+- excluyendo los dos archivos JavaScript, el total bajaría a unas 860 líneas y la cobertura actual equivaldría a un
+  83 % aproximado, por encima del umbral.
+
+**Decisiones pendientes (del responsable del proyecto):** si se excluyen los archivos JavaScript de la medida de
+cobertura (`sonar.coverage.exclusions`), si se prueban los caminos de falla del agente Gemini, y qué hacer con las
+`new_violations`, que aun con la cobertura resuelta mantienen el gate en `ERROR` (siete son `S1135`, falsos
+positivos por la palabra "todo" en español).
+
+### 7.9 Análisis del 15/11 y del 16/11/2026: `CA1873`, JavaScript fuera de la cobertura y `SeguimientoMonitoreo`
+
+**`CA1873` en `RetencionTelemetriaWorker`.** Los dos mensajes de nivel *Information* quedaron dentro de
+`if (_logger.IsEnabled(LogLevel.Information))`, que es la forma que propone el propio analizador. El intento anterior
+(guardar los valores en variables locales) no había funcionado. Como `NullLogger` informa que ese nivel está
+apagado, se agregaron dos pruebas con un logger que lo habilita para que esas líneas sigan cubiertas.
+`new_violations` bajó de 13 a 11.
+
+**JavaScript fuera de la cobertura y `S3776`.** `monitoreo.js` y `panel-detalle.js` pasaron a
+`sonar.coverage.exclusions` (sección 5) y se dividió `SeguimientoMonitoreo.Comparar` en métodos más chicos, sin
+cambiar su comportamiento: las 7 pruebas existentes y las del worker de monitoreo siguen pasando.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 73,3 % | **82,8 %** (umbral: 80) |
+| Cobertura total | 34,5 % | 35,5 % |
+| `new_violations` | 11 | 10 |
+| Issues abiertos / nuevos | 56 / 11 | 55 / 10 |
+
+La estimación previa para `new_coverage` era de ~83 %. **El valor de 82,8 % no es comparable con los anteriores:
+excluye los dos archivos JavaScript** (sección 5). La condición `new_coverage` pasa de `ERROR` a `OK`; el gate sigue
+en `ERROR` solo por `new_violations`.
+
+**Qué falta cubrir del código nuevo.** Quedan 140 líneas: `GeminiMcpAgentService` (66), `TelemetriaRepository` (30,
+pide base de datos), los `Program.cs` de Web (18), `McpServer` (13) y Collector (4), y unas 9 más repartidas en
+configuraciones de EF y controladores triviales.
+
+**Los 10 issues nuevos que quedan.**
+
+| Issue | Cantidad | Qué es |
+|---|---|---|
+| `S1135` | 7 | Falsos positivos: la palabra "todo" en español dentro de comentarios ("todo el sistema", "todo el año"). No hay tareas pendientes. Están en `MantenimientosController`, `RetencionTelemetriaService`, `MonitoreoTiempoRealWorker`, `SeguimientoMonitoreo`, `DependencyInjection`, `ReporteService` y `GeneracionPeriodoDto`. |
+| `S6667` | 1 | `GeminiMcpAgentService`: no se pasa la excepción al log a propósito, porque su mensaje podría incluir la clave de la API. |
+| `S101` | 1 | `IMCPAgentService` debería llamarse `IMcpAgentService`; el cambio toca varios módulos. |
+| `S6964` | 1 | `CierreMantenimientoViewModel`: campo de fecha obligatoria; es el grupo C de la sección 7.1. |
+
+**Decisiones pendientes (del responsable del proyecto), resueltas después en la sección 7.10:** qué hacer con estos 10: reescribir los 7 comentarios que
+contienen "todo", dejar `S6667` justificado, renombrar la interfaz y tratar el grupo C, o presentarlos en la
+defensa con su justificación sin modificarlos.
+
+### 7.10 Análisis del 16/11/2026: de 10 a 1 issue nuevo
+
+Se corrigieron dos grupos de los 10 issues nuevos de la sección 7.9. Todos los cambios fueron aprobados por el
+responsable del proyecto antes de aplicarse.
+
+**`S1135` (7 issues): comentarios reescritos.** Eran falsos positivos por el idioma (la palabra "todo" en
+castellano). En vez de marcarlos en el servidor, se reformularon los comentarios para evitar esa palabra, en
+`MantenimientosController`, `RetencionTelemetriaService`,
+`MonitoreoTiempoRealWorker`, `SeguimientoMonitoreo`, `DependencyInjection`, `ReporteService` y
+`GeneracionPeriodoDto`. No cambia código ejecutable. **Los siete eran de código nuevo y ya no cuentan; los 8
+`S1135` que siguen abiertos están en código que no es nuevo y no afectan al gate.**
+
+**`S6964` en `CierreMantenimientoViewModel`.** `FechaRealizada` pasó de `DateTime` a `DateTime?`, con `[Required]`.
+Si la fecha llega vacía, `MantenimientosController.Completar` no cierra el mantenimiento: guarda un mensaje de error
+y vuelve al detalle. Antes, una fecha vacía llegaba como `0001-01-01` y se tomaba como fecha de cierre válida.
+Hay una prueba de ese caso. Es el primer issue del grupo C resuelto; los otros tres `S6964`
+(`MantenimientoFormViewModel`, `NodoFormViewModel` y `PanelFormViewModel`) siguen abiertos, no son código nuevo y
+tocan formularios de otros integrantes.
+
+**`S101`: `IMCPAgentService` pasa a `IMcpAgentService`.** Solo cambia el nombre de la interfaz y sus usos: 5 archivos de
+`src`, 3 de pruebas y `specs.md`. No cambia comportamiento y las 353 pruebas pasan. Los archivos de `prompting/`
+conservan el nombre viejo a propósito: son el registro histórico del diseño.
+
+> **Detalle técnico: renombrar solo cambiando mayúsculas en Windows.** `git apply` de un parche que renombra
+> `IMCPAgentService.cs` a `IMcpAgentService.cs` falla en Windows ("already exists in working directory"): para el
+> sistema de archivos son el mismo archivo. Se resolvió con `git mv` en dos pasos (a un nombre intermedio y luego al
+> definitivo) y reemplazo del texto en los archivos.
+
+| Medida | 16/11 (sección 7.9) | Tras `S1135` y `S6964` | Tras `S101` |
+|---|---|---|---|
+| `new_coverage` (código nuevo) | 82,8 % | 82,8 % | **82,8 %** (umbral: 80) |
+| Cobertura total | 35,5 % | 35,6 % | 35,6 % |
+| `new_violations` | 10 | 2 | **1** (umbral: 0) |
+| Issues abiertos / nuevos | 55 / 10 | 47 / 2 | **46 / 1** |
+| Confiabilidad / seguridad | A / A | A / A | A / A |
+| Duplicación (código nuevo) | 0,0 % | 0,0 % | 0,0 % |
+| Líneas de código | 7.567 | 7.567 | 7.567 |
+
+**El único issue nuevo: `S6667` en `GeminiMcpAgentService`, línea 91.** La regla pide pasar la excepción al log. No
+se hizo a propósito: el mensaje de una excepción HTTP puede incluir la URL de la solicitud y ahí puede ir la clave
+de la API del proveedor (sección 7.4). El gate quedaba en `ERROR` **solo por esta condición**. El responsable del
+proyecto decidió el 16/11/2026 marcar el issue como *Accepted* en la interfaz de SonarQube, con un comentario que
+explica el riesgo y remite a esta sección. En el análisis siguiente **el Quality Gate pasó a `OK` con sus seis
+condiciones**: `new_violations` 0, `new_coverage` 82,8 %, duplicación 0,0 %, sin *Blocker* y seguridad y
+confiabilidad en A. Quedan 45 issues abiertos y ninguno es nuevo; el aceptado ya no se cuenta.
+
+> **Alcance de la decisión.** El estado *Accepted* vive en la base del SonarQube local, no en el repositorio.
+> Quien analice en otro servidor tiene que repetirlo. Si se modifica esa línea del código, SonarQube puede volver a
+> mostrar el issue como nuevo y habrá que aceptarlo de nuevo.
+
+**El panel de todo el código muestra confiabilidad C.** No contradice el gate. La condición `reliability_rating` del
+gate se calcula con los *bugs* (hay 0) y da A; el panel califica por el impacto de cada issue, y los 6 de
+confiabilidad que siguen abiertos tienen impacto *Medium*: `S6562` ×3 en `TelemetriaRepository` (líneas 166, 188 y
+209: `DateTime` sin `DateTimeKind`) y `S6964` ×3 en `MantenimientoFormViewModel`, `NodoFormViewModel` y
+`PanelFormViewModel` (`Guid` de formulario que puede llegar vacío). La seguridad figura en A (0 issues) y la
+mantenibilidad en A (39 issues).
+
+**Código nuevo que sigue sin cubrirse** (sin cambios desde 7.9): `GeminiMcpAgentService` (66 líneas),
+`TelemetriaRepository` (30), `Program.cs` de Web (18), de `McpServer` (13) y de Collector (4), más unas 9 en
+configuraciones de EF y controladores triviales.
 
 ## 8. Problemas típicos
 
@@ -193,24 +594,45 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | `admin` / `admin` no entra | La clave ya se había cambiado. | Si no hay nada que conservar, `down -v` y empezar de cero. |
 | Quality Gate *Failed* | Hay issues que superan lo permitido. | Leer **Overview** e **Issues** y corregir en el código. |
 | Avisos de "blame" de archivos del simulador | El submódulo tiene su propio git. | Se pueden ignorar. |
+| Cambié `entrypoint.sh` y el análisis sigue haciendo lo de antes | `analizar` solo construye la imagen si no existe, y el `entrypoint.sh` va copiado adentro de ella. | `docker build -t solaruy-scanner tools/SonarQube/scanner` y repetir. |
+| `Access to the path '/app/.sonarqube/...' is denied` | El contenedor corre sin `root` y analiza directo sobre la carpeta montada, que no es escribible. | Usar el `entrypoint.sh` que copia el código a `/tmp`, reconstruir la imagen y repetir. |
+| El análisis se corta en "Ejecutando pruebas con cobertura" | Hay una prueba fallando. | Correr `dotnet test SolarUY.slnx` en la máquina y corregir la prueba. |
 
 ## 9. Limitaciones
 
-- **Sin cobertura de pruebas, y por eso el gate no puede pasar.** El análisis no ejecuta las pruebas, así que la
-  cobertura figura en 0 %. Como el gate exige `new_coverage` de al menos 80 % sobre el código nuevo, esa
-  condición falla siempre: el gate no va a pasar hasta que se recoja cobertura o el equipo decida cambiar la
-  condición.
+- **La cobertura cumple el umbral, pero con dos archivos JavaScript fuera de la medida.** Desde el 12/11 el análisis
+  ejecuta las pruebas y envía la cobertura (antes figuraba en 0 %). El 12/11 el resultado era 16,7 % sobre el código
+  nuevo; el 16/11 es 82,8 %, contra el 80 % que exige el gate (secciones 7.5 a 7.9). Ese valor excluye
+  `monitoreo.js` y `panel-detalle.js`, que no tienen pruebas de front-end (sección 5); con ellos incluidos eran
+  73,3 %. El dominio, los servicios de `Application`, los workers, los controladores principales, las herramientas
+  MCP y el registro de servicios están probados; el agente Gemini, el repositorio de telemetría y los `Program.cs`
+  no, y ahí están las 140 líneas nuevas sin cubrir.
+- **La exclusión del simulador no alcanza a sus pruebas.** `SolarUY.SensorSimulator/**` deja afuera el código del
+  simulador, pero dos issues (`CA1861`) de `SolarUY.SensorSimulator.Tests` siguen apareciendo. La causa probable es
+  que el escáner de .NET resuelve las exclusiones respecto de la carpeta de cada proyecto. No afecta al gate: no son
+  código nuevo ni de confiabilidad o seguridad.
 - **Local y por persona.** Cada integrante tiene su propio servidor, token y resultados: no hay un SonarQube compartido.
 - **En el CI es opcional.** El workflow `.github/workflows/sonar.yml` ya está escrito, pero se saltea mientras el
   repositorio no tenga la variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN` apuntando a un
   servidor alcanzable desde el runner.
 - **El gate es estricto sobre todo el código**, no solo sobre el código nuevo de cada cambio.
+- **El gate pasa con un issue aceptado.** El `S6667` de `GeminiMcpAgentService` se marcó como *Accepted* en el servidor local (sección 7.10); corregirlo expondría la clave de la API en los registros. El estado no está en el repositorio.
+- **El panel de todo el código muestra confiabilidad C** por 6 issues de impacto *Medium* (`S6562` ×3 y `S6964` ×3, sección 7.10) que no son *bugs* y no hacen fallar el gate.
 - **No cubre la arquitectura.** Las reglas de capas y nombres las verifica `tests/CodeQuality.Tests` (ArchUnitNET),
   que ya existe y corre en el CI con el resto de las pruebas.
 
 ## 10. Próximos pasos
 
 1. Activar `sonar.yml`: variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN`.
-2. Sumar cobertura de pruebas al análisis, para que el gate pueda pasar.
-3. Corregir los issues de los grupos A a E.
-4. Reducir la complejidad de los métodos señalados.
+2. Confirmar con el equipo el criterio de cobertura (82,8 % con los dos JavaScript excluidos, sección 5) (la cobertura del código completo sigue en 35,6 %).
+3. Pruebas de `Application`: ya están `Mantenimiento`, `Reporte`, `Consulta` y `Monitoreo`. También están el worker de
+   retención y los controladores `Consultas` y `Mantenimientos`. Faltan `Nodo`, `Panel`, `Parque` y
+   `VerificacionVinculacion`, y los caminos de falla del agente Gemini; para `new_coverage` pesan más los
+   archivos tocados desde el 01/11 (secciones 7.5 a 7.8).
+4. Los grupos A, B y D ya están corregidos (el D dejó la seguridad en A). Del grupo C (campos que pueden faltar,
+   `S6964`) se corrigió `CierreMantenimientoViewModel`; quedan tres formularios (`MantenimientoFormViewModel`,
+   `NodoFormViewModel`, `PanelFormViewModel`) que tocan módulos de otros integrantes y hay que acordar con el equipo; mejora la confiabilidad
+   aunque hoy no haga fallar el gate.
+5. Los falsos positivos de `S1135` del código nuevo se resolvieron reescribiendo los comentarios (sección 7.10); quedan 8 en código viejo que no afectan al gate.
+6. `S3776` en código nuevo ya está resuelto (`SeguimientoMonitoreo`); queda `ComparadorVinculacion`, que no es código
+   nuevo y por eso no afecta al gate.

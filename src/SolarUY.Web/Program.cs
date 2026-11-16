@@ -163,7 +163,7 @@ var app = builder.Build();
 if (args.Contains("--migrate-only"))
 {
     using var alcanceMigracion = app.Services.CreateScope();
-    alcanceMigracion.ServiceProvider.GetRequiredService<SolarUYDbContext>().Database.Migrate();
+    await alcanceMigracion.ServiceProvider.GetRequiredService<SolarUYDbContext>().Database.MigrateAsync();
 
     // El anillo de claves se crea acá, con un solo proceso y antes de que arranquen las réplicas.
     // Si las dos arrancaran con el volumen vacío, cada una generaría la suya y una no podría
@@ -208,7 +208,7 @@ if (app.Environment.IsDevelopment())
     {
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<SolarUYDbContext>();
-        context.Database.Migrate();
+        await context.Database.MigrateAsync();
     }
 
     // Datos de ejemplo para no arrancar con el ABM vacío: un parque, un nodo con su sensor
@@ -256,4 +256,4 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-app.Run();
+await app.RunAsync();

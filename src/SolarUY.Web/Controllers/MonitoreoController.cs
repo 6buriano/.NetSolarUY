@@ -22,7 +22,7 @@ public class MonitoreoController : Controller
         var (instantanea, _) = await _monitoreoService.ObtenerInstantaneaAsync(cancellationToken);
 
         var parque = instantanea.Parques.FirstOrDefault(p => p.ParqueId == parqueId)
-                     ?? instantanea.Parques.FirstOrDefault();
+                     ?? (instantanea.Parques.Count > 0 ? instantanea.Parques[0] : null);
 
         return View(new MonitoreoIndexViewModel { Instantanea = instantanea, Parque = parque });
     }

@@ -9,20 +9,14 @@ namespace SolarUY.Infrastructure.Consultas;
 /// en el log qué claves faltan (nunca sus valores) y devuelve el mismo mensaje de falla que un
 /// proveedor caído, para que la web arranque y el usuario reciba un texto entendible.
 /// </summary>
-public sealed class AgenteNoConfigurado : IMCPAgentService
+public sealed class AgenteNoConfigurado : IMcpAgentService
 {
-    private readonly ILogger<AgenteNoConfigurado> _logger;
-    private readonly string _faltantes;
-
     public AgenteNoConfigurado(ILogger<AgenteNoConfigurado> logger, string faltantes)
     {
-        _logger = logger;
-        _faltantes = faltantes;
-
-        _logger.LogWarning(
+        logger.LogWarning(
             "El agente de consultas no está configurado: falta {Faltantes}. Las consultas en lenguaje " +
             "natural van a devolver el mensaje de falla hasta que se complete la configuración.",
-            _faltantes);
+            faltantes);
     }
 
     public Task<ConsultaLenguajeNaturalResponse> ConsultarAsync(string pregunta,

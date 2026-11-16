@@ -16,9 +16,9 @@ public class ConsultaService
     /// </summary>
     public const int LargoMaximoPregunta = 500;
 
-    private readonly IMCPAgentService _agente;
+    private readonly IMcpAgentService _agente;
 
-    public ConsultaService(IMCPAgentService agente)
+    public ConsultaService(IMcpAgentService agente)
     {
         _agente = agente;
     }

@@ -10,6 +10,9 @@ namespace SolarUY.Application.Tests.Services;
 public class MonitoreoServiceTests
 {
     private static readonly DateTime Ahora = new(2026, 11, 11, 15, 0, 0, DateTimeKind.Utc);
+    private static readonly string[] ParquesOrdenados = ["Alfa", "Zeta"];
+    private static readonly string[] NodosOrdenados = ["Nodo A", "Nodo B"];
+    private static readonly string[] PanelesOrdenados = ["P01", "P02"];
 
     [Fact]
     public void ArmarInstantanea_ConVariasLecturasDelMismoPanel_TomaLaMasReciente()
@@ -110,10 +113,10 @@ public class MonitoreoServiceTests
 
         var instantanea = MonitoreoService.ArmarInstantanea([zeta, alfa], [], Ahora);
 
-        Assert.Equal(new[] { "Alfa", "Zeta" }, instantanea.Parques.Select(parque => parque.Nombre));
+        Assert.Equal(ParquesOrdenados, instantanea.Parques.Select(parque => parque.Nombre));
         var parqueZeta = instantanea.Parques.Single(parque => parque.Nombre == "Zeta");
-        Assert.Equal(new[] { "Nodo A", "Nodo B" }, parqueZeta.Nodos.Select(nodo => nodo.Nombre));
-        Assert.Equal(new[] { "P01", "P02" }, parqueZeta.Nodos[0].Paneles.Select(panel => panel.CodigoPanel));
+        Assert.Equal(NodosOrdenados, parqueZeta.Nodos.Select(nodo => nodo.Nombre));
+        Assert.Equal(PanelesOrdenados, parqueZeta.Nodos[0].Paneles.Select(panel => panel.CodigoPanel));
     }
 
     [Fact]

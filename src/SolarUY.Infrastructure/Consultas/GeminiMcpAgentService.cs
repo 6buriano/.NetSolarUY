@@ -13,7 +13,7 @@ namespace SolarUY.Infrastructure.Consultas;
 /// pregunta y devuelve la respuesta. El ciclo de "Gemini pide una herramienta, se ejecuta y se le
 /// devuelve el resultado" lo resuelve la librería; acá solo se conecta el MCP con el chat.
 /// </summary>
-public sealed class GeminiMcpAgentService : IMCPAgentService
+public sealed class GeminiMcpAgentService : IMcpAgentService
 {
     /// <summary>Texto único que ve el usuario cuando la consulta no se pudo completar.</summary>
     public const string MensajeDeFalla =
@@ -79,7 +79,7 @@ public sealed class GeminiMcpAgentService : IMCPAgentService
         catch (Exception excepcion)
         {
             // Excepción DELIBERADA a la regla 5 §4 ("no capturar Exception genérica"). Esa regla
-            // protege a los controladores de tapar bugs; acá el contrato de IMCPAgentService es no
+            // protege a los controladores de tapar bugs; acá el contrato de IMcpAgentService es no
             // lanzar nunca por fallas del proveedor (sin red, clave inválida, cuota, timeout, URL
             // mal formada, JSON roto), y esos son tipos que no se pueden enumerar de antemano sin
             // que la lista quede incompleta y el usuario vea una página de error. Se registra el

@@ -418,3 +418,7 @@ el workflow `sonar.yml` está listo, pero necesita la variable `SONAR_ENABLED` y
 La documentación del sistema, con la arquitectura, el modelo de dominio, las funcionalidades y el proceso de
 desarrollo, está en [`Documentacion/DOCUMENTACION-SolarUY.md`](Documentacion/DOCUMENTACION-SolarUY.md).
 
+Para mostrar la solución: el video de la demo (`Documentacion/video/demo-solaruy.mp4`), la presentación con
+el guion en las notas (`Documentacion/PRESENTACION-SolarUY.pptx`) y, si se quiere grabar con voz propia, el
+instructivo [`Documentacion/COMO-GRABAR-EL-VIDEO.md`](Documentacion/COMO-GRABAR-EL-VIDEO.md).
+
