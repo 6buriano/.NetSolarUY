@@ -57,6 +57,7 @@ jobs:
             /d:sonar.host.url="$SONAR_HOST_URL" \
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.exclusions="**/Migrations/**,**/wwwroot/lib/**,SolarUY.SensorSimulator/**" \
+            /d:sonar.coverage.exclusions="**/wwwroot/js/monitoreo.js,**/wwwroot/js/panel-detalle.js" \
             /d:sonar.cs.opencover.reportsPaths="$RUNNER_TEMP/cobertura/**/coverage.opencover.xml" \
             /d:sonar.qualitygate.wait=true
 

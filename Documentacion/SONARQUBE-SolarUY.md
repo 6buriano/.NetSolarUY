@@ -142,6 +142,20 @@ equipo. Se excluyen estas rutas, definidas en `scanner/entrypoint.sh`:
 | `**/wwwroot/lib/**` | Bootstrap y jQuery de la plantilla MVC. |
 | `SolarUY.SensorSimulator/**` | El mock del hardware: es otro repositorio (submódulo). |
 
+Además, dos archivos se **analizan pero no cuentan para la cobertura** (`sonar.coverage.exclusions`, definido en el
+mismo `entrypoint.sh` y en `sonar.yml`):
+
+| Archivo | Motivo |
+|---|---|
+| `src/SolarUY.Web/wwwroot/js/monitoreo.js` | JavaScript del front-end: el proyecto no tiene herramientas de prueba de front-end y la cobertura de .NET no mide JavaScript. |
+| `src/SolarUY.Web/wwwroot/js/panel-detalle.js` | Ídem. |
+
+Se listan los dos archivos y no la carpeta, para que un JavaScript nuevo sí cuente. Siguen apareciendo en el análisis
+de calidad (reglas de código); lo único que se les quita es la expectativa de cobertura. Es una decisión del
+responsable del proyecto, tomada el 16/11/2026 después de cubrir con pruebas el resto del código nuevo (sección 7.8).
+**Los valores de `new_coverage` anteriores a esa fecha (de 12 % a 73 %) se midieron con los dos archivos incluidos y
+no son comparables con los posteriores.**
+
 ## 6. Decisiones tomadas
 
 El entorno parte del que provee la cátedra (`ControlCalidad/SonarQube` del repositorio del taller), con estos
@@ -159,6 +173,7 @@ cambios:
 | `sed` de finales de línea en el Dockerfile | Si el repo se clona en Windows con CRLF, `bash` no puede ejecutar `entrypoint.sh`. |
 | Las pruebas corren dentro del análisis, con cobertura en formato OpenCover | Sin ellas SonarQube no recibe datos y muestra 0 % de cobertura aunque haya pruebas. Si una prueba falla, el análisis se corta: no tiene sentido evaluar la calidad de código que no pasa sus pruebas. (12/11/2026) |
 | Los reportes de cobertura se guardan en `/tmp` del contenedor | No ensucian el repo con carpetas generadas. |
+| `monitoreo.js` y `panel-detalle.js` no cuentan para la cobertura | Eran 123 de las 263 líneas nuevas sin cubrir y el proyecto no tiene pruebas de front-end. Se excluyen los dos archivos, no la carpeta, y se documenta que la serie de `new_coverage` cambia de criterio. (16/11/2026) |
 
 ## 7. Primer análisis (01/11/2026)
 

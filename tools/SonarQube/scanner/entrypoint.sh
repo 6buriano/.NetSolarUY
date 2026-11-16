@@ -30,6 +30,12 @@ cd "$WORK_DIR"
 #  - SolarUY.SensorSimulator: es el mock del hardware, un repositorio aparte (submódulo).
 EXCLUSIONES="**/Migrations/**,**/wwwroot/lib/**,SolarUY.SensorSimulator/**"
 
+# Qué se sigue analizando pero NO cuenta para la cobertura:
+#  - monitoreo.js y panel-detalle.js: JavaScript del front-end (123 líneas nuevas sin cubrir). El proyecto
+#    no tiene herramientas de prueba de front-end y la cobertura de .NET (coverlet) no mide JavaScript.
+#    Se listan los dos archivos a propósito, no la carpeta: así un JavaScript nuevo sí cuenta.
+EXCLUSIONES_COBERTURA="**/wwwroot/js/monitoreo.js,**/wwwroot/js/panel-detalle.js"
+
 # Dónde coverlet deja los reportes de cobertura. Va dentro del contenedor (no en /app) para no
 # ensuciar el repo del usuario con carpetas generadas. Se limpia antes por si quedó algo de una corrida previa.
 COBERTURA_DIR="/tmp/solaruy-cobertura"
@@ -43,6 +49,7 @@ dotnet sonarscanner begin \
   /d:sonar.host.url="$SONAR_HOST_URL" \
   /d:sonar.token="$SONAR_TOKEN" \
   /d:sonar.exclusions="$EXCLUSIONES" \
+  /d:sonar.coverage.exclusions="$EXCLUSIONES_COBERTURA" \
   /d:sonar.cs.opencover.reportsPaths="$COBERTURA_DIR/**/coverage.opencover.xml" \
   /d:sonar.qualitygate.wait=true
 
