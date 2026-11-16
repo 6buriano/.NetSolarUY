@@ -40,8 +40,8 @@ Todo corre en Docker: no hace falta instalar Java, SonarScanner ni nada en la m�
 | Archivo | Qué hace |
 |---|---|
 | `docker-compose.yml` | Levanta el servidor SonarQube (edición Community) y su base Postgres. Solo escucha en `127.0.0.1:9000`. |
-| `scanner/Dockerfile` | Imagen del analizador: SDK de .NET 10, Java (lo pide SonarScanner) y `dotnet-sonarscanner`. |
-| `scanner/entrypoint.sh` | Lo que corre dentro del contenedor: `begin`, `dotnet build`, `dotnet test` con cobertura y `end`. Acá están las exclusiones. |
+| `scanner/Dockerfile` | Imagen del analizador: SDK de .NET 10, Java (lo pide SonarScanner) y `dotnet-sonarscanner`. Corre como usuario `scanner`, no como `root`. |
+| `scanner/entrypoint.sh` | Lo que corre dentro del contenedor: copia el código a `/tmp`, `begin`, `dotnet build`, `dotnet test` con cobertura y `end`. Acá están las exclusiones. |
 | `analizar.ps1` / `analizar.sh` | Lo que se ejecuta desde la máquina: valida, configura el Quality Gate y lanza el contenedor. |
 
 ## 3. Primera vez
@@ -121,14 +121,15 @@ Lo crea `analizar` con las condiciones del taller y lo deja como predeterminado 
 | `new_violations` | hay más de 0 issues nuevos |
 | `new_coverage` | la cobertura del código nuevo es menor a 80 % |
 | `new_duplicated_lines_density` | la duplicación del código nuevo supera el 3 % |
-| `new_security_hotspots_reviewed` | se revisó menos del 100 % de los *hotspots* nuevos |
 | `blocker_violations` | hay algún issue *Blocker* |
 | `security_rating` | es peor que A |
 | `reliability_rating` | es peor que A |
 
-Las dos calificaciones se miden sobre **todo el código** del proyecto; las cuatro primeras, sobre el **código
-nuevo** de cada cambio. Una calificación A significa que **no queda ningún issue** de esa cualidad, de ninguna
-severidad. Por eso un solo problema menor alcanza para que el gate falle.
+Las dos calificaciones se miden sobre **todo el código** del proyecto; las tres primeras, sobre el **código
+nuevo** de cada cambio. Las calificaciones del gate (`security_rating`, `reliability_rating`) dependen de los
+issues de tipo vulnerabilidad y *bug*: con 0 vulnerabilidades y 0 *bugs* quedan en A. Un solo problema de esos
+tipos, aunque sea menor, alcanza para que el gate falle. La condición de *hotspots* revisados no está en el gate
+que se ve en el servidor (se comprobó el 15/11 con la API); los *hotspots* se revisan igual en el panel.
 
 ### Qué se analiza y qué no
 
@@ -148,6 +149,8 @@ cambios:
 
 | Decisión | Por qué |
 |---|---|
+| El analizador corre como usuario `scanner`, no como `root` | Sonar marcaba `docker:S6471` (la imagen corría como `root`), el único issue de seguridad y lo que dejaba la calificación en B. (15/11/2026) |
+| El contenedor analiza una **copia** del código en `/tmp` | La carpeta del repo montada desde Windows llega como propiedad de `root` y el usuario `scanner` no puede escribir ahí (`.sonarqube`, `bin`, `obj`). Copiar evita dar permisos de más y deja el repo sin archivos generados. Se excluyen `bin`, `obj`, `.sonarqube` y `node_modules` de la copia. (15/11/2026) |
 | El token se pasa por variable de entorno | La regla 7 de `.agents/rules/6_flujo_trabajo_ia.md` prohíbe secretos en archivos versionados. |
 | El contenedor llega al servidor por `host.docker.internal` | `--network host` puede no funcionar en Docker Desktop para Windows; esta forma sirve en Windows, Mac y Linux. |
 | `sonar.token` en lugar de `sonar.login` | `sonar.login` está obsoleto. |
@@ -183,6 +186,7 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 01/11/2026 | Failed | C | B | Primer análisis, 23 issues (ver arriba). |
 | 09/11/2026 | Failed | C | B | Tras req011: 23 issues de confiabilidad/seguridad, todos de los grupos A–E (A 12, B 4, C 3, D 1, E 3); req011 no agrega ninguno. 7 issues nuevos de mantenibilidad (Low/Info); cobertura nueva 0 % (limitación conocida). |
 | 12/11/2026 | Failed | C | B | Primer análisis **con cobertura**: 16,7 % sobre código nuevo. 72 issues abiertos (21 nuevos): 11 de confiabilidad, 1 de seguridad, 60 de mantenibilidad. Se corrigió el grupo A (13 issues de etiquetas). Detalle en la sección 7.1. |
+| 15/11/2026 | Failed | A | A | Escáner sin `root` (grupo D corregido): la seguridad pasa a A. 70 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades. Solo fallan `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.2. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -196,7 +200,7 @@ condiciones; duplicación y *hotspots* pasan:
 | Issues nuevos | 21 (eran 22 antes de corregir las etiquetas) | 0 |
 | Cobertura nueva | 16,7 %, sobre 884 líneas a cubrir | ≥ 80 % |
 | Duplicación nueva | 0,0 % | ≤ 3 % |
-| *Hotspots* nuevos | ninguno (calificación A) | 100 % revisados |
+| *Hotspots* nuevos | ninguno (calificación A) | no es condición del gate |
 
 La cobertura y la duplicación se midieron en la corrida anterior de ese mismo día; el cambio posterior solo tocó
 vistas `.cshtml`, que no cuentan como líneas a cubrir.
@@ -219,7 +223,7 @@ issues nuevos cuando son de código nuevo (hoy, `CierreMantenimientoViewModel`).
 | A. Etiquetas de formularios | **Corregido el 12/11**: 13 issues, incluida la del selector de parque de Monitoreo. |
 | B. Código bloqueante al arrancar | Pendiente (4): `Migrate()` y `Run()` en `Program.cs` de Web y Collector. |
 | C. Campos que pueden faltar | Pendiente (4): se sumó `CierreMantenimientoViewModel`. |
-| D. Dockerfile del analizador | Pendiente (1): corre como `root`. Es el único issue de seguridad. |
+| D. Dockerfile del analizador | **Corregido el 15/11**: el escáner corre como usuario `scanner` (ver 7.2). |
 | E. Script de la entrega | Pendiente (3): expresiones regulares de `generar-docx.py`. |
 
 **Los 21 issues nuevos**, por tipo:
@@ -240,6 +244,34 @@ proyecto, 14 son comentarios de ese tipo: se revisó línea por línea. El únic
 línea 117, ligado a la etapa de seguridad (Keycloak). No se marcaron como *False positive* ni se desactivó la regla:
 el tratamiento (reescribir los comentarios, marcarlos o ajustar el perfil) queda como decisión del equipo.
 
+### 7.2 Análisis del 15/11/2026: escáner sin `root`
+
+Se corrigió el grupo D. El Quality Gate sigue en *Failed*, pero ahora **solo por dos condiciones del código nuevo**;
+las calificaciones sobre todo el código ya cumplen:
+
+| Condición | Resultado | Exigido | Estado |
+|---|---|---|---|
+| `security_rating` | A | A | OK (antes B) |
+| `reliability_rating` | A (0 *bugs*) | A | OK |
+| `blocker_violations` | 0 | 0 | OK |
+| `new_duplicated_lines_density` | 0,0 % | ≤ 3 % | OK |
+| `new_coverage` | 16,7 % | ≥ 80 % | **Falla** |
+| `new_violations` | 21 | 0 | **Falla** |
+
+Medidas sobre todo el código: 70 issues abiertos (todos de mantenibilidad, mantenibilidad A), 0 *bugs*, 0
+vulnerabilidades, 0 *hotspots*, cobertura total 13,0 %, duplicación 0,0 % y 7.546 líneas de código. Las 216
+pruebas pasan (115 de Domain, 20 de Application, 70 del simulador y 11 de calidad de arquitectura).
+
+Respecto del 12/11 hay 2 issues menos (72 → 70), entre ellos `docker:S6471`; los 21 nuevos siguen siendo 21
+(sección 7.1). Siguen abiertos `S6966` ×4, `S6964` ×4 y `S6562` ×3, que suman los 11 issues de confiabilidad de
+impacto *Medium* que el panel mostraba el 12/11: coinciden en cantidad, pero no se verificó en el panel que sean
+los mismos. El gate no los toma en cuenta, porque su `reliability_rating` está en A con 0 *bugs*.
+
+Cómo se llegó, y qué decisiones quedan: el usuario sin `root` obligó a analizar sobre una copia en `/tmp` (ver
+sección 6). Para pasar el gate sobre código nuevo faltan las dos condiciones de arriba: corregir los 21 issues
+nuevos (los 7 `S1135` son falsos positivos por el idioma, ver 7.1) y subir la cobertura nueva, o ajustar esas
+condiciones con el equipo.
+
 ## 8. Problemas típicos
 
 | Síntoma | Causa | Qué hacer |
@@ -253,6 +285,7 @@ el tratamiento (reescribir los comentarios, marcarlos o ajustar el perfil) queda
 | Quality Gate *Failed* | Hay issues que superan lo permitido. | Leer **Overview** e **Issues** y corregir en el código. |
 | Avisos de "blame" de archivos del simulador | El submódulo tiene su propio git. | Se pueden ignorar. |
 | Cambié `entrypoint.sh` y el análisis sigue haciendo lo de antes | `analizar` solo construye la imagen si no existe, y el `entrypoint.sh` va copiado adentro de ella. | `docker build -t solaruy-scanner tools/SonarQube/scanner` y repetir. |
+| `Access to the path '/app/.sonarqube/...' is denied` | El contenedor corre sin `root` y analiza directo sobre la carpeta montada, que no es escribible. | Usar el `entrypoint.sh` que copia el código a `/tmp`, reconstruir la imagen y repetir. |
 | El análisis se corta en "Ejecutando pruebas con cobertura" | Hay una prueba fallando. | Correr `dotnet test SolarUY.slnx` en la máquina y corregir la prueba. |
 
 ## 9. Limitaciones
@@ -281,8 +314,7 @@ el tratamiento (reescribir los comentarios, marcarlos o ajustar el perfil) queda
 2. Decidir con el equipo qué hacer con la condición de cobertura: más pruebas o un umbral justificado.
 3. Escribir pruebas de los servicios de `Application` que no tienen (`Nodo`, `Panel`, `Parque`, `Mantenimiento`,
    `Reporte`, `Consulta`, `VerificacionVinculacion`): es lo que más cobertura aporta por línea escrita.
-4. Corregir el grupo D (Dockerfile sin `root`): es lo único que sostiene la calificación de seguridad en B, que es
-   hoy la única condición que falla sobre todo el código. Después los grupos B (arranque asíncrono) y C (campos que
-   pueden faltar), que mejoran la confiabilidad. El A ya está corregido.
+4. Los grupos A y D ya están corregidos (el D dejó la seguridad en A). Siguen los grupos B (arranque asíncrono) y C
+   (campos que pueden faltar), que mejoran la confiabilidad del código aunque hoy no hagan fallar el gate.
 5. Decidir cómo tratar los falsos positivos de `S1135` (sección 7.1).
 6. Reducir la complejidad de los métodos señalados (`S3776`).
