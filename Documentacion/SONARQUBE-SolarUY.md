@@ -187,6 +187,7 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 09/11/2026 | Failed | C | B | Tras req011: 23 issues de confiabilidad/seguridad, todos de los grupos A–E (A 12, B 4, C 3, D 1, E 3); req011 no agrega ninguno. 7 issues nuevos de mantenibilidad (Low/Info); cobertura nueva 0 % (limitación conocida). |
 | 12/11/2026 | Failed | C | B | Primer análisis **con cobertura**: 16,7 % sobre código nuevo. 72 issues abiertos (21 nuevos): 11 de confiabilidad, 1 de seguridad, 60 de mantenibilidad. Se corrigió el grupo A (13 issues de etiquetas). Detalle en la sección 7.1. |
 | 15/11/2026 | Failed | C | A | Escáner sin `root` (grupo D corregido): la seguridad pasa a A. El panel sigue mostrando confiabilidad C (11 issues de impacto *Medium*), pero la condición del gate (`reliability_rating`) está en A. 70 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades. Solo fallan `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.2. |
+| 15/11/2026 (2.º) | Failed | A (gate) | A | Grupo B corregido: `MigrateAsync()` y `RunAsync()` en Web y Collector. 66 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas siguen pasando. Fallan las mismas dos condiciones: `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.3. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -221,7 +222,7 @@ issues nuevos cuando son de código nuevo (hoy, `CierreMantenimientoViewModel`).
 | Grupo | Estado |
 |---|---|
 | A. Etiquetas de formularios | **Corregido el 12/11**: 13 issues, incluida la del selector de parque de Monitoreo. |
-| B. Código bloqueante al arrancar | Pendiente (4): `Migrate()` y `Run()` en `Program.cs` de Web y Collector. |
+| B. Código bloqueante al arrancar | **Corregido el 15/11**: `MigrateAsync()` y `RunAsync()` en `Program.cs` de Web y Collector (ver 7.3). |
 | C. Campos que pueden faltar | Pendiente (4): se sumó `CierreMantenimientoViewModel`. |
 | D. Dockerfile del analizador | **Corregido el 15/11**: el escáner corre como usuario `scanner` (ver 7.2). |
 | E. Script de la entrega | Pendiente (3): expresiones regulares de `generar-docx.py`. |
@@ -272,6 +273,18 @@ sección 6). Para pasar el gate sobre código nuevo faltan las dos condiciones d
 nuevos (los 7 `S1135` son falsos positivos por el idioma, ver 7.1) y subir la cobertura nueva, o ajustar esas
 condiciones con el equipo.
 
+### 7.3 Análisis del 15/11/2026 (segundo): grupo B
+
+Se corrigió el grupo B: las 4 llamadas bloqueantes del arranque pasaron a su versión asíncrona
+(`Database.MigrateAsync()` en el modo `--migrate-only` y en el arranque de desarrollo de Web, `app.RunAsync()` en
+Web y `host.RunAsync()` en Collector). Ambos `Program.cs` ya usaban instrucciones de nivel superior, así que
+alcanzó con agregar `await`; el comportamiento al arrancar no cambia, solo deja de bloquearse un hilo mientras se
+espera. Los 4 issues `S6966` desaparecieron: de 70 a 66 issues abiertos.
+
+El gate no cambia: siguen fallando `new_coverage` (16,7 %) y `new_violations` (21), porque los 4 issues corregidos
+eran de código viejo. Los 4 pertenecían a los 11 issues de confiabilidad de impacto *Medium*; quedan 7
+(`S6964` ×4 y `S6562` ×3). Cobertura total 13,0 %, duplicación 0,0 %, 7.546 líneas de código.
+
 ## 8. Problemas típicos
 
 | Síntoma | Causa | Qué hacer |
@@ -314,7 +327,8 @@ condiciones con el equipo.
 2. Decidir con el equipo qué hacer con la condición de cobertura: más pruebas o un umbral justificado.
 3. Escribir pruebas de los servicios de `Application` que no tienen (`Nodo`, `Panel`, `Parque`, `Mantenimiento`,
    `Reporte`, `Consulta`, `VerificacionVinculacion`): es lo que más cobertura aporta por línea escrita.
-4. Los grupos A y D ya están corregidos (el D dejó la seguridad en A). Siguen los grupos B (arranque asíncrono) y C
-   (campos que pueden faltar), que mejoran la confiabilidad del código aunque hoy no hagan fallar el gate.
+4. Los grupos A, B y D ya están corregidos (el D dejó la seguridad en A). Sigue el grupo C (campos que pueden
+   faltar, `S6964`), que toca módulos de otros integrantes y hay que acordar con el equipo; mejora la confiabilidad
+   aunque hoy no haga fallar el gate.
 5. Decidir cómo tratar los falsos positivos de `S1135` (sección 7.1).
 6. Reducir la complejidad de los métodos señalados (`S3776`).
