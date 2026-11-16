@@ -57,6 +57,44 @@ por bloque: **no narres lo que se ve, contá por qué importa**.
 **Regla de oro:** si un bloque sale mal, no cortes la toma: dejá dos segundos de silencio y repetí el
 bloque. Después se corta en la edición y queda una toma limpia.
 
+### 2.1 Bloque extra: la consola de Keycloak (opcional, 25 segundos)
+
+Mostrar la consola de administración es lo que prueba que **el login no lo hace la aplicación**: los
+usuarios y los roles viven en Keycloak, y la web solo confía en lo que le devuelve.
+
+**Cómo entrar.** La consola tiene su **propio login**, distinto del de la aplicación (aunque sea el mismo
+usuario): `https://auth.fabriq.uy/admin/SolarUy/console`. Si pregunta por el realm, es `SolarUy`. La
+clave la tiene el equipo; no va en este documento ni en el repositorio.
+
+**Qué mostrar, en este orden (son 25 segundos, no más).**
+
+| Pantalla | Dónde está | Qué se ve | Qué decir |
+|---|---|---|---|
+| **Roles del realm** | menú izquierdo → *Realm roles* | `Administrador` y `Consulta` | «El sistema tiene dos roles. El ABM, el mantenimiento, el histórico y las consultas piden `Administrador`; Monitoreo lo ven los dos.» |
+| **Usuarios** | *Users* | Lista de usuarios con su rol | «Los usuarios y sus claves no están en nuestra base: están acá. El usuario de consulta no puede tocar el ABM.» |
+| **Cliente de la web** | *Clients* → `solaruy-web` | *Client ID*, *Valid redirect URIs*, *Client authentication* | «La aplicación está registrada como cliente OpenID Connect; Keycloak valida el pedido y devuelve el token con el rol adentro.» |
+| **Sesiones activas** (opcional) | *Sessions* | Sesiones abiertas | «Las sesiones también las administra Keycloak, no la aplicación: por eso las réplicas no necesitan compartir sesión.» |
+
+**Lo que NO hay que mostrar** (importante, es una entrega pública):
+
+- La pestaña **Credentials** del cliente: ahí está el *client secret*.
+- Los correos o datos personales de los usuarios (si la lista los muestra, recortá esa columna en la
+  edición o no abras los usuarios).
+- **No cambies nada en vivo**: ni roles, ni usuarios, ni configuración del cliente. Si querés demostrar
+  un cambio, hacelo en una copia del realm, nunca en el que se está usando.
+
+**Cómo ubicarlo en el video.** Dos opciones:
+
+1. **Como bloque 10 bis**, después de Ayuda y antes del cierre: el recorrido de la app ya terminó y la
+   consola cierra la parte de «por atrás funciona así».
+2. **Al final, como anexo**: si el video ya se hizo, se graba este bloque aparte y se agrega como último
+   minuto («y para que vean dónde viven los usuarios, acá está Keycloak»).
+
+Si la consola tarda en cargar (es una aplicación aparte), esperá a que aparezca el menú antes de hablar;
+y acordate de que el navegador ya tiene tu sesión de administrador del realm, así que no hace falta
+volver a poner la clave.
+
+
 ## 3. Cómo forzar fallas y errores
 
 Todo se hace contra el simulador, que es el que hace de hardware. Los comandos sirven desde la terminal

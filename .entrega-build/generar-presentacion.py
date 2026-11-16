@@ -279,7 +279,44 @@ def principal(destino: Path):
     notas(s, "Cuatro observaciones, cuatro cambios. La más visible es la pantalla de Ayuda: la pantalla "
              "muestra el dato y la explicación vive ahí, no repetida en cada lugar.")
 
-    # ---------- 10. Cierre ----------
+    # ---------- 10. Keycloak ----------
+    s = nueva_slide(presentacion)
+    titulo_slide(s, "El acceso y los roles viven en Keycloak", "Seguridad")
+    # Flujo: usuario -> Keycloak -> token con rol -> controlador
+    pasos = [
+        ("Usuario", "Entra a una pantalla protegida"),
+        ("Keycloak", "Pide las credenciales"),
+        ("Token", "Vuelve con el rol adentro"),
+        ("Controlador", "[Authorize(Roles)] decide si pasa"),
+    ]
+    x = 0.75
+    for indice, (titulo, detalle) in enumerate(pasos):
+        caja = s.shapes.add_shape(1, Inches(x), Inches(1.7), Inches(2.55), Inches(1.5))
+        caja.fill.solid()
+        caja.fill.fore_color.rgb = CLARO if indice % 2 == 0 else BLANCO
+        caja.line.color.rgb = AZUL if indice == 3 else RGBColor(0xCB, 0xD5, 0xE1)
+        caja.line.width = Pt(1.25)
+        caja.shadow.inherit = False
+        texto(s, x, 1.85, 2.55, 0.4, titulo, tamano=17, bold=True, alineacion=PP_ALIGN.CENTER)
+        texto(s, x, 2.3, 2.55, 0.8, detalle, tamano=12, color=GRIS, alineacion=PP_ALIGN.CENTER)
+        if indice < 3:
+            texto(s, x + 2.5, 2.15, 0.5, 0.4, "→", tamano=22, color=AZUL, alineacion=PP_ALIGN.CENTER)
+        x += 3.0
+    vineta(s, 0.6, 3.6, 5.9, 1.2, "La aplicación no guarda usuarios ni claves",
+           "El login lo resuelve Keycloak por OpenID Connect; la web solo confía en el token.")
+    vineta(s, 6.9, 3.6, 5.9, 1.2, "Dos roles, uno por perfil",
+           "Administrador para el ABM, el mantenimiento, el histórico y las consultas; Consulta también "
+           "entra a Monitoreo.")
+    vineta(s, 0.6, 5.0, 5.9, 1.3, "La autorización se declara, no se programa a mano",
+           "Cada controlador lleva [Authorize(Roles = ...)]: si el rol no está en el token, no pasa.")
+    vineta(s, 6.9, 5.0, 5.9, 1.3, "Y se ve en la consola",
+           "En Keycloak están los usuarios, los roles y el cliente de la web; podemos mostrarla en vivo.")
+    pie(s, 10)
+    notas(s, "El login no lo hace la aplicación: entra Keycloak, valida las credenciales y devuelve un token "
+             "con el rol adentro. Los controladores piden un rol y si no está, no pasan. La consola de "
+             "Keycloak se puede mostrar en vivo: están los dos roles y el cliente de la web.")
+
+    # ---------- 11. Cierre ----------
     s = nueva_slide(presentacion, AZUL_OSCURO)
     texto(s, 0.9, 1.1, 11.5, 0.8, "Cómo verlo funcionando", tamano=34, bold=True, color=BLANCO)
     texto(s, 0.9, 2.1, 11.5, 2.6, [

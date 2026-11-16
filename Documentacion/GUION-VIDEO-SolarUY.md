@@ -41,7 +41,8 @@ Los tiempos son aproximados: el video completo dura 3:20.
 | 1:35 | Histórico | «El histórico agrupa la generación por día, mes o año, con potencia promedio, máxima y energía estimada. Es estimada porque se calcula con la potencia de cada lectura; sirve para comparar, no para facturar.» |
 | 1:46 | Consultas en lenguaje natural | «Y se puede preguntar en castellano. El agente no inventa: consulta la base con cinco herramientas de solo lectura que expone un servidor MCP aparte, y responde con los datos del parque.» |
 | 2:11 | Ayuda | «Las explicaciones de uso viven en una pantalla de Ayuda, no repetidas en cada pantalla. Eso también salió de la devolución.» |
-| 2:17 | Cierre | «En resumen: .NET 10, arquitectura en capas, MySQL, Keycloak, SignalR y MCP, con 216 pruebas automáticas y verificación de arquitectura en cada push.» |
+| 2:17 | **Consola de Keycloak** (opcional) | «Y para que vean dónde vive el acceso: los usuarios y los roles no están en nuestra base, están en Keycloak. El rol Administrador es el que habilita el ABM, el mantenimiento, el histórico y las consultas; Monitoreo lo ven los dos roles.» |
+| 2:42 | Cierre | «En resumen: .NET 10, arquitectura en capas, MySQL, Keycloak, SignalR y MCP, con 216 pruebas automáticas y verificación de arquitectura en cada push.» |
 
 ## Qué contar del «cómo se hizo» (diapositivas 8 y 9)
 
