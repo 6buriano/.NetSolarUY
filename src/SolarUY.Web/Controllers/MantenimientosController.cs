@@ -16,6 +16,10 @@ namespace SolarUY.Web.Controllers;
 [Authorize(Roles = "Administrador")]
 public class MantenimientosController : Controller
 {
+    // Claves de TempData que lee _Layout.cshtml para mostrar los avisos.
+    private const string ClaveMensajeExito = "MensajeExito";
+    private const string ClaveMensajeError = "MensajeError";
+
     private readonly MantenimientoService _mantenimientoService;
     private readonly PanelService _panelService;
 
@@ -83,7 +87,7 @@ public class MantenimientosController : Controller
 
             var tareaId = await _mantenimientoService.CrearAsync(request, cancellationToken);
 
-            TempData["MensajeExito"] = "La tarea de mantenimiento se programó correctamente.";
+            TempData[ClaveMensajeExito] = "La tarea de mantenimiento se programó correctamente.";
             return RedirectToAction(nameof(Detalle), new { id = tareaId });
         }
         catch (ReglaDeNegocioException ex)
@@ -104,7 +108,7 @@ public class MantenimientosController : Controller
 
         if (tarea.Estado == EstadoMantenimiento.COMPLETADO)
         {
-            TempData["MensajeError"] = "Una tarea completada no se puede reprogramar.";
+            TempData[ClaveMensajeError] = "Una tarea completada no se puede reprogramar.";
             return RedirectToAction(nameof(Detalle), new { id });
         }
 
@@ -152,7 +156,7 @@ public class MantenimientosController : Controller
                 return NotFound();
             }
 
-            TempData["MensajeExito"] = "La tarea se reprogramó correctamente.";
+            TempData[ClaveMensajeExito] = "La tarea se reprogramó correctamente.";
             return RedirectToAction(nameof(Detalle), new { id });
         }
         catch (ReglaDeNegocioException ex)
@@ -181,7 +185,7 @@ public class MantenimientosController : Controller
     {
         if (!ModelState.IsValid)
         {
-            TempData["MensajeError"] = "Revisá la fecha de realización y las observaciones.";
+            TempData[ClaveMensajeError] = "Revisá la fecha de realización y las observaciones.";
             return RedirectToAction(nameof(Detalle), new { id });
         }
 
@@ -195,11 +199,11 @@ public class MantenimientosController : Controller
                 return NotFound();
             }
 
-            TempData["MensajeExito"] = "La tarea se marcó como completada.";
+            TempData[ClaveMensajeExito] = "La tarea se marcó como completada.";
         }
         catch (ReglaDeNegocioException ex)
         {
-            TempData["MensajeError"] = ex.Message;
+            TempData[ClaveMensajeError] = ex.Message;
         }
 
         return RedirectToAction(nameof(Detalle), new { id });
@@ -221,11 +225,11 @@ public class MantenimientosController : Controller
                 return NotFound();
             }
 
-            TempData["MensajeExito"] = mensajeExito;
+            TempData[ClaveMensajeExito] = mensajeExito;
         }
         catch (ReglaDeNegocioException ex)
         {
-            TempData["MensajeError"] = ex.Message;
+            TempData[ClaveMensajeError] = ex.Message;
         }
 
         return RedirectToAction(nameof(Detalle), new { id });

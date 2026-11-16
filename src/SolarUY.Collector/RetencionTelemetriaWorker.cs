@@ -41,9 +41,11 @@ public class RetencionTelemetriaWorker : BackgroundService
         }
 
         var intervalo = TimeSpan.FromHours(Math.Max(1, _opciones.IntervaloRetencionHoras));
+        var diasRetencion = _opciones.RetencionDias;
+        var horasIntervalo = intervalo.TotalHours;
         _logger.LogInformation(
             "Purga de telemetría iniciada: se conservan {Dias} días y corre una vez cada {Horas} horas.",
-            _opciones.RetencionDias, intervalo.TotalHours);
+            diasRetencion, horasIntervalo);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -78,12 +80,13 @@ public class RetencionTelemetriaWorker : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var servicio = scope.ServiceProvider.GetRequiredService<RetencionTelemetriaService>();
 
-        var borradas = await servicio.PurgarAsync(_opciones.RetencionDias, cancellationToken);
+        var diasRetencion = _opciones.RetencionDias;
+        var borradas = await servicio.PurgarAsync(diasRetencion, cancellationToken);
 
         if (borradas > 0)
         {
             _logger.LogInformation("Purga de telemetría: {Cantidad} filas borradas (lecturas de más de {Dias} días).",
-                borradas, _opciones.RetencionDias);
+                borradas, diasRetencion);
         }
         else
         {

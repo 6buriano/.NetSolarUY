@@ -11,18 +11,12 @@ namespace SolarUY.Infrastructure.Consultas;
 /// </summary>
 public sealed class AgenteNoConfigurado : IMCPAgentService
 {
-    private readonly ILogger<AgenteNoConfigurado> _logger;
-    private readonly string _faltantes;
-
     public AgenteNoConfigurado(ILogger<AgenteNoConfigurado> logger, string faltantes)
     {
-        _logger = logger;
-        _faltantes = faltantes;
-
-        _logger.LogWarning(
+        logger.LogWarning(
             "El agente de consultas no está configurado: falta {Faltantes}. Las consultas en lenguaje " +
             "natural van a devolver el mensaje de falla hasta que se complete la configuración.",
-            _faltantes);
+            faltantes);
     }
 
     public Task<ConsultaLenguajeNaturalResponse> ConsultarAsync(string pregunta,
