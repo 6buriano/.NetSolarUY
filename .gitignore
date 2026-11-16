@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 *.swp
 .claude/
 .sonarqube/
+
+# Previsualizaciones de la presentación (se generan para revisar, no se versionan)
+.entrega-build/preview/
