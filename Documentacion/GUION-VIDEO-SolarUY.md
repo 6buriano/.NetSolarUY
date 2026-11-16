@@ -1,5 +1,8 @@
 # Guion del video de SolarUY
 
+> Para grabar la versión con voz propia, paso a paso y con los comandos para forzar fallas:
+> [`COMO-GRABAR-EL-VIDEO.md`](COMO-GRABAR-EL-VIDEO.md).
+
 Material para mostrar la solución a los demás compañeros del curso: qué hace el sistema y cómo se hizo.
 
 | | |
