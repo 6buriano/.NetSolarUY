@@ -176,14 +176,14 @@ public class MantenimientosController : Controller
     /// <summary>
     /// Completa la tarea con la fecha real del trabajo y las observaciones que cargó quien la hizo: la
     /// fecha del servidor no coincide con la real si la marca más tarde. La hora del formulario viene
-    /// en hora de Montevideo y se guarda en UTC, como todo el sistema.
+    /// en hora de Montevideo y se guarda en UTC, como en el resto del sistema.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Completar(Guid id, CierreMantenimientoViewModel cierre,
         CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
+        if (!ModelState.IsValid || cierre.FechaRealizada is null)
         {
             TempData[ClaveMensajeError] = "Revisá la fecha de realización y las observaciones.";
             return RedirectToAction(nameof(Detalle), new { id });
@@ -192,7 +192,7 @@ public class MantenimientosController : Controller
         try
         {
             var aplicado = await _mantenimientoService.CompletarAsync(id,
-                HoraLocal.AParaUtc(cierre.FechaRealizada), cierre.ObservacionesCierre, cancellationToken);
+                HoraLocal.AParaUtc(cierre.FechaRealizada.Value), cierre.ObservacionesCierre, cancellationToken);
 
             if (!aplicado)
             {

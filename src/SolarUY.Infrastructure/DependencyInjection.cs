@@ -102,7 +102,7 @@ public static class DependencyInjection
                 {
                     // Tope de vueltas del ciclo "modelo pide herramienta -> se ejecuta -> vuelve al
                     // modelo". Ocho alcanzan para lo que hacen estas cinco herramientas (incluso
-                    // "todo hoy", que usa cuatro). El tope existe para que un modelo confundido no
+                    // una pregunta que combina cuatro de ellas). El tope existe para que un modelo confundido no
                     // entre en un ida y vuelta sin fin y queme cuota sin devolver respuesta.
                     opciones.MaximumIterationsPerRequest = 8;
                 })

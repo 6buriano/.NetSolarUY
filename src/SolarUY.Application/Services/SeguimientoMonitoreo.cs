@@ -25,8 +25,8 @@ public class SeguimientoMonitoreo
     {
         lock (_candado)
         {
-            // En la primera vuelta no hay con qué comparar: se registra todo como "ya visto" y no se
-            // manda nada, para no avisar de fallas viejas ni repetir lecturas que la pantalla ya tiene.
+            // En la primera vuelta no hay con qué comparar: se registra cada lectura y cada estado como
+            // "ya visto" y no se manda nada, para no avisar de fallas viejas ni repetir lecturas que la pantalla ya tiene.
             var esPrimeraVuelta = _estadoAnterior is null;
 
             var lecturasNuevas = CompararLecturas(lecturas, esPrimeraVuelta);

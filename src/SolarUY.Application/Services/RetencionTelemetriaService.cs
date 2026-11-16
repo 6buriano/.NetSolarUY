@@ -30,8 +30,8 @@ public class RetencionTelemetriaService
     /// <paramref name="dias"/> días.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// Si <paramref name="dias"/> no es mayor a cero: retener cero días borraría todo, incluida la
-    /// lectura que acaba de guardar el colector.
+    /// Si <paramref name="dias"/> no es mayor a cero: retener cero días borraría todas las lecturas,
+    /// incluida la que acaba de guardar el colector.
     /// </exception>
     public DateTime CalcularLimite(int dias)
     {

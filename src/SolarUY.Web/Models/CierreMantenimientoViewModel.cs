@@ -11,7 +11,7 @@ public class CierreMantenimientoViewModel
 {
     [Required(ErrorMessage = "La fecha y hora de realización son obligatorias.")]
     [Display(Name = "Fecha y hora de realización")]
-    public DateTime FechaRealizada { get; set; }
+    public DateTime? FechaRealizada { get; set; }
 
     [StringLength(TareaMantenimiento.LargoMaximoObservaciones,
         ErrorMessage = "Las observaciones no pueden superar los {1} caracteres.")]
