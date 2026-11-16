@@ -191,6 +191,8 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 15/11/2026 (3.º) | Failed | A (gate) | A | Se corrigieron 8 de los 21 issues nuevos (`S1192`, `CA1861`, `CA1826`, `S1450`). 58 issues abiertos (13 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas pasan. Fallan las mismas dos condiciones: `new_coverage` (16,5 %) y `new_violations` (13). Detalle en la sección 7.4. |
 | 15/11/2026 (4.º) | Failed | A (gate) | A | Pruebas nuevas de `MantenimientoService`, `ReporteService`, `ConsultaService` y `MonitoreoService` (41 pruebas, 257 en total): `new_coverage` sube de 17,4 % a 26,2 % y la cobertura total de 15,0 % a 18,0 %. 58 issues abiertos (13 nuevos). Fallan `new_coverage` y `new_violations` (13). Detalle en la sección 7.5. |
 | 15/11/2026 (5.º) | Failed | A (gate) | A | Pruebas nuevas de `RetencionTelemetriaWorker`, `ConsultasController` y `MantenimientosController` (41 pruebas, 298 en total, en dos proyectos de prueba nuevos): `new_coverage` sube de 26,2 % a 39,1 % y la cobertura total de 18,0 % a 25,0 %. 58 issues abiertos (13 nuevos). Fallan `new_coverage` y `new_violations` (13). Detalle en la sección 7.6. |
+| 15/11/2026 (6.º) | Failed | A (gate) | A | Pruebas de las cinco herramientas MCP (proyecto nuevo `SolarUY.Infrastructure.Tests`): `new_coverage` sube de 39,1 % a 58,7 % y la cobertura total de 25,0 % a 30,4 %. 58 issues abiertos (13 nuevos). Detalle en la sección 7.7. |
+| 15/11/2026 (7.º) | Failed | A (gate) | A | Pruebas de `MonitoreoTiempoRealWorker`, `MonitoreoController`, `MonitoreoHub`, el registro de servicios (`DependencyInjection`) y `AgenteNoConfigurado`: `new_coverage` sube de 58,7 % a **73,1 %** y la cobertura total de 30,4 % a 34,4 %. 58 issues abiertos (13 nuevos). Falla `new_coverage` (73,1 contra 80) y `new_violations` (13). Detalle en la sección 7.8. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -398,6 +400,63 @@ con dobles de HTTP o de base de datos, bastante más costosas que las pruebas un
 cobertura (`sonar.coverage.exclusions`); si se escriben pruebas de las herramientas MCP antes de la defensa; y qué
 valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
 
+### 7.7 Análisis del 15/11/2026 (sexto): herramientas MCP
+
+Se creó el proyecto `tests/SolarUY.Infrastructure.Tests` con 31 casos para las cinco herramientas MCP que usa el
+agente (`listar_parques`, `obtener_resumen_parque`, `listar_paneles_en_falla`, `obtener_generacion_hoy` y
+`obtener_generacion_historica`). Se llama a cada método directamente, sin servidor MCP ni red, con repositorios
+falsos en memoria, y se verifica el texto o el JSON que le llegaría al modelo: identificadores y agrupaciones
+inválidos, fechas mal escritas, parque inexistente, rango invertido, el recorte a 200 paneles en falla y el tope de
+400 períodos. De paso se ejercitan `ParqueService`, `ParqueMappings`, `ReporteService` y `PanelService`.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 39,1 % | **58,7 %** |
+| Cobertura total | 25,0 % | 30,4 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+La estimación previa era de 55 a 58 %. Quedaron sin cubrir 396 líneas nuevas (antes 561).
+
+### 7.8 Análisis del 15/11/2026 (séptimo): monitoreo en tiempo real y registro de servicios
+
+Se agregaron 21 casos: `MonitoreoTiempoRealWorker` (deshabilitado, primera vuelta, segunda vuelta con falla y lectura
+nuevas, error en una vuelta), `MonitoreoController` (qué parque queda elegido), `MonitoreoHub` (a qué grupo se
+suscribe cada conexión), `DependencyInjection` (qué repositorios y clientes se registran, y qué agente se resuelve
+según la configuración) y `AgenteNoConfigurado`. El worker se prueba con un hub falso que anota lo enviado a cada
+grupo y espera con un tope, para que una prueba nunca quede colgada. Nada abre conexiones reales.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 58,7 % | **73,1 %** |
+| Cobertura total | 30,4 % | 34,4 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+La estimación previa era de 68 a 72 %. En este punto el *Quality Gate* sigue en `ERROR` por dos condiciones:
+`new_coverage` (73,1 % contra 80 %) y `new_violations` (13 contra 0). Seguridad y confiabilidad están en A.
+
+**Qué falta cubrir del código nuevo.** Quedan 263 líneas nuevas sin cubrir:
+
+| Zona | Líneas sin cubrir | Archivos principales |
+|---|---|---|
+| JavaScript (`monitoreo.js`, `panel-detalle.js`) | 123 | El proyecto no tiene pruebas de front-end |
+| Agente Gemini | 66 | `GeminiMcpAgentService`: la conversación necesita un servidor MCP real o un doble de HTTP |
+| Persistencia | 34 | `TelemetriaRepository` (30), `TareaMantenimientoConfiguration` y `LecturaTelemetriaConfiguration`: piden una base de datos |
+| Arranque (`Program.cs`) | 35 | Web (18), `McpServer` (13), Collector (4) |
+| Otros | 5 | `RetencionTelemetriaWorker` (2), `HomeController`, `AyudaController`, `MonitoreoNodoDto` (1 cada uno) |
+
+**Cuánto falta para el 80 %.** El total de líneas nuevas a cubrir se estima en unas 980 (263 sin cubrir con 73,1 %);
+es una estimación, no un dato del reporte, porque la cobertura de Sonar también cuenta condiciones. Con ella:
+
+- sin tocar la medida, faltarían unas 70 líneas más, y las que quedan son las más caras de probar (agente Gemini,
+  base de datos y arranque de la aplicación);
+- excluyendo los dos archivos JavaScript, el total bajaría a unas 860 líneas y la cobertura actual equivaldría a un
+  83 % aproximado, por encima del umbral.
+
+**Decisiones pendientes (del responsable del proyecto):** si se excluyen los archivos JavaScript de la medida de
+cobertura (`sonar.coverage.exclusions`), si se prueban los caminos de falla del agente Gemini, y qué hacer con las
+`new_violations`, que aun con la cobertura resuelta mantienen el gate en `ERROR` (siete son `S1135`, falsos
+positivos por la palabra "todo" en español).
+
 ## 8. Problemas típicos
 
 | Síntoma | Causa | Qué hacer |
@@ -418,9 +477,10 @@ valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
 
 - **La cobertura se mide, pero está lejos del umbral.** Desde el 12/11 el análisis ejecuta las pruebas y envía la
   cobertura (antes figuraba en 0 %). El 12/11 el resultado era 16,7 % sobre el código nuevo; tras las pruebas del
-  15/11 es 39,1 %, contra el 80 % que exige el gate (secciones 7.5 y 7.6). Hoy el dominio, varios servicios de
-  `Application`, el worker de retención y dos controladores están probados, pero el agente y las herramientas MCP,
-  `Infrastructure` y el JavaScript casi no tienen pruebas, y ahí están la mayoría de las líneas nuevas sin cubrir. Hay dos caminos y los dos son decisión del
+  15/11 es 73,1 %, contra el 80 % que exige el gate (secciones 7.5 a 7.8). Hoy el dominio, varios servicios de
+  `Application`, los workers, los controladores principales, las herramientas MCP y el registro de servicios están
+  probados; el JavaScript, el agente Gemini, el repositorio de telemetría y los `Program.cs` no, y ahí están las
+  líneas nuevas sin cubrir. Hay dos caminos y los dos son decisión del
   responsable: escribir más pruebas, o ajustar la condición `new_coverage` con un umbral alcanzable y justificado.
 - **La exclusión del simulador no alcanza a sus pruebas.** `SolarUY.SensorSimulator/**` deja afuera el código del
   simulador, pero dos issues (`CA1861`) de `SolarUY.SensorSimulator.Tests` siguen apareciendo. La causa probable es
@@ -440,8 +500,8 @@ valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
 2. Decidir con el equipo qué hacer con la condición de cobertura: más pruebas o un umbral justificado.
 3. Pruebas de `Application`: ya están `Mantenimiento`, `Reporte`, `Consulta` y `Monitoreo`. También están el worker de
    retención y los controladores `Consultas` y `Mantenimientos`. Faltan `Nodo`, `Panel`, `Parque` y
-   `VerificacionVinculacion`, las herramientas MCP y `MonitoreoTiempoRealWorker`; para `new_coverage` pesan más los
-   archivos tocados desde el 01/11 (secciones 7.5 y 7.6).
+   `VerificacionVinculacion`, y los caminos de falla del agente Gemini; para `new_coverage` pesan más los
+   archivos tocados desde el 01/11 (secciones 7.5 a 7.8).
 4. Los grupos A, B y D ya están corregidos (el D dejó la seguridad en A). Sigue el grupo C (campos que pueden
    faltar, `S6964`), que toca módulos de otros integrantes y hay que acordar con el equipo; mejora la confiabilidad
    aunque hoy no haga fallar el gate.
