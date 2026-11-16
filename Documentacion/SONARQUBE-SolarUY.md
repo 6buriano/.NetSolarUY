@@ -190,6 +190,7 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 15/11/2026 (2.º) | Failed | A (gate) | A | Grupo B corregido: `MigrateAsync()` y `RunAsync()` en Web y Collector. 66 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas siguen pasando. Fallan las mismas dos condiciones: `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.3. |
 | 15/11/2026 (3.º) | Failed | A (gate) | A | Se corrigieron 8 de los 21 issues nuevos (`S1192`, `CA1861`, `CA1826`, `S1450`). 58 issues abiertos (13 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas pasan. Fallan las mismas dos condiciones: `new_coverage` (16,5 %) y `new_violations` (13). Detalle en la sección 7.4. |
 | 15/11/2026 (4.º) | Failed | A (gate) | A | Pruebas nuevas de `MantenimientoService`, `ReporteService`, `ConsultaService` y `MonitoreoService` (41 pruebas, 257 en total): `new_coverage` sube de 17,4 % a 26,2 % y la cobertura total de 15,0 % a 18,0 %. 58 issues abiertos (13 nuevos). Fallan `new_coverage` y `new_violations` (13). Detalle en la sección 7.5. |
+| 15/11/2026 (5.º) | Failed | A (gate) | A | Pruebas nuevas de `RetencionTelemetriaWorker`, `ConsultasController` y `MantenimientosController` (41 pruebas, 298 en total, en dos proyectos de prueba nuevos): `new_coverage` sube de 26,2 % a 39,1 % y la cobertura total de 18,0 % a 25,0 %. 58 issues abiertos (13 nuevos). Fallan `new_coverage` y `new_violations` (13). Detalle en la sección 7.6. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -355,6 +356,48 @@ que piden pruebas de integración o de infraestructura, no unitarias simples.
 cobertura (`sonar.coverage.exclusions`) por no haber pruebas de front-end; qué pruebas se escriben antes de la
 defensa; y qué valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
 
+### 7.6 Análisis del 15/11/2026 (quinto): pruebas de `Collector` y de los controladores
+
+Se crearon dos proyectos de prueba, que antes no existían: `tests/SolarUY.Collector.Tests` (8 pruebas de
+`RetencionTelemetriaWorker`) y `tests/SolarUY.Web.Tests` (5 de `ConsultasController` y 28 de
+`MantenimientosController`). Los dos están en `SolarUY.slnx`, así que el CI los corre con `dotnet test SolarUY.slnx`;
+los Dockerfiles publican cada proyecto por separado y no se ven afectados. Las pruebas del worker usan el
+`RetencionTelemetriaService` real dentro de un contenedor de servicios real y esperan con `TaskCompletionSource` en
+lugar de dormir, para no depender de tiempos. Las 298 pruebas pasan.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 26,2 % | **39,1 %** |
+| Cobertura total | 18,0 % | 25,0 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+La estimación previa era de 36 a 38 %; el resultado real quedó algo por encima. `RetencionTelemetriaWorker` pasó de
+59 a 2 líneas sin cubrir, y `ConsultasController` y `MantenimientosController` salieron por completo de la lista de
+archivos con código nuevo sin cubrir.
+
+**Qué falta cubrir del código nuevo.** Quedan 561 líneas nuevas sin cubrir (antes 682), según
+`api/measures/component_tree`:
+
+| Zona | Líneas sin cubrir | Archivos principales |
+|---|---|---|
+| Agente y herramientas MCP | 236 | `GeminiMcpAgentService` (75), `ObtenerGeneracionHistoricaTool` (70), `ListarPanelesEnFallaTool` (26) |
+| JavaScript (`monitoreo.js`, `panel-detalle.js`) | 123 | El proyecto no tiene pruebas de front-end |
+| Infraestructura (inyección, repositorio) | 88 | `DependencyInjection` (54), `TelemetriaRepository` (30) |
+| Web (worker, `Program.cs`, otros) | 79 | `MonitoreoTiempoRealWorker` (44), `Program.cs` (18), `MonitoreoController` (10) |
+| Application | 29 | `ParqueMappings` (12), `ResumenParqueDto` (9), `ParqueService` (7) |
+| Collector | 6 | `Program.cs` (4), `RetencionTelemetriaWorker` (2) |
+
+**Cuánto falta para el 80 %.** El total de líneas nuevas a cubrir se estima en unas 920 (561 sin cubrir con 39,1 %
+de cobertura); es una estimación, no un dato del reporte. Con ella, llegar al 80 % exige cubrir unas 380 líneas más.
+Si se excluyeran los dos archivos JavaScript de la medida, el total bajaría a unas 800 líneas, la cobertura actual
+equivaldría a un 45 % aproximado y faltarían unas 280 líneas. En ambos casos la mayor parte está en el agente y las
+herramientas MCP (que dependen de un proveedor externo o de acceso a datos) y en `Infrastructure`, que piden pruebas
+con dobles de HTTP o de base de datos, bastante más costosas que las pruebas unitarias de los servicios.
+
+**Decisiones pendientes (del responsable del proyecto):** si se excluyen los archivos JavaScript de la medida de
+cobertura (`sonar.coverage.exclusions`); si se escriben pruebas de las herramientas MCP antes de la defensa; y qué
+valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
+
 ## 8. Problemas típicos
 
 | Síntoma | Causa | Qué hacer |
@@ -375,9 +418,9 @@ defensa; y qué valor de `new_coverage` se defiende, con su justificación, en l
 
 - **La cobertura se mide, pero está lejos del umbral.** Desde el 12/11 el análisis ejecuta las pruebas y envía la
   cobertura (antes figuraba en 0 %). El 12/11 el resultado era 16,7 % sobre el código nuevo; tras las pruebas del
-  15/11 es 26,2 %, contra el 80 % que exige el gate (sección 7.5). Hoy el dominio está bien probado y varios
-  servicios de `Application` también, pero `Infrastructure`, `Web`, `Collector` y el JavaScript casi no tienen
-  pruebas, y ahí están la mayoría de las líneas nuevas sin cubrir. Hay dos caminos y los dos son decisión del
+  15/11 es 39,1 %, contra el 80 % que exige el gate (secciones 7.5 y 7.6). Hoy el dominio, varios servicios de
+  `Application`, el worker de retención y dos controladores están probados, pero el agente y las herramientas MCP,
+  `Infrastructure` y el JavaScript casi no tienen pruebas, y ahí están la mayoría de las líneas nuevas sin cubrir. Hay dos caminos y los dos son decisión del
   responsable: escribir más pruebas, o ajustar la condición `new_coverage` con un umbral alcanzable y justificado.
 - **La exclusión del simulador no alcanza a sus pruebas.** `SolarUY.SensorSimulator/**` deja afuera el código del
   simulador, pero dos issues (`CA1861`) de `SolarUY.SensorSimulator.Tests` siguen apareciendo. La causa probable es
@@ -395,8 +438,10 @@ defensa; y qué valor de `new_coverage` se defiende, con su justificación, en l
 
 1. Activar `sonar.yml`: variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN`.
 2. Decidir con el equipo qué hacer con la condición de cobertura: más pruebas o un umbral justificado.
-3. Pruebas de `Application`: ya están `Mantenimiento`, `Reporte`, `Consulta` y `Monitoreo`. Faltan `Nodo`, `Panel`,
-   `Parque` y `VerificacionVinculacion`; para `new_coverage` pesan más los archivos tocados desde el 01/11 (sección 7.5).
+3. Pruebas de `Application`: ya están `Mantenimiento`, `Reporte`, `Consulta` y `Monitoreo`. También están el worker de
+   retención y los controladores `Consultas` y `Mantenimientos`. Faltan `Nodo`, `Panel`, `Parque` y
+   `VerificacionVinculacion`, las herramientas MCP y `MonitoreoTiempoRealWorker`; para `new_coverage` pesan más los
+   archivos tocados desde el 01/11 (secciones 7.5 y 7.6).
 4. Los grupos A, B y D ya están corregidos (el D dejó la seguridad en A). Sigue el grupo C (campos que pueden
    faltar, `S6964`), que toca módulos de otros integrantes y hay que acordar con el equipo; mejora la confiabilidad
    aunque hoy no haga fallar el gate.
