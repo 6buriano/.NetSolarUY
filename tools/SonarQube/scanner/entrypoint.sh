@@ -34,7 +34,7 @@ EXCLUSIONES="**/Migrations/**,**/wwwroot/lib/**,SolarUY.SensorSimulator/**"
 #  - monitoreo.js y panel-detalle.js: JavaScript del front-end (123 líneas nuevas sin cubrir). El proyecto
 #    no tiene herramientas de prueba de front-end y la cobertura de .NET (coverlet) no mide JavaScript.
 #    Se listan los dos archivos a propósito, no la carpeta: así un JavaScript nuevo sí cuenta.
-EXCLUSIONES_COBERTURA="**/wwwroot/js/monitoreo.js,**/wwwroot/js/panel-detalle.js"
+EXCLUSIONES_COBERTURA="**/wwwroot/js/monitoreo.js,**/wwwroot/js/panel-detalle.js,**/.entrega-build/**"
 
 # Dónde coverlet deja los reportes de cobertura. Va dentro del contenedor (no en /app) para no
 # ensuciar el repo del usuario con carpetas generadas. Se limpia antes por si quedó algo de una corrida previa.

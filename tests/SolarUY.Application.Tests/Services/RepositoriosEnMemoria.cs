@@ -60,9 +60,15 @@ internal sealed class TelemetriaRepositoryEnMemoria : ITelemetriaRepository
         DateTime hasta, CancellationToken cancellationToken = default)
         => throw new NotSupportedException();
 
+    public int? UltimaCantidadPedida { get; private set; }
+
     public Task<IReadOnlyList<LecturaTelemetria>> ObtenerUltimasPorPanelAsync(Guid panelSolarId, int cantidad,
         CancellationToken cancellationToken = default)
-        => throw new NotSupportedException();
+    {
+        UltimoPanelId = panelSolarId;
+        UltimaCantidadPedida = cantidad;
+        return Task.FromResult(Lecturas);
+    }
 
     public Task<int> EliminarAnterioresAsync(DateTime limiteUtc, CancellationToken cancellationToken = default)
         => throw new NotSupportedException();
