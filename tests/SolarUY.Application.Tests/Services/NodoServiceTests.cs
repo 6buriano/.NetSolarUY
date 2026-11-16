@@ -259,6 +259,7 @@ public class NodoServiceTests
         await servicio.ActualizarAsync(PedidoDeEdicion(nodo, SensorValido("ARM-002")));
 
         Assert.Same(sensorOriginal, nodo.Inversor.Sensor);
+        Assert.NotNull(nodo.Inversor.Sensor);
         Assert.Equal("ARM-002", nodo.Inversor.Sensor.IdentificadorHardwareARM);
         Assert.Equal("2.1.0", nodo.Inversor.Sensor.VersionFirmware);
         Assert.Null(nodos.SensorNuevoInformado);

@@ -45,7 +45,7 @@ public class ParquesControllerTests
 
         var resultado = await controlador.Index(CancellationToken.None);
 
-        var modelo = Assert.IsAssignableFrom<IReadOnlyList<ParqueDto>>(Assert.IsType<ViewResult>(resultado).Model);
+        var modelo = Assert.IsType<IReadOnlyList<ParqueDto>>(Assert.IsType<ViewResult>(resultado).Model, exactMatch: false);
         Assert.Equal(2, modelo.Count);
     }
 

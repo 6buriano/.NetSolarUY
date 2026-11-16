@@ -50,7 +50,7 @@ public class PanelRepositoryTests
         await using var contexto = db.NuevoContexto();
         var paneles = await new PanelRepository(contexto).ObtenerTodosAsync();
 
-        Assert.Equal(new[] { "P04", "P03", "P02", "P01" }, paneles.Select(panel => panel.CodigoPanel).ToArray());
+        Assert.Equal("P04,P03,P02,P01", string.Join(",", paneles.Select(panel => panel.CodigoPanel)));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class PanelRepositoryTests
         await using var contexto = db.NuevoContexto();
         var paneles = await new PanelRepository(contexto).ObtenerPorNodoAsync(uno.Id);
 
-        Assert.Equal(new[] { "Alfa", "Zeta" }, paneles.Select(panel => panel.Modelo).ToArray());
+        Assert.Equal("Alfa,Zeta", string.Join(",", paneles.Select(panel => panel.Modelo)));
     }
 
     [Fact]

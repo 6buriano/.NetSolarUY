@@ -57,7 +57,7 @@ public class ParqueRepositoryTests
         await using var contexto = db.NuevoContexto();
         var parques = await new ParqueRepository(contexto).ObtenerTodosAsync();
 
-        Assert.Equal(new[] { "Alfa", "Medio", "Zeta" }, parques.Select(parque => parque.Nombre).ToArray());
+        Assert.Equal("Alfa,Medio,Zeta", string.Join(",", parques.Select(parque => parque.Nombre)));
     }
 
     [Fact]

@@ -62,7 +62,7 @@ public class NodoRepositoryTests
         await using var contexto = db.NuevoContexto();
         var nodos = await new NodoRepository(contexto).ObtenerTodosAsync();
 
-        Assert.Equal(new[] { "Alfa", "Zeta" }, nodos.Select(nodo => nodo.Nombre).ToArray());
+        Assert.Equal("Alfa,Zeta", string.Join(",", nodos.Select(nodo => nodo.Nombre)));
         Assert.Null(nodos[0].Inversor.Sensor);
         Assert.Equal("ARM-1", nodos[1].Inversor.Sensor!.IdentificadorHardwareARM);
     }

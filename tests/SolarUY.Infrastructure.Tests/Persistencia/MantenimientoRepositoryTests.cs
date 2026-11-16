@@ -55,7 +55,7 @@ public class MantenimientoRepositoryTests
         await using var contexto = db.NuevoContexto();
         var tareas = await new MantenimientoRepository(contexto).ObtenerTodosAsync();
 
-        Assert.Equal(new[] { "primera", "segunda", "tercera" }, tareas.Select(tarea => tarea.Descripcion).ToArray());
+        Assert.Equal("primera,segunda,tercera", string.Join(",", tareas.Select(tarea => tarea.Descripcion)));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class MantenimientoRepositoryTests
         await using var contexto = db.NuevoContexto();
         var tareas = await new MantenimientoRepository(contexto).ObtenerPorPanelAsync(panel.Id);
 
-        Assert.Equal(new[] { "nueva", "vieja" }, tareas.Select(tarea => tarea.Descripcion).ToArray());
+        Assert.Equal("nueva,vieja", string.Join(",", tareas.Select(tarea => tarea.Descripcion)));
     }
 
     [Fact]
