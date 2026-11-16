@@ -161,9 +161,37 @@ public class HelpersYModelosTests
     [Fact]
     public void PanelForm_ConDatosCompletos_EsValido()
     {
-        var formulario = new PanelFormViewModel { CodigoPanel = "P01", Modelo = "JAM72S30", Fabricante = "JA Solar" };
+        var formulario = new PanelFormViewModel
+        {
+            CodigoPanel = "P01", Modelo = "JAM72S30", Fabricante = "JA Solar", NodoId = Guid.NewGuid()
+        };
 
         Assert.Empty(Validar(formulario));
+    }
+
+    [Fact]
+    public void PanelForm_SinNodo_LoRechaza()
+    {
+        var formulario = new PanelFormViewModel { CodigoPanel = "P01", Modelo = "JAM72S30", Fabricante = "JA Solar" };
+
+        Assert.Contains(Validar(formulario), error => error.MemberNames.Contains(nameof(PanelFormViewModel.NodoId)));
+    }
+
+    [Fact]
+    public void NodoForm_SinParque_LoRechaza()
+    {
+        var formulario = new NodoFormViewModel { Nombre = "Nodo", UbicacionDentroParque = "Sector" };
+
+        Assert.Contains(Validar(formulario), error => error.MemberNames.Contains(nameof(NodoFormViewModel.ParqueSolarId)));
+    }
+
+    [Fact]
+    public void MantenimientoForm_SinPanel_LoRechaza()
+    {
+        var formulario = new MantenimientoFormViewModel();
+
+        Assert.Contains(Validar(formulario),
+            error => error.MemberNames.Contains(nameof(MantenimientoFormViewModel.PanelSolarId)));
     }
 
     [Fact]

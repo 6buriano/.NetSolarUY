@@ -15,7 +15,7 @@ public class MantenimientoFormViewModel
 
     [Required(ErrorMessage = "Elegí el panel sobre el que se programa la tarea.")]
     [Display(Name = "Panel")]
-    public Guid PanelSolarId { get; set; }
+    public Guid? PanelSolarId { get; set; }
 
     [Display(Name = "Tipo de tarea")]
     public TipoMantenimiento Tipo { get; set; } = TipoMantenimiento.INSPECCION_PREVENTIVA;

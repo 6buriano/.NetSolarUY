@@ -79,7 +79,7 @@ public class MantenimientosController : Controller
         try
         {
             var request = new CrearMantenimientoRequest(
-                formulario.PanelSolarId,
+                formulario.PanelSolarId.GetValueOrDefault(),
                 formulario.Tipo,
                 formulario.FechaProgramada,
                 formulario.Descripcion,

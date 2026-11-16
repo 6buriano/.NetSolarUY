@@ -29,8 +29,9 @@ public class NodoFormViewModel : IValidatableObject
     [Display(Name = "Ubicación dentro del parque")]
     public string UbicacionDentroParque { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Elegí el parque solar al que pertenece el nodo.")]
     [Display(Name = "Parque solar")]
-    public Guid ParqueSolarId { get; set; }
+    public Guid? ParqueSolarId { get; set; }
 
     [Required(ErrorMessage = "El modelo del inversor es obligatorio.")]
     [StringLength(100, ErrorMessage = "El modelo no puede superar los 100 caracteres.")]

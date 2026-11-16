@@ -163,7 +163,7 @@ public class TelemetriaRepository : ITelemetriaRepository
                     .ToListAsync(cancellationToken);
 
                 return porDia
-                    .Select(grupo => new AgregadoPotencia(new DateTime(grupo.Year, grupo.Month, grupo.Day),
+                    .Select(grupo => new AgregadoPotencia(new DateTime(grupo.Year, grupo.Month, grupo.Day, 0, 0, 0, DateTimeKind.Utc),
                         grupo.Cantidad, grupo.Promedio, grupo.Maximo, grupo.Suma))
                     .OrderByDescending(agregado => agregado.PeriodoInicio)
                     .ToList();
@@ -185,7 +185,7 @@ public class TelemetriaRepository : ITelemetriaRepository
                     .ToListAsync(cancellationToken);
 
                 return porMes
-                    .Select(grupo => new AgregadoPotencia(new DateTime(grupo.Year, grupo.Month, 1),
+                    .Select(grupo => new AgregadoPotencia(new DateTime(grupo.Year, grupo.Month, 1, 0, 0, 0, DateTimeKind.Utc),
                         grupo.Cantidad, grupo.Promedio, grupo.Maximo, grupo.Suma))
                     .OrderByDescending(agregado => agregado.PeriodoInicio)
                     .ToList();
@@ -206,7 +206,7 @@ public class TelemetriaRepository : ITelemetriaRepository
                     .ToListAsync(cancellationToken);
 
                 return porAnio
-                    .Select(grupo => new AgregadoPotencia(new DateTime(grupo.Year, 1, 1),
+                    .Select(grupo => new AgregadoPotencia(new DateTime(grupo.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                         grupo.Cantidad, grupo.Promedio, grupo.Maximo, grupo.Suma))
                     .OrderByDescending(agregado => agregado.PeriodoInicio)
                     .ToList();

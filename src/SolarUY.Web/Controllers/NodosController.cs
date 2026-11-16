@@ -213,7 +213,7 @@ public class NodosController : Controller
                 new CrearNodoRequest(
                     formulario.Nombre,
                     formulario.UbicacionDentroParque,
-                    formulario.ParqueSolarId,
+                    formulario.ParqueSolarId.GetValueOrDefault(),
                     ArmarInversorRequest(formulario),
                     sensor),
                 cancellationToken);
@@ -289,7 +289,7 @@ public class NodosController : Controller
                 id,
                 formulario.Nombre,
                 formulario.UbicacionDentroParque,
-                formulario.ParqueSolarId,
+                formulario.ParqueSolarId.GetValueOrDefault(),
                 ArmarInversorRequest(formulario),
                 ArmarSensorRequest(formulario));
 
