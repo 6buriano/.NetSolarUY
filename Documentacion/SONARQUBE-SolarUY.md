@@ -186,7 +186,7 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 01/11/2026 | Failed | C | B | Primer análisis, 23 issues (ver arriba). |
 | 09/11/2026 | Failed | C | B | Tras req011: 23 issues de confiabilidad/seguridad, todos de los grupos A–E (A 12, B 4, C 3, D 1, E 3); req011 no agrega ninguno. 7 issues nuevos de mantenibilidad (Low/Info); cobertura nueva 0 % (limitación conocida). |
 | 12/11/2026 | Failed | C | B | Primer análisis **con cobertura**: 16,7 % sobre código nuevo. 72 issues abiertos (21 nuevos): 11 de confiabilidad, 1 de seguridad, 60 de mantenibilidad. Se corrigió el grupo A (13 issues de etiquetas). Detalle en la sección 7.1. |
-| 15/11/2026 | Failed | A | A | Escáner sin `root` (grupo D corregido): la seguridad pasa a A. 70 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades. Solo fallan `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.2. |
+| 15/11/2026 | Failed | C | A | Escáner sin `root` (grupo D corregido): la seguridad pasa a A. El panel sigue mostrando confiabilidad C (11 issues de impacto *Medium*), pero la condición del gate (`reliability_rating`) está en A. 70 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades. Solo fallan `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.2. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -258,14 +258,14 @@ las calificaciones sobre todo el código ya cumplen:
 | `new_coverage` | 16,7 % | ≥ 80 % | **Falla** |
 | `new_violations` | 21 | 0 | **Falla** |
 
-Medidas sobre todo el código: 70 issues abiertos (todos de mantenibilidad, mantenibilidad A), 0 *bugs*, 0
-vulnerabilidades, 0 *hotspots*, cobertura total 13,0 %, duplicación 0,0 % y 7.546 líneas de código. Las 216
+Medidas sobre todo el código: 70 issues abiertos (11 de confiabilidad y 59 de mantenibilidad, según el panel), 0
+*bugs*, 0 vulnerabilidades, 0 *hotspots*, cobertura total 13,0 %, duplicación 0,0 % y 7.546 líneas de código. Las 216
 pruebas pasan (115 de Domain, 20 de Application, 70 del simulador y 11 de calidad de arquitectura).
 
 Respecto del 12/11 hay 2 issues menos (72 → 70), entre ellos `docker:S6471`; los 21 nuevos siguen siendo 21
 (sección 7.1). Siguen abiertos `S6966` ×4, `S6964` ×4 y `S6562` ×3, que suman los 11 issues de confiabilidad de
-impacto *Medium* que el panel mostraba el 12/11: coinciden en cantidad, pero no se verificó en el panel que sean
-los mismos. El gate no los toma en cuenta, porque su `reliability_rating` está en A con 0 *bugs*.
+impacto *Medium* que el panel sigue mostrando (confiabilidad C). El gate no los toma en cuenta, porque su
+`reliability_rating` está en A con 0 *bugs*. Es la misma diferencia entre panel y gate que se explica en la sección 5.
 
 Cómo se llegó, y qué decisiones quedan: el usuario sin `root` obligó a analizar sobre una copia en `/tmp` (ver
 sección 6). Para pasar el gate sobre código nuevo faltan las dos condiciones de arriba: corregir los 21 issues
