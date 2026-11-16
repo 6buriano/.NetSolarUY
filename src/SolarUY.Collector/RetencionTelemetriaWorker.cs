@@ -41,11 +41,15 @@ public class RetencionTelemetriaWorker : BackgroundService
         }
 
         var intervalo = TimeSpan.FromHours(Math.Max(1, _opciones.IntervaloRetencionHoras));
-        var diasRetencion = _opciones.RetencionDias;
-        var horasIntervalo = intervalo.TotalHours;
-        _logger.LogInformation(
-            "Purga de telemetría iniciada: se conservan {Dias} días y corre una vez cada {Horas} horas.",
-            diasRetencion, horasIntervalo);
+
+        // IsEnabled evita calcular y empaquetar los argumentos del mensaje cuando el nivel Information
+        // está apagado (regla CA1873 del analizador).
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Purga de telemetría iniciada: se conservan {Dias} días y corre una vez cada {Horas} horas.",
+                _opciones.RetencionDias, intervalo.TotalHours);
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -85,8 +89,12 @@ public class RetencionTelemetriaWorker : BackgroundService
 
         if (borradas > 0)
         {
-            _logger.LogInformation("Purga de telemetría: {Cantidad} filas borradas (lecturas de más de {Dias} días).",
-                borradas, diasRetencion);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "Purga de telemetría: {Cantidad} filas borradas (lecturas de más de {Dias} días).",
+                    borradas, diasRetencion);
+            }
         }
         else
         {
