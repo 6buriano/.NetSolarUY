@@ -210,6 +210,8 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 15/11/2026 (7.º) | Failed | A (gate) | A | Pruebas de `MonitoreoTiempoRealWorker`, `MonitoreoController`, `MonitoreoHub`, el registro de servicios (`DependencyInjection`) y `AgenteNoConfigurado`: `new_coverage` sube de 58,7 % a **73,1 %** y la cobertura total de 30,4 % a 34,4 %. 58 issues abiertos (13 nuevos). Falla `new_coverage` (73,1 contra 80) y `new_violations` (13). Detalle en la sección 7.8. |
 | 15/11/2026 (8.º) | Failed | A (gate) | A | `CA1873` corregido en `RetencionTelemetriaWorker` con `IsEnabled` (más 2 pruebas del log): `new_violations` baja de 13 a 11 y `new_coverage` pasa de 73,1 % a 73,3 %. 56 issues abiertos (11 nuevos). Detalle en la sección 7.9. |
 | 16/11/2026 | Failed | A (gate) | A | Los dos archivos JavaScript dejan de contar para la cobertura y se refactoriza `SeguimientoMonitoreo.Comparar`: **`new_coverage` pasa a 82,8 % y cumple el umbral (≥ 80)**; `new_violations` baja de 11 a 10. 55 issues abiertos (10 nuevos). Solo falla `new_violations`. Detalle en la sección 7.9. |
+| 16/11/2026 (2.º) | Failed | A (gate) | A | Se reescriben los 7 comentarios con la palabra "todo" (`S1135`) y el campo de fecha de cierre pasa a ser nullable (`S6964`): `new_violations` baja de 10 a **2**; `new_coverage` sigue en 82,8 %. 47 issues abiertos (2 nuevos: `S6667` y `S101`). Detalle en la sección 7.10. |
+| 16/11/2026 (3.º) | Failed | A (gate) | A | Se renombra `IMCPAgentService` a `IMcpAgentService` (`S101`): `new_violations` baja de 2 a **1** (solo `S6667`, decisión justificada); `new_coverage` sigue en 82,8 %. 46 issues abiertos (1 nuevo). Es la única condición que falla. Detalle en la sección 7.10. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -330,7 +332,7 @@ agregaron algunas líneas sin pruebas propias. El gate sigue fallando por `new_c
 | `CA1873` | 2 | `RetencionTelemetriaWorker`: guardar los valores en variables locales **no** alcanzó, la regla sigue marcando las dos llamadas de log. Falta probar con `if (_logger.IsEnabled(...))` o `[LoggerMessage]`. |
 | `S6667` | 1 | `GeminiMcpAgentService`: ver abajo. |
 | `S3776` | 1 | `SeguimientoMonitoreo`: complejidad 18 de 15. Requiere refactor. |
-| `S101` | 1 | Renombrar `IMCPAgentService` a `IMcpAgentService`: toca varios módulos, hay que acordarlo. |
+| `S101` | 1 | Renombrar `IMCPAgentService` a `IMcpAgentService`: toca varios módulos. **Hecho el 16/11/2026 (sección 7.10).** |
 | `S6964` | 1 | `CierreMantenimientoViewModel`: grupo C, decisión pendiente. |
 
 **`S6667` en `GeminiMcpAgentService` (propuesta, pendiente de aprobación del equipo).** El código registra solo el
@@ -510,9 +512,58 @@ configuraciones de EF y controladores triviales.
 | `S101` | 1 | `IMCPAgentService` debería llamarse `IMcpAgentService`; el cambio toca varios módulos. |
 | `S6964` | 1 | `CierreMantenimientoViewModel`: campo de fecha obligatoria; es el grupo C de la sección 7.1. |
 
-**Decisiones pendientes (del responsable del proyecto):** qué hacer con estos 10: reescribir los 7 comentarios que
+**Decisiones pendientes (del responsable del proyecto), resueltas después en la sección 7.10:** qué hacer con estos 10: reescribir los 7 comentarios que
 contienen "todo", dejar `S6667` justificado, renombrar la interfaz y tratar el grupo C, o presentarlos en la
 defensa con su justificación sin modificarlos.
+
+### 7.10 Análisis del 16/11/2026: de 10 a 1 issue nuevo
+
+Se corrigieron dos grupos de los 10 issues nuevos de la sección 7.9. Todos los cambios fueron aprobados por el
+responsable del proyecto antes de aplicarse.
+
+**`S1135` (7 issues): comentarios reescritos.** Eran falsos positivos por el idioma (la palabra "todo" en
+castellano). En vez de marcarlos en el servidor, se reformularon los comentarios para evitar esa palabra, en
+`MantenimientosController`, `RetencionTelemetriaService`,
+`MonitoreoTiempoRealWorker`, `SeguimientoMonitoreo`, `DependencyInjection`, `ReporteService` y
+`GeneracionPeriodoDto`. No cambia código ejecutable. **Los siete eran de código nuevo y ya no cuentan; los 8
+`S1135` que siguen abiertos están en código que no es nuevo y no afectan al gate.**
+
+**`S6964` en `CierreMantenimientoViewModel`.** `FechaRealizada` pasó de `DateTime` a `DateTime?`, con `[Required]`.
+Si la fecha llega vacía, `MantenimientosController.Completar` no cierra el mantenimiento: guarda un mensaje de error
+y vuelve al detalle. Antes, una fecha vacía llegaba como `0001-01-01` y se tomaba como fecha de cierre válida.
+Hay una prueba de ese caso. Es el primer issue del grupo C resuelto; los otros tres `S6964`
+(`MantenimientoFormViewModel`, `NodoFormViewModel` y `PanelFormViewModel`) siguen abiertos, no son código nuevo y
+tocan formularios de otros integrantes.
+
+**`S101`: `IMCPAgentService` pasa a `IMcpAgentService`.** Solo cambia el nombre de la interfaz y sus usos: 5 archivos de
+`src`, 3 de pruebas y `specs.md`. No cambia comportamiento y las 353 pruebas pasan. Los archivos de `prompting/`
+conservan el nombre viejo a propósito: son el registro histórico del diseño.
+
+> **Detalle técnico: renombrar solo cambiando mayúsculas en Windows.** `git apply` de un parche que renombra
+> `IMCPAgentService.cs` a `IMcpAgentService.cs` falla en Windows ("already exists in working directory"): para el
+> sistema de archivos son el mismo archivo. Se resolvió con `git mv` en dos pasos (a un nombre intermedio y luego al
+> definitivo) y reemplazo del texto en los archivos.
+
+| Medida | 16/11 (sección 7.9) | Tras `S1135` y `S6964` | Tras `S101` |
+|---|---|---|---|
+| `new_coverage` (código nuevo) | 82,8 % | 82,8 % | **82,8 %** (umbral: 80) |
+| Cobertura total | 35,5 % | 35,6 % | 35,6 % |
+| `new_violations` | 10 | 2 | **1** (umbral: 0) |
+| Issues abiertos / nuevos | 55 / 10 | 47 / 2 | **46 / 1** |
+| Confiabilidad / seguridad | A / A | A / A | A / A |
+| Duplicación (código nuevo) | 0,0 % | 0,0 % | 0,0 % |
+| Líneas de código | 7.567 | 7.567 | 7.567 |
+
+**El único issue nuevo: `S6667` en `GeminiMcpAgentService`, línea 91.** La regla pide pasar la excepción al log. No
+se hizo a propósito: el mensaje de una excepción HTTP puede incluir la URL de la solicitud y ahí puede ir la clave
+de la API del proveedor (sección 7.4). El gate queda en `ERROR` **solo por esta condición**. Las dos formas de
+cerrarlo son del responsable del proyecto: marcar el issue como *Accepted* (*Won't fix*) en la interfaz de
+SonarQube con un comentario que explique el riesgo, o dejarlo abierto y explicarlo en la defensa. Mientras no se
+decida, esta sección es la justificación escrita.
+
+**Código nuevo que sigue sin cubrirse** (sin cambios desde 7.9): `GeminiMcpAgentService` (66 líneas),
+`TelemetriaRepository` (30), `Program.cs` de Web (18), de `McpServer` (13) y de Collector (4), más unas 9 en
+configuraciones de EF y controladores triviales.
 
 ## 8. Problemas típicos
 
@@ -548,20 +599,22 @@ defensa con su justificación sin modificarlos.
   repositorio no tenga la variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN` apuntando a un
   servidor alcanzable desde el runner.
 - **El gate es estricto sobre todo el código**, no solo sobre el código nuevo de cada cambio.
+- **El gate sigue en `ERROR` por un issue justificado.** Es el `S6667` de `GeminiMcpAgentService` (sección 7.10): corregirlo expondría la clave de la API en los registros. Las demás condiciones cumplen.
 - **No cubre la arquitectura.** Las reglas de capas y nombres las verifica `tests/CodeQuality.Tests` (ArchUnitNET),
   que ya existe y corre en el CI con el resto de las pruebas.
 
 ## 10. Próximos pasos
 
 1. Activar `sonar.yml`: variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN`.
-2. Confirmar con el equipo el criterio de cobertura (82,8 % con los dos JavaScript excluidos, sección 5).
+2. Confirmar con el equipo el criterio de cobertura (82,8 % con los dos JavaScript excluidos, sección 5) y decidir qué hacer con el `S6667` de `GeminiMcpAgentService` (marcarlo como *Accepted* en SonarQube o defenderlo, sección 7.10).
 3. Pruebas de `Application`: ya están `Mantenimiento`, `Reporte`, `Consulta` y `Monitoreo`. También están el worker de
    retención y los controladores `Consultas` y `Mantenimientos`. Faltan `Nodo`, `Panel`, `Parque` y
    `VerificacionVinculacion`, y los caminos de falla del agente Gemini; para `new_coverage` pesan más los
    archivos tocados desde el 01/11 (secciones 7.5 a 7.8).
-4. Los grupos A, B y D ya están corregidos (el D dejó la seguridad en A). Sigue el grupo C (campos que pueden
-   faltar, `S6964`), que toca módulos de otros integrantes y hay que acordar con el equipo; mejora la confiabilidad
+4. Los grupos A, B y D ya están corregidos (el D dejó la seguridad en A). Del grupo C (campos que pueden faltar,
+   `S6964`) se corrigió `CierreMantenimientoViewModel`; quedan tres formularios (`MantenimientoFormViewModel`,
+   `NodoFormViewModel`, `PanelFormViewModel`) que tocan módulos de otros integrantes y hay que acordar con el equipo; mejora la confiabilidad
    aunque hoy no haga fallar el gate.
-5. Decidir cómo tratar los falsos positivos de `S1135` (sección 7.1).
+5. Los falsos positivos de `S1135` del código nuevo se resolvieron reescribiendo los comentarios (sección 7.10); quedan 8 en código viejo que no afectan al gate.
 6. `S3776` en código nuevo ya está resuelto (`SeguimientoMonitoreo`); queda `ComparadorVinculacion`, que no es código
    nuevo y por eso no afecta al gate.
