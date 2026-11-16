@@ -13,6 +13,17 @@ echo "Análisis SonarQube de: $PROJECT_KEY"
 echo "Servidor: $SONAR_HOST_URL"
 echo "========================================="
 
+# El contenedor corre como usuario sin privilegios (el Dockerfile no usa root: docker:S6471) y la
+# carpeta montada desde Windows llega como propiedad de root, así que ahí no se puede escribir
+# (.sonarqube, bin, obj). Por eso se trabaja sobre una copia en /tmp, sin las carpetas generadas.
+# Efecto colateral bueno: el repo del usuario no se ensucia con archivos del análisis.
+WORK_DIR="/tmp/solaruy-src"
+rm -rf "$WORK_DIR"
+mkdir -p "$WORK_DIR"
+tar -C /app --exclude=bin --exclude=obj --exclude=.sonarqube --exclude=node_modules -cf - . \
+  | tar -C "$WORK_DIR" -xf -
+cd "$WORK_DIR"
+
 # Qué NO se analiza (código que no escribimos a mano o que no es de SolarUY):
 #  - Migrations: las genera EF Core.
 #  - wwwroot/lib: Bootstrap y jQuery de la plantilla MVC.
