@@ -14,6 +14,8 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <!-- Alineado con Infrastructure (ver CodeQuality.Tests): evita el aviso MSB3277 de versiones en conflicto. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.20" />
+    <!-- Base de datos en memoria para probar repositorios y configuraciones de EF contra un motor SQL real. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.20" />
   </ItemGroup>
 
   <ItemGroup>
