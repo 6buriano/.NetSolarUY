@@ -189,6 +189,7 @@ como *Won't fix* ni *False positive* sin explicar el motivo y que lo apruebe el 
 | 15/11/2026 | Failed | C | A | Escáner sin `root` (grupo D corregido): la seguridad pasa a A. El panel sigue mostrando confiabilidad C (11 issues de impacto *Medium*), pero la condición del gate (`reliability_rating`) está en A. 70 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades. Solo fallan `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.2. |
 | 15/11/2026 (2.º) | Failed | A (gate) | A | Grupo B corregido: `MigrateAsync()` y `RunAsync()` en Web y Collector. 66 issues abiertos (21 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas siguen pasando. Fallan las mismas dos condiciones: `new_coverage` (16,7 %) y `new_violations` (21). Detalle en la sección 7.3. |
 | 15/11/2026 (3.º) | Failed | A (gate) | A | Se corrigieron 8 de los 21 issues nuevos (`S1192`, `CA1861`, `CA1826`, `S1450`). 58 issues abiertos (13 nuevos), 0 *bugs*, 0 vulnerabilidades; las 216 pruebas pasan. Fallan las mismas dos condiciones: `new_coverage` (16,5 %) y `new_violations` (13). Detalle en la sección 7.4. |
+| 15/11/2026 (4.º) | Failed | A (gate) | A | Pruebas nuevas de `MantenimientoService`, `ReporteService`, `ConsultaService` y `MonitoreoService` (41 pruebas, 257 en total): `new_coverage` sube de 17,4 % a 26,2 % y la cobertura total de 15,0 % a 18,0 %. 58 issues abiertos (13 nuevos). Fallan `new_coverage` y `new_violations` (13). Detalle en la sección 7.5. |
 
 *Agregar una fila después de cada análisis relevante.*
 
@@ -318,6 +319,42 @@ URL de la solicitud, y ahí puede ir la clave de la API del proveedor. Pasar la 
 regla arriesgaría filtrar un secreto. Se propone dejar el issue abierto y documentado como decisión justificada,
 sin marcarlo como *False positive* hasta que el equipo lo apruebe.
 
+### 7.5 Análisis del 15/11/2026 (cuarto): pruebas de `Application`
+
+Se escribieron pruebas unitarias para cuatro servicios de `Application`, con repositorios falsos en memoria (el
+proyecto no usa librerías de mocks): `MantenimientoService` (20 pruebas), `ReporteService` (10),
+`ConsultaService` (8) y `MonitoreoService.ObtenerInstantaneaAsync` (3). Las 257 pruebas pasan.
+
+| Medida | Antes | Ahora |
+|---|---|---|
+| `new_coverage` (código nuevo) | 17,4 % | **26,2 %** |
+| Cobertura total | 15,0 % | 18,0 % |
+| Issues abiertos / nuevos | 58 / 13 | 58 / 13 |
+
+Un hallazgo que conviene tener presente: **las pruebas de `MantenimientoService` subieron la cobertura total pero
+casi no movieron `new_coverage`** (de 16,5 % a 17,4 %), porque `new_coverage` solo cuenta el código nuevo o
+modificado desde el período de referencia (01/11). Para ese número sirven las pruebas de lo que se tocó después.
+
+**Qué falta cubrir del código nuevo.** Quedan 682 líneas nuevas sin cubrir en 35 archivos (según
+`api/measures/component_tree`). Agrupadas:
+
+| Zona | Líneas sin cubrir | Archivos principales |
+|---|---|---|
+| Agente y herramientas MCP | 236 | `GeminiMcpAgentService` (75), `ObtenerGeneracionHistoricaTool` (70), `ListarPanelesEnFallaTool` (26) |
+| Web (controladores, worker, `Program.cs`) | 139 | `MonitoreoTiempoRealWorker` (44), `ConsultasController` (29), `MantenimientosController` (24) |
+| JavaScript (`monitoreo.js`, `panel-detalle.js`) | 123 | El proyecto no tiene pruebas de front-end |
+| Infraestructura (inyección, repositorio) | 88 | `DependencyInjection` (54), `TelemetriaRepository` (30) |
+| Collector | 66 | `RetencionTelemetriaWorker` (59) |
+| Application | 30 | `ParqueMappings` (12), `ResumenParqueDto` (9), `ParqueService` (7) |
+
+El total de líneas nuevas a cubrir no sale directo del reporte: se estima en unas 924 (682 sin cubrir con 26,2 % de
+cobertura). Con esa estimación, llegar al 80 % exigiría cubrir unas 500 líneas más, y la mayor parte está en zonas
+que piden pruebas de integración o de infraestructura, no unitarias simples.
+
+**Decisiones pendientes (del responsable del proyecto):** si se excluyen los archivos JavaScript de la medida de
+cobertura (`sonar.coverage.exclusions`) por no haber pruebas de front-end; qué pruebas se escriben antes de la
+defensa; y qué valor de `new_coverage` se defiende, con su justificación, en lugar del 80 %.
+
 ## 8. Problemas típicos
 
 | Síntoma | Causa | Qué hacer |
@@ -337,11 +374,11 @@ sin marcarlo como *False positive* hasta que el equipo lo apruebe.
 ## 9. Limitaciones
 
 - **La cobertura se mide, pero está lejos del umbral.** Desde el 12/11 el análisis ejecuta las pruebas y envía la
-  cobertura (antes figuraba en 0 %). El resultado es 16,7 % sobre el código nuevo contra el 80 % que exige el gate:
-  con 884 líneas a cubrir, harían falta unas 560 más cubiertas (estimación a partir de esos números). Hoy el
-  dominio está bien probado, siete servicios de `Application` no tienen pruebas, y `Infrastructure`, `Web` y
-  `Collector` tampoco. Hay dos caminos y los dos son decisión del equipo: escribir esas pruebas, o ajustar la
-  condición `new_coverage` con un umbral alcanzable y justificado.
+  cobertura (antes figuraba en 0 %). El 12/11 el resultado era 16,7 % sobre el código nuevo; tras las pruebas del
+  15/11 es 26,2 %, contra el 80 % que exige el gate (sección 7.5). Hoy el dominio está bien probado y varios
+  servicios de `Application` también, pero `Infrastructure`, `Web`, `Collector` y el JavaScript casi no tienen
+  pruebas, y ahí están la mayoría de las líneas nuevas sin cubrir. Hay dos caminos y los dos son decisión del
+  responsable: escribir más pruebas, o ajustar la condición `new_coverage` con un umbral alcanzable y justificado.
 - **La exclusión del simulador no alcanza a sus pruebas.** `SolarUY.SensorSimulator/**` deja afuera el código del
   simulador, pero dos issues (`CA1861`) de `SolarUY.SensorSimulator.Tests` siguen apareciendo. La causa probable es
   que el escáner de .NET resuelve las exclusiones respecto de la carpeta de cada proyecto. No afecta al gate: no son
@@ -358,8 +395,8 @@ sin marcarlo como *False positive* hasta que el equipo lo apruebe.
 
 1. Activar `sonar.yml`: variable `SONAR_ENABLED` y los secretos `SONAR_HOST_URL`/`SONAR_TOKEN`.
 2. Decidir con el equipo qué hacer con la condición de cobertura: más pruebas o un umbral justificado.
-3. Escribir pruebas de los servicios de `Application` que no tienen (`Nodo`, `Panel`, `Parque`, `Mantenimiento`,
-   `Reporte`, `Consulta`, `VerificacionVinculacion`): es lo que más cobertura aporta por línea escrita.
+3. Pruebas de `Application`: ya están `Mantenimiento`, `Reporte`, `Consulta` y `Monitoreo`. Faltan `Nodo`, `Panel`,
+   `Parque` y `VerificacionVinculacion`; para `new_coverage` pesan más los archivos tocados desde el 01/11 (sección 7.5).
 4. Los grupos A, B y D ya están corregidos (el D dejó la seguridad en A). Sigue el grupo C (campos que pueden
    faltar, `S6964`), que toca módulos de otros integrantes y hay que acordar con el equipo; mejora la confiabilidad
    aunque hoy no haga fallar el gate.
