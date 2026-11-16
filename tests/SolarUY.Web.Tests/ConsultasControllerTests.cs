@@ -92,7 +92,7 @@ public class ConsultasControllerTests
         Assert.Equal(0, agente.Llamadas);
     }
 
-    private sealed class AgenteFalso(ConsultaLenguajeNaturalResponse? respuesta = null) : IMCPAgentService
+    private sealed class AgenteFalso(ConsultaLenguajeNaturalResponse? respuesta = null) : IMcpAgentService
     {
         public int Llamadas { get; private set; }
         public string? UltimaPregunta { get; private set; }

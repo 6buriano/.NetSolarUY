@@ -88,13 +88,13 @@ public static class DependencyInjection
         {
             var detalle = string.Join(" y ", faltantes);
 
-            services.AddScoped<IMCPAgentService>(proveedor => new AgenteNoConfigurado(
+            services.AddScoped<IMcpAgentService>(proveedor => new AgenteNoConfigurado(
                 proveedor.GetRequiredService<ILogger<AgenteNoConfigurado>>(), detalle));
 
             return services;
         }
 
-        services.AddScoped<IMCPAgentService>(proveedor =>
+        services.AddScoped<IMcpAgentService>(proveedor =>
         {
             var cliente = new ChatClientBuilder(
                     new GenerativeAIChatClient(apiKey!, modelo!, autoCallFunction: false))

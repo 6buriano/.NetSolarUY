@@ -9,7 +9,7 @@ namespace SolarUY.Infrastructure.Consultas;
 /// en el log qué claves faltan (nunca sus valores) y devuelve el mismo mensaje de falla que un
 /// proveedor caído, para que la web arranque y el usuario reciba un texto entendible.
 /// </summary>
-public sealed class AgenteNoConfigurado : IMCPAgentService
+public sealed class AgenteNoConfigurado : IMcpAgentService
 {
     public AgenteNoConfigurado(ILogger<AgenteNoConfigurado> logger, string faltantes)
     {

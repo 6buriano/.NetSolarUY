@@ -10,7 +10,7 @@ namespace SolarUY.Application.Consultas;
 /// La firma no menciona ni a Gemini ni al protocolo MCP: son el detalle de implementación que pone
 /// <c>Infrastructure</c>. La aplicación solo sabe que hay un agente al que se le hace una pregunta.
 /// </remarks>
-public interface IMCPAgentService
+public interface IMcpAgentService
 {
     /// <summary>
     /// Devuelve la respuesta en español a la pregunta. No lanza por fallas del proveedor de IA (sin

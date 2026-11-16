@@ -58,7 +58,7 @@ Contiene los casos de uso, orquestación y transformación de datos.
 - `ISignalRNotificationService`: Abstracción para el envío de métricas telemétricas en tiempo real hacia los clientes Web.
 - `ISensorClient`: Abstracción del sensor ARM + inversor (consultar estado y mandar órdenes). Permite cambiar el simulador por hardware real sin tocar el resto del sistema.
 - `ISensorDisponibilidadService`: Abstracción para preguntarle al hardware si un sensor existe —y pedirle que lo cree cuando ese hardware es el simulador—, de modo que el alta de un nodo pueda avisar y ofrecer alternativas en lugar de guardar un nodo que nunca va a recibir telemetría. En producción se registra una implementación nula.
-- `IMCPAgentService`: Abstracción para procesar consultas en lenguaje natural mediante el protocolo MCP.
+- `IMcpAgentService`: Abstracción para procesar consultas en lenguaje natural mediante el protocolo MCP.
 
 ### 3.3. DTOs (Data Transfer Objects)
 - `ParqueDto`, `CrearParqueRequest`, `NodoDto`, `PanelDto`, `LecturaTelemetriaDto`, `ConsultaLenguajeNaturalResponse`.

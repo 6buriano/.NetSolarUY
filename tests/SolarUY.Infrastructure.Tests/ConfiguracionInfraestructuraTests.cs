@@ -74,7 +74,7 @@ public class ConfiguracionInfraestructuraTests
             servicios.AddAgenteConsultas(apiKey, modelo, url, TimeSpan.FromSeconds(30)));
         using var scope = proveedor.CreateScope();
 
-        var agente = scope.ServiceProvider.GetRequiredService<IMCPAgentService>();
+        var agente = scope.ServiceProvider.GetRequiredService<IMcpAgentService>();
 
         Assert.IsType<AgenteNoConfigurado>(agente);
         var respuesta = await agente.ConsultarAsync("¿Cuánto se generó hoy?");
@@ -90,7 +90,7 @@ public class ConfiguracionInfraestructuraTests
                 TimeSpan.FromSeconds(30)));
         using var scope = proveedor.CreateScope();
 
-        var agente = scope.ServiceProvider.GetRequiredService<IMCPAgentService>();
+        var agente = scope.ServiceProvider.GetRequiredService<IMcpAgentService>();
 
         Assert.IsType<GeminiMcpAgentService>(agente);
     }

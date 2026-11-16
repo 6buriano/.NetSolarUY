@@ -93,7 +93,7 @@ public class ConsultaServiceTests
         Assert.Equal("No se pudo responder ahora.", respuesta.Texto);
     }
 
-    private sealed class AgenteFalso(ConsultaLenguajeNaturalResponse? respuesta = null) : IMCPAgentService
+    private sealed class AgenteFalso(ConsultaLenguajeNaturalResponse? respuesta = null) : IMcpAgentService
     {
         public int Llamadas { get; private set; }
         public string? UltimaPregunta { get; private set; }
